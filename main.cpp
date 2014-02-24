@@ -38,7 +38,7 @@ void SimpleOpenNIViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZ>::ConstPt
 		return;
 	}
 
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZ>());
+	// pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZ>());
 
 	// Create the filtering object: downsample the dataset using a leaf size of 1cm
 	pcl::VoxelGrid<pcl::PointXYZ> vg;
@@ -49,6 +49,7 @@ void SimpleOpenNIViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZ>::ConstPt
 	std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size()  << " data points." << std::endl; //*
 
 	// Create the segmentation object for the planar model and set all the parameters
+/*
 	pcl::SACSegmentation<pcl::PointXYZ> seg;
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
@@ -60,7 +61,9 @@ void SimpleOpenNIViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZ>::ConstPt
 	seg.setMaxIterations(100);
 	seg.setDistanceThreshold(0.02);
 
+
 	int i=0, nr_points =(int) cloud_filtered->points.size();
+	
 	while(cloud_filtered->points.size() > 0.3 * nr_points) {
 	
 		// Segment the largest planar component from the remaining cloud
@@ -87,6 +90,7 @@ void SimpleOpenNIViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZ>::ConstPt
 		extract.filter(*cloud_f);
 		*cloud_filtered = *cloud_f;
 	}
+	*/
 
 	// Creating the KdTree object for the search method of the extraction
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
@@ -95,8 +99,8 @@ void SimpleOpenNIViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZ>::ConstPt
 	std::vector<pcl::PointIndices> cluster_indices;
 	pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
 	ec.setClusterTolerance(0.05);
-	ec.setMinClusterSize(100);
-	ec.setMaxClusterSize(25000);
+	ec.setMinClusterSize(10);
+	ec.setMaxClusterSize(100000);
 	ec.setSearchMethod(tree);
 	ec.setInputCloud(cloud_filtered);
 	ec.extract(cluster_indices);
@@ -113,7 +117,7 @@ void SimpleOpenNIViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZ>::ConstPt
 
 			pcl::PointXYZRGBA pt;
 			pt.getVector3fMap() = pt_xyz.getVector3fMap();
-			pt.r = cluster_ix * 10;
+			pt.r = cluster_ix * 25;
 			pt.g = 0xff;
 			pt.b = 255 - pt.r;
 			pt.a = 0xff;
