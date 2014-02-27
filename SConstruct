@@ -9,15 +9,17 @@ env = Environment(
 		'/usr/include/pcl-1.6',
 		'/usr/include/vtk',
 		'/usr/include/ni',
+		
+	],
+	LIBPATH = [
+		'/usr/lib64/vtk/',
 	])
 env['ENV']['TERM'] = os.environ['TERM']
 
 # project specific code
 env.Program(
 	'future_lens',
-	source = [
-		'main.cpp',
-		],
+	source = Glob('*.cpp'),
 	LIBS = [
 		'libboost_system-mt',
 		'libboost_thread-mt',
