@@ -23,6 +23,12 @@
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 
+
+TrackingTarget::TrackingTarget() {
+	time = std::chrono::system_clock::now();
+}
+
+
 FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 	visualizer.addCoordinateSystem(1.0);
 	visualizer.addPointCloud(ColorCloud::ConstPtr(new ColorCloud()));
@@ -42,9 +48,11 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 	ColorCloud::Ptr cloud_final(new ColorCloud());
 	pcl::copyPointCloud(*cloud, *cloud_final);
 
+	// cloud_final->points.clear();
 	for(const auto& target : targets) {
 		std::mt19937 gen;
-	
+		
+		// Show blob.
 		for(int i = 0; i < 200; i++) {
 			const Eigen::Vector3f dp(
 				std::normal_distribution<double>(0, 0.01)(gen),
@@ -60,6 +68,23 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 			pt.r = target.r;
 			pt.g = target.g;
 			pt.b = target.b;
+			pt.a = 255;
+			cloud_final->points.push_back(pt);
+		}
+
+		// Show velocity vector.
+		const float step = 0.005;
+		const int mark_count = std::floor(target.velocity.norm() / step);
+		for(int i = 0; i < mark_count; i++) {
+			const Eigen::Vector3f p = target.position + target.velocity * (i * 1.0 / mark_count);
+
+			pcl::PointXYZRGBA pt;
+			pt.x = p.x();
+			pt.y = p.y();
+			pt.z = p.z();
+			pt.r = 255;
+			pt.g = 0;
+			pt.b = 0;
 			pt.a = 255;
 			cloud_final->points.push_back(pt);
 		}
@@ -160,7 +185,11 @@ void FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPt
 		return;
 	}
 
-	target.position = accum / count;
+	const Eigen::Vector3f new_position = accum / count;
+	const auto new_time = std::chrono::system_clock::now();
+	target.velocity = (new_position - target.position) / (std::chrono::duration_cast<std::chrono::milliseconds>(new_time - target.time).count() * 1e-3);
+	target.position = new_position;
+	target.time = new_time;
 }
 
 void FutureViewer::run() {
@@ -184,7 +213,9 @@ void FutureViewer::run() {
 			visualizer.updatePointCloud(cloud);
 		}
 		
-		visualizer.spinOnce(100);
+		// This call blocks (== cannot update point cloud) when user is rotating the view.
+		visualizer.spinOnce(100, true);
+
 		boost::this_thread::sleep(boost::posix_time::microseconds(30000));
 	}
 	source->stop();

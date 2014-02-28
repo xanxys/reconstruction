@@ -4,6 +4,7 @@
 #define linux 1
 #define __x86_64__ 1
 
+#include <chrono>
 #include <mutex>
 #include <vector>
 
@@ -14,7 +15,14 @@
 
 class TrackingTarget {
 public:
+	TrackingTarget();
+public:
+	// snapshot
+	std::chrono::time_point<std::chrono::system_clock> time;
 	Eigen::Vector3f position;
+	Eigen::Vector3f velocity;
+
+	// visualization
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;
