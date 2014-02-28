@@ -23,7 +23,7 @@
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 
-FutureViewer::FutureViewer() : viewer("Time Lens"), tracking_ok(false), target_position({0, 0, 0}) {
+FutureViewer::FutureViewer() : viewer("Time Lens") {
 }
 
 void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud) {
@@ -31,33 +31,36 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 		return;
 	}
 
-	if(tracking_ok) {
-		tracking_ok = trackTarget(cloud);
+	if(targets.empty()) {
+		targets = findAllTargets(cloud);
 	} else {
-		tracking_ok = findTarget(cloud);
+		for(auto& target : targets) {
+			trackTarget(cloud, target);
+		}
 	}
 
 	// Add visualization to the original point cloud.
 	ColorCloud::Ptr cloud_final(new ColorCloud());
 	pcl::copyPointCloud(*cloud, *cloud_final);
 
-	std::mt19937 gen;
-	if(tracking_ok) {
+	for(const auto& target : targets) {
+		std::mt19937 gen;
+	
 		for(int i = 0; i < 200; i++) {
 			const Eigen::Vector3d dp(
 				std::normal_distribution<double>(0, 0.01)(gen),
 				std::normal_distribution<double>(0, 0.01)(gen),
 				std::normal_distribution<double>(0, 0.01)(gen));
 
-			const Eigen::Vector3d p = target_position + dp;
+			const Eigen::Vector3d p = target.position + dp;
 
 			pcl::PointXYZRGBA pt;
 			pt.x = p.x();
 			pt.y = p.y();
 			pt.z = p.z();
-			pt.r = 255;
-			pt.g = 0;
-			pt.b = 0;
+			pt.r = target.r;
+			pt.g = target.g;
+			pt.b = target.b;
 			pt.a = 255;
 			cloud_final->points.push_back(pt);
 		}
@@ -66,7 +69,7 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 	viewer.showCloud(cloud_final);
 }
 
-bool FutureViewer::findTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color) {
+std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color) {
 	Cloud::Ptr cloud(new Cloud());
 	pcl::copyPointCloud(*cloud_color, *cloud);
 
@@ -96,7 +99,13 @@ bool FutureViewer::findTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr
 
 	int cluster_ix = 0;
 	cloud_cluster->width = 0;
+
+	std::mt19937 gen;
+	std::vector<TrackingTarget> targets;
 	for(const auto& point_indices : cluster_indices) {
+		std::cout << "Cluster size: " << point_indices.indices.size() << std::endl;
+
+		Eigen::Vector3d accum(0, 0, 0);
 		for(int index : point_indices.indices) {
 			const pcl::PointXYZ& pt_xyz = cloud_filtered->points[index];
 
@@ -108,19 +117,31 @@ bool FutureViewer::findTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr
 			pt.a = 0xff;
 
 			cloud_cluster->points.push_back(pt);
+			accum += Eigen::Vector3d(pt.x, pt.y, pt.z);
 		}
 		cloud_cluster->width += cloud_cluster->points.size();
-		cluster_ix++;
+
+		const Eigen::Vector3d center = accum / point_indices.indices.size();
+		std::cout << "center=" << center << std::endl;
+
+		// Ignore large objects.
+		if(point_indices.indices.size() < 1000) {
+			TrackingTarget target;
+			target.position = center;
+			target.r = std::uniform_int_distribution<>(0, 255)(gen);
+			target.g = std::uniform_int_distribution<>(0, 255)(gen);
+			target.b = std::uniform_int_distribution<>(0, 255)(gen);
+			targets.push_back(target);
+		}
 	}
 	cloud_cluster->height = 1;
 	cloud_cluster->is_dense = true;
 
-	return true;
+	return targets;
 }
 
-bool FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color) {
-	target_position += Eigen::Vector3d(0, 0, 0.01);
-	return true;
+void FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color, TrackingTarget& target) {
+	target.position += Eigen::Vector3d(0, 0, 0.01);
 }
 
 void FutureViewer::run() {
