@@ -23,14 +23,13 @@
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 
-FutureViewer::FutureViewer() : viewer("Time Lens") {
+FutureViewer::FutureViewer() : visualizer("Time Lens2") {
+	visualizer.addCoordinateSystem(1.0);
+	visualizer.addPointCloud(ColorCloud::ConstPtr(new ColorCloud()));
 }
 
+// Called in grabber thread. DO NOT TOUCH visualizer!.
 void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud) {
-	if(viewer.wasStopped()) {
-		return;
-	}
-
 	if(targets.empty()) {
 		targets = findAllTargets(cloud);
 	} else {
@@ -66,7 +65,10 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 		}
 	}
 
-	viewer.showCloud(cloud_final);
+	{
+		std::lock_guard<std::mutex> lock(latest_cloud_lock);
+		latest_cloud = cloud_final;
+	}
 }
 
 std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color) {
@@ -162,18 +164,28 @@ void FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPt
 }
 
 void FutureViewer::run() {
-	pcl::Grabber* interface = new pcl::OpenNIGrabber();
+	pcl::Grabber* source = new pcl::OpenNIGrabber();
 
 	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
 		boost::bind(&FutureViewer::cloud_cb_, this, _1);
 
-	interface->registerCallback(f);
+	source->registerCallback(f);
+	source->start();
 
-	interface->start();
-
-	while(!viewer.wasStopped()) {
-		sleep(1);
+	while(!visualizer.wasStopped()) {
+		// No need to protect updatePointCloud, since the point cloud's data is const.
+		// boost::shared_ptr internals are important here.
+		ColorCloud::ConstPtr cloud;
+		{
+			std::lock_guard<std::mutex> lock(latest_cloud_lock);
+			cloud = latest_cloud;
+		}
+		if(cloud) {
+			visualizer.updatePointCloud(cloud);
+		}
+		
+		visualizer.spinOnce(100);
+		boost::this_thread::sleep(boost::posix_time::microseconds(30000));
 	}
-
-	interface->stop();
+	source->stop();
 }
