@@ -12,7 +12,7 @@
 
 class TrackingTarget {
 public:
-	Eigen::Vector3d position;
+	Eigen::Vector3f position;
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;

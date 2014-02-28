@@ -47,12 +47,12 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 		std::mt19937 gen;
 	
 		for(int i = 0; i < 200; i++) {
-			const Eigen::Vector3d dp(
+			const Eigen::Vector3f dp(
 				std::normal_distribution<double>(0, 0.01)(gen),
 				std::normal_distribution<double>(0, 0.01)(gen),
 				std::normal_distribution<double>(0, 0.01)(gen));
 
-			const Eigen::Vector3d p = target.position + dp;
+			const Eigen::Vector3f p = target.position + dp;
 
 			pcl::PointXYZRGBA pt;
 			pt.x = p.x();
@@ -105,7 +105,7 @@ std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<p
 	for(const auto& point_indices : cluster_indices) {
 		std::cout << "Cluster size: " << point_indices.indices.size() << std::endl;
 
-		Eigen::Vector3d accum(0, 0, 0);
+		Eigen::Vector3f accum(0, 0, 0);
 		for(int index : point_indices.indices) {
 			const pcl::PointXYZ& pt_xyz = cloud_filtered->points[index];
 
@@ -117,11 +117,11 @@ std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<p
 			pt.a = 0xff;
 
 			cloud_cluster->points.push_back(pt);
-			accum += Eigen::Vector3d(pt.x, pt.y, pt.z);
+			accum += Eigen::Vector3f(pt.x, pt.y, pt.z);
 		}
 		cloud_cluster->width += cloud_cluster->points.size();
 
-		const Eigen::Vector3d center = accum / point_indices.indices.size();
+		const Eigen::Vector3f center = accum / point_indices.indices.size();
 		std::cout << "center=" << center << std::endl;
 
 		// Ignore large objects.
@@ -141,7 +141,24 @@ std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<p
 }
 
 void FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color, TrackingTarget& target) {
-	target.position += Eigen::Vector3d(0, 0, 0.01);
+	const float radius = 0.1;
+
+	Eigen::Vector3f accum(0, 0, 0);
+	int count = 0;
+	for(const auto& point : cloud_color->points) {
+		if((point.getVector3fMap() - target.position).norm() < radius) {
+			accum += point.getVector3fMap();
+			count += 1;
+		}
+	}
+
+	if(count == 0) {
+		std::cout << "Tracking lost" << std::endl;
+		// TODO: Search again with larger radius.
+		return;
+	}
+
+	target.position = accum / count;
 }
 
 void FutureViewer::run() {
