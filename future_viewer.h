@@ -15,8 +15,12 @@
 
 class TrackingTarget {
 public:
-	TrackingTarget();
+	TrackingTarget(Eigen::Vector3f initial_pos);
 public:
+	// stat (10% blend in)
+	Eigen::Vector3f position_avg10;
+	std::vector<Eigen::Vector3f> history;
+
 	// snapshot
 	std::chrono::time_point<std::chrono::system_clock> time;
 	Eigen::Vector3f position;

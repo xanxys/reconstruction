@@ -24,10 +24,12 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 
 
-TrackingTarget::TrackingTarget() {
-	time = std::chrono::system_clock::now();
+TrackingTarget::TrackingTarget(Eigen::Vector3f initial_pos) :
+	position(initial_pos),
+	position_avg10(initial_pos),
+	velocity({0, 0, 0}),
+	time(std::chrono::system_clock::now()) {
 }
-
 
 FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 	visualizer.addCoordinateSystem(1.0);
@@ -51,7 +53,41 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 	// cloud_final->points.clear();
 	for(const auto& target : targets) {
 		std::mt19937 gen;
-		
+
+		// Show history
+		for(const auto& pos : target.history) {
+			pcl::PointXYZRGBA pt;
+			pt.x = pos.x();
+			pt.y = pos.y();
+			pt.z = pos.z();
+			pt.r = 0;
+			pt.g = 0;
+			pt.b = 255;
+			pt.a = 255;
+			cloud_final->points.push_back(pt);			
+		}
+
+		// Show avg pos.
+		for(int i = 0; i < 100; i++) {
+			const Eigen::Vector3f dp(
+				std::normal_distribution<double>(0, 0.01)(gen),
+				std::normal_distribution<double>(0, 0.01)(gen),
+				std::normal_distribution<double>(0, 0.01)(gen));
+
+			const Eigen::Vector3f p = target.position_avg10 + dp;
+
+			pcl::PointXYZRGBA pt;
+			pt.x = p.x();
+			pt.y = p.y();
+			pt.z = p.z();
+			pt.r = 0;
+			pt.g = 255;
+			pt.b = 0;
+			pt.a = 255;
+			cloud_final->points.push_back(pt);
+		}
+
+
 		// Show blob.
 		for(int i = 0; i < 200; i++) {
 			const Eigen::Vector3f dp(
@@ -153,8 +189,7 @@ std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<p
 
 		// Ignore large objects.
 		if(point_indices.indices.size() < 1000) {
-			TrackingTarget target;
-			target.position = center;
+			TrackingTarget target(center);
 			target.r = std::uniform_int_distribution<>(0, 255)(gen);
 			target.g = std::uniform_int_distribution<>(0, 255)(gen);
 			target.b = std::uniform_int_distribution<>(0, 255)(gen);
@@ -190,6 +225,11 @@ void FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPt
 	target.velocity = (new_position - target.position) / (std::chrono::duration_cast<std::chrono::milliseconds>(new_time - target.time).count() * 1e-3);
 	target.position = new_position;
 	target.time = new_time;
+
+	// stat
+	target.position_avg10 *= 0.9;
+	target.position_avg10 += target.position * 0.1;
+	target.history.push_back(target.position);
 }
 
 void FutureViewer::run() {
@@ -216,7 +256,7 @@ void FutureViewer::run() {
 		// This call blocks (== cannot update point cloud) when user is rotating the view.
 		visualizer.spinOnce(100, true);
 
-		boost::this_thread::sleep(boost::posix_time::microseconds(30000));
+		boost::this_thread::sleep(boost::posix_time::microseconds(20000));
 	}
 	source->stop();
 }
