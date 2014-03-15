@@ -18,7 +18,7 @@ env['ENV']['TERM'] = os.environ['TERM']
 
 # project specific code
 env.Program(
-	'future_lens',
+	'recon',
 	source = Glob('*.cpp'),
 	LIBS = [
 		'libboost_system-mt',

@@ -1,5 +1,6 @@
 #include "future_viewer.h"
 
+#include <cmath>
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -13,6 +14,7 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/ModelCoefficients.h>
+#include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -24,13 +26,6 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 
 
-TrackingTarget::TrackingTarget(Eigen::Vector3f initial_pos) :
-	position(initial_pos),
-	position_avg10(initial_pos),
-	velocity({0, 0, 0}),
-	time(std::chrono::system_clock::now()) {
-}
-
 FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 	visualizer.addCoordinateSystem(1.0);
 	visualizer.addPointCloud(ColorCloud::ConstPtr(new ColorCloud()));
@@ -38,99 +33,71 @@ FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 
 // Called in grabber thread. DO NOT TOUCH visualizer!.
 void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud) {
-	if(targets.empty()) {
-		targets = findAllTargets(cloud);
-	} else {
-		for(auto& target : targets) {
-			trackTarget(cloud, target);
+	ColorCloud::Ptr cloud_filtered(new ColorCloud());
+	for(const auto& pt : cloud->points) {
+		if(std::isfinite(pt.x)) {
+			cloud_filtered->points.push_back(pt);
 		}
 	}
 
-	// Add visualization to the original point cloud.
 	ColorCloud::Ptr cloud_final(new ColorCloud());
-	pcl::copyPointCloud(*cloud, *cloud_final);
 
-	// cloud_final->points.clear();
-	for(const auto& target : targets) {
-		std::mt19937 gen;
+	// Creating the KdTree object for the search method of the extraction
+	pcl::search::KdTree<pcl::PointXYZRGBA>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGBA>());
+	tree->setInputCloud(cloud_filtered);
 
-		// Show history
-		for(const auto& pos : target.history) {
-			pcl::PointXYZRGBA pt;
-			pt.x = pos.x();
-			pt.y = pos.y();
-			pt.z = pos.z();
-			pt.r = 0;
-			pt.g = 0;
-			pt.b = 255;
-			pt.a = 255;
-			cloud_final->points.push_back(pt);			
+	std::vector<pcl::PointIndices> cluster_indices;
+	pcl::EuclideanClusterExtraction<pcl::PointXYZRGBA> ec;
+	ec.setClusterTolerance(0.05);
+	ec.setMinClusterSize(100);
+	ec.setMaxClusterSize(100000);
+	ec.setSearchMethod(tree);
+	ec.setInputCloud(cloud_filtered);
+	ec.extract(cluster_indices);
+
+	std::cout << "#clusters: " << cluster_indices.size() << std::endl;
+
+	// Detect 0 or 1 plane in each cluster.
+	for(const auto& cluster : cluster_indices) {
+		// Indices -> Points
+		ColorCloud::Ptr cloud_cluster(new ColorCloud());
+		for(const int index : cluster.indices) {
+			cloud_cluster->points.push_back(cloud_filtered->points[index]);
 		}
 
-		// Show avg pos.
-		for(int i = 0; i < 100; i++) {
-			const Eigen::Vector3f dp(
-				std::normal_distribution<double>(0, 0.01)(gen),
-				std::normal_distribution<double>(0, 0.01)(gen),
-				std::normal_distribution<double>(0, 0.01)(gen));
+		// Setup segmentation params.
+		pcl::SACSegmentation<pcl::PointXYZRGBA> seg;
+		seg.setOptimizeCoefficients (true);
+		seg.setModelType (pcl::SACMODEL_PLANE);
+		seg.setMethodType (pcl::SAC_RANSAC);
+		seg.setDistanceThreshold (0.01);
 
-			const Eigen::Vector3f p = target.position_avg10 + dp;
+		// Do segmentation.
+		pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+		pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+		seg.setInputCloud (cloud_cluster);
+		seg.segment (*inliers, *coefficients);
 
-			pcl::PointXYZRGBA pt;
-			pt.x = p.x();
-			pt.y = p.y();
-			pt.z = p.z();
-			pt.r = 0;
-			pt.g = 255;
-			pt.b = 0;
-			pt.a = 255;
-			cloud_final->points.push_back(pt);
-		}
-
-
-		// Show blob.
-		for(int i = 0; i < 200; i++) {
-			const Eigen::Vector3f dp(
-				std::normal_distribution<double>(0, 0.01)(gen),
-				std::normal_distribution<double>(0, 0.01)(gen),
-				std::normal_distribution<double>(0, 0.01)(gen));
-
-			const Eigen::Vector3f p = target.position + dp;
-
-			pcl::PointXYZRGBA pt;
-			pt.x = p.x();
-			pt.y = p.y();
-			pt.z = p.z();
-			pt.r = target.r;
-			pt.g = target.g;
-			pt.b = target.b;
-			pt.a = 255;
-			cloud_final->points.push_back(pt);
-		}
-
-		// Show velocity vector.
-		const float step = 0.005;
-		const int mark_count = std::floor(target.velocity.norm() / step);
-		for(int i = 0; i < mark_count; i++) {
-			const Eigen::Vector3f p = target.position + target.velocity * (i * 1.0 / mark_count);
-
-			pcl::PointXYZRGBA pt;
-			pt.x = p.x();
-			pt.y = p.y();
-			pt.z = p.z();
+		// Color cluster cloud.
+		for(const int index : inliers->indices) {
+			auto& pt = cloud_cluster->points[index];
 			pt.r = 255;
-			pt.g = 0;
-			pt.b = 0;
-			pt.a = 255;
+		}
+
+		// Append cluster to final visualization.
+		for(const auto& pt : cloud_cluster->points) {
 			cloud_final->points.push_back(pt);
 		}
 	}
+
 
 	{
 		std::lock_guard<std::mutex> lock(latest_cloud_lock);
 		latest_cloud = cloud_final;
 	}
 }
+
+/*
 
 std::vector<TrackingTarget> FutureViewer::findAllTargets(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud_color) {
 	Cloud::Ptr cloud(new Cloud());
@@ -231,6 +198,7 @@ void FutureViewer::trackTarget(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPt
 	target.position_avg10 += target.position * 0.1;
 	target.history.push_back(target.position);
 }
+*/
 
 void FutureViewer::run() {
 	pcl::Grabber* source = new pcl::OpenNIGrabber();
