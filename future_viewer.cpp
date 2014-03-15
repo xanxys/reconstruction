@@ -73,9 +73,16 @@ ColorCloud::Ptr generateQuad(float sx, float sy, const RigidTrans3f& trans) {
 			pt.x = pos.x();
 			pt.y = pos.y();
 			pt.z = pos.z();
-			pt.r = 255;
-			pt.g = 255;
-			pt.b = 255;
+
+			if(ix % 100 == 0 || iy % 100 == 0) {
+				pt.r = 0;
+				pt.g = 0;
+				pt.b = 0;
+			} else {
+				pt.r = 255;
+				pt.g = 255;
+				pt.b = 255;
+			}
 			pt.a = 255;
 			cloud->points.push_back(pt);
 		}
@@ -173,7 +180,7 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 				coefficients->values[2]).normalized();
 
 			const Eigen::Vector3f pre_e1(0, 1, 0);
-			const auto e2 = e0.cross(pre_e1);
+			const auto e2 = e0.cross(pre_e1).normalized();
 			const auto e1 = e2.cross(e0);
 
 			Eigen::Matrix3f basis;
