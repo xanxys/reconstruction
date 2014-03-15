@@ -138,26 +138,37 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 			cloud_cluster->points.push_back(cloud_filtered->points[index]);
 		}
 
-		// Setup segmentation params.
-		pcl::SACSegmentation<pcl::PointXYZRGBA> seg;
-		seg.setOptimizeCoefficients (true);
-		seg.setModelType (pcl::SACMODEL_PLANE);
-		seg.setMethodType (pcl::SAC_RANSAC);
-		seg.setDistanceThreshold (0.01);
+		int count = 0;
+		while(true) {
+			if(cloud_cluster->points.size() < 100 || count >= 5) {
+				break;
+			}
 
-		// Do segmentation.
-		pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-		pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-		seg.setInputCloud (cloud_cluster);
-		seg.segment (*inliers, *coefficients);
+			// Setup segmentation params.
+			pcl::SACSegmentation<pcl::PointXYZRGBA> seg;
+			seg.setOptimizeCoefficients (true);
+			seg.setModelType (pcl::SACMODEL_PLANE);
+			seg.setMethodType (pcl::SAC_RANSAC);
+			seg.setDistanceThreshold (0.01);
 
-		// Color cluster cloud.
-		colors.next();
-		for(const int index : inliers->indices) {
-			colors.apply(cloud_cluster->points[index]);
-		}
+			// Do segmentation.
+			pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+			pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+			seg.setInputCloud (cloud_cluster);
+			seg.segment (*inliers, *coefficients);
 
-		if(inliers->indices.size() > 0) {
+			if(inliers->indices.size() == 0) {
+				break;
+			}
+
+			// Color cluster cloud.
+			colors.next();
+			for(const int index : inliers->indices) {
+				colors.apply(cloud_cluster->points[index]);
+				cloud_final->points.push_back(cloud_cluster->points[index]);
+			}
+
+
 			// Calculate center.
 			Eigen::Vector3f accum(Eigen::Vector3f::Zero());
 			for(const int index : inliers->indices) {
@@ -193,8 +204,21 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 			trans = Eigen::Translation<float, 3>(center) * basis;
 
 			cloud_final = concat(cloud_final, generateQuad(max_len * 2, max_len * 2, trans));
+
+			// Subtract.
+			ColorCloud::Ptr remaining(new ColorCloud());
+			pcl::ExtractIndices<pcl::PointXYZRGBA> remover;
+			remover.setNegative(true);
+			remover.setIndices(inliers);
+
+			remover.setInputCloud(cloud_cluster);
+			remover.filter(*remaining);
+
+			cloud_cluster = remaining;
+			count += 1;
 		}
 
+		// Add remaining point.
 		cloud_final = concat(cloud_final, cloud_cluster);
 	}
 
