@@ -25,6 +25,38 @@
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 
+class ColorSet {
+public:
+	ColorSet();
+	void next();
+	void apply(pcl::PointXYZRGBA& pt);
+private:
+	int index;
+	std::vector<std::vector<int>> cycle;
+};
+
+ColorSet::ColorSet() : index(0), cycle(
+	{
+		{255, 0, 0},
+		{127, 127, 0},
+		{0, 255, 0},
+		{0, 127, 127},
+		{0, 0, 255},
+		{127, 0, 127}
+	}) {
+}
+
+void ColorSet::next() {
+	index = (index + 1) % cycle.size();
+}
+
+void ColorSet::apply(pcl::PointXYZRGBA& pt) {
+	pt.r = cycle[index][0];
+	pt.g = cycle[index][1];
+	pt.b = cycle[index][2];
+}
+
+
 
 FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 	visualizer.addCoordinateSystem(1.0);
@@ -50,7 +82,7 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 	pcl::EuclideanClusterExtraction<pcl::PointXYZRGBA> ec;
 	ec.setClusterTolerance(0.05);
 	ec.setMinClusterSize(100);
-	ec.setMaxClusterSize(100000);
+	//ec.setMaxClusterSize(100000);
 	ec.setSearchMethod(tree);
 	ec.setInputCloud(cloud_filtered);
 	ec.extract(cluster_indices);
@@ -58,6 +90,7 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 	std::cout << "#clusters: " << cluster_indices.size() << std::endl;
 
 	// Detect 0 or 1 plane in each cluster.
+	ColorSet colors;
 	for(const auto& cluster : cluster_indices) {
 		// Indices -> Points
 		ColorCloud::Ptr cloud_cluster(new ColorCloud());
@@ -79,9 +112,9 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 		seg.segment (*inliers, *coefficients);
 
 		// Color cluster cloud.
+		colors.next();
 		for(const int index : inliers->indices) {
-			auto& pt = cloud_cluster->points[index];
-			pt.r = 255;
+			colors.apply(cloud_cluster->points[index]);
 		}
 
 		// Append cluster to final visualization.
