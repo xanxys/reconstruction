@@ -6,6 +6,7 @@
 #include <random>
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
@@ -24,6 +25,7 @@
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
+using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
 class ColorSet {
 public:
@@ -58,6 +60,38 @@ void ColorSet::apply(pcl::PointXYZRGBA& pt) {
 
 
 
+ColorCloud::Ptr generateQuad(float sx, float sy, const RigidTrans3f& trans) {
+	float resolution = 0.005;
+	ColorCloud::Ptr cloud(new ColorCloud());
+
+	for(int iy = - sy / 2 / resolution; iy < sy / 2 / resolution; iy++) {
+		for(int ix = - sx / 2 / resolution; ix < sx / 2 / resolution; ix++) {
+			Eigen::Vector3f pos(ix * resolution, iy * resolution, 0);
+			pos = trans * pos;
+
+			pcl::PointXYZRGBA pt;
+			pt.x = pos.x();
+			pt.y = pos.y();
+			pt.z = pos.z();
+			pt.r = 255;
+			pt.g = 255;
+			pt.b = 255;
+			pt.a = 255;
+			cloud->points.push_back(pt);
+		}
+	}
+
+	return cloud;
+}
+
+ColorCloud::Ptr concat(ColorCloud::Ptr c0, ColorCloud::Ptr c1) {
+	ColorCloud::Ptr cloud(new ColorCloud());
+	cloud->points.insert(cloud->points.end(), c0->points.begin(), c0->points.end());
+	cloud->points.insert(cloud->points.end(), c1->points.begin(), c1->points.end());
+	return cloud;
+}
+
+
 FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 	visualizer.addCoordinateSystem(1.0);
 	visualizer.addPointCloud(ColorCloud::ConstPtr(new ColorCloud()));
@@ -82,7 +116,6 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 	pcl::EuclideanClusterExtraction<pcl::PointXYZRGBA> ec;
 	ec.setClusterTolerance(0.05);
 	ec.setMinClusterSize(100);
-	//ec.setMaxClusterSize(100000);
 	ec.setSearchMethod(tree);
 	ec.setInputCloud(cloud_filtered);
 	ec.extract(cluster_indices);
@@ -117,12 +150,46 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 			colors.apply(cloud_cluster->points[index]);
 		}
 
-		// Append cluster to final visualization.
-		for(const auto& pt : cloud_cluster->points) {
-			cloud_final->points.push_back(pt);
-		}
-	}
+		if(inliers->indices.size() > 0) {
+			// Calculate center.
+			Eigen::Vector3f accum(Eigen::Vector3f::Zero());
+			for(const int index : inliers->indices) {
+				accum += cloud_cluster->points[index].getVector3fMap();
+			}
+			const auto center = accum / inliers->indices.size();
 
+			// Calculate approx size.
+			float max_len = 0;
+			for(const int index : inliers->indices) {
+				max_len = std::max(
+					max_len,
+				 	(cloud_cluster->points[index].getVector3fMap() - center).norm());
+			}
+
+			// Calculate basis with e0=normal, e1=up-like, e2=?
+			const auto e0 = Eigen::Vector3f(
+				coefficients->values[0],
+				coefficients->values[1],
+				coefficients->values[2]).normalized();
+
+			const Eigen::Vector3f pre_e1(0, 1, 0);
+			const auto e2 = e0.cross(pre_e1);
+			const auto e1 = e2.cross(e0);
+
+			Eigen::Matrix3f basis;
+			basis.col(0) = e1;
+			basis.col(1) = e2;
+			basis.col(2) = e0;  // Z -> normal
+
+			// Setup appropriate quad.
+			RigidTrans3f trans;
+			trans = Eigen::Translation<float, 3>(center) * basis;
+
+			cloud_final = concat(cloud_final, generateQuad(max_len * 2, max_len * 2, trans));
+		}
+
+		cloud_final = concat(cloud_final, cloud_cluster);
+	}
 
 	{
 		std::lock_guard<std::mutex> lock(latest_cloud_lock);
