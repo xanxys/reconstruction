@@ -19,11 +19,12 @@ env['ENV']['TERM'] = os.environ['TERM']
 # project specific code
 env.Program(
 	'recon',
-	source = Glob('*.cpp'),
+	source = Glob('*.cpp') + Glob('*.c'),
 	LIBS = [
 		'libboost_system-mt',
 		'libboost_thread-mt',
 		'libdl',
+		'libjsoncpp',
 		'libopencv_core',
 		'libopencv_highgui',
 		'libopencv_imgproc',

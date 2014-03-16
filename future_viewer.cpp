@@ -116,7 +116,7 @@ void FutureViewer::cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&
 
 	ColorCloud::Ptr cloud_final(new ColorCloud());
 
-	for(int step : boost::irange(0, 2)) {
+	for(int step : boost::irange(0, 3)) {
 		// Creating the KdTree object for the search method of the extraction
 		pcl::search::KdTree<pcl::PointXYZRGBA>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGBA>());
 		tree->setInputCloud(cloud_filtered);
@@ -261,4 +261,20 @@ void FutureViewer::run() {
 		boost::this_thread::sleep(boost::posix_time::microseconds(20000));
 	}
 	source->stop();
+}
+
+ReconServer::ReconServer() {
+
+}
+
+
+Response ReconServer::handleRequest(std::vector<std::string> uri,
+	std::string method, std::string data) {
+
+	if(uri.size() == 0) {
+		return sendStaticFile("/index.html", "text/html");
+	} else if(uri.size() == 2 && uri[0] == "static") {
+		return sendStaticFile(uri[1]);
+	}	
+	return Response::notFound();
 }
