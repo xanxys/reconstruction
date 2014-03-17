@@ -59,6 +59,7 @@ DebugFE.prototype.run = function() {
 	this.scene = new THREE.Scene();
 
 	//this.scene.add(this.generateVoxelGrid());
+	this.scene.add(this.generateCameraCone(0.994837674, 0.750491578));
 
 	// start canvas
 	this.renderer = new THREE.WebGLRenderer();
