@@ -16,7 +16,7 @@ var DebugFE = function() {
 			var cloud = new THREE.ParticleSystem(geom,
 				new THREE.ParticleSystemMaterial({
 					vertexColors: true,
-					size: 0.01
+					size: 0.005
 				}));
 
 			if(_this.cloud !== undefined) {
@@ -58,17 +58,22 @@ DebugFE.prototype.run = function() {
 // return :: Object3D
 DebugFE.prototype.generateVoxelGrid = function() {
 	var voxel_size = 0.1;
-	var voxel_n = 20;
+	var voxel_n = 30;
 
 	var voxel_geom = new THREE.Geometry();
 	var e0 = new THREE.Vector3(1, 0, 0);
 	var e1 = new THREE.Vector3(0, 1, 0);
 	var e2 = new THREE.Vector3(0, 0, 1);
+	var origin = new THREE.Vector3(
+		-voxel_size * voxel_n / 2,
+		-voxel_size * voxel_n / 2,
+		1);
 
 	var addBundles = function(e0, e1, e2) {
 		_.each(_.range(voxel_n), function(i0) {
 			_.each(_.range(voxel_n), function(i1) {
-				var p0 = e0.clone().multiplyScalar(i0 * voxel_size).add(
+				var p0 = origin.clone().add(
+					e0.clone().multiplyScalar(i0 * voxel_size)).add(
 					e1.clone().multiplyScalar(i1 * voxel_size));
 				var p1 = p0.clone().add(e2.clone().multiplyScalar(voxel_n * voxel_size));
 
@@ -86,7 +91,7 @@ DebugFE.prototype.generateVoxelGrid = function() {
 		voxel_geom,
 		new THREE.LineBasicMaterial({
 			color: 'white',
-			opacity: 0.5,
+			opacity: 0.3,
 			transparent: true
 		}),
 		THREE.LinePieces);
