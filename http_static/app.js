@@ -23,7 +23,28 @@ var DebugFE = function() {
 				_this.scene.remove(_this.cloud);
 			}
 			_this.cloud = cloud;
-			_this.scene.add(_this.cloud);
+			_this.scene.add(cloud);
+		});
+
+		$.ajax('/voxels').done(function(data) {
+			var voxels = new THREE.Object3D();
+			_.each(data, function(vx) {
+				var vx_three = new THREE.Mesh(
+					new THREE.CubeGeometry(0.1, 0.1, 0.1),
+					new THREE.MeshBasicMaterial({
+						color: 'red',
+						opacity: 0.3,
+						transparent: true
+					}));
+				vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(0.1);
+				voxels.add(vx_three);
+			});
+
+			if(_this.voxels !== undefined) {
+				_this.scene.remove(_this.voxels);
+			}
+			_this.voxels = voxels;
+			_this.scene.add(voxels);
 		});
 	});
 };
@@ -32,12 +53,12 @@ DebugFE.prototype.run = function() {
 	// three.js
 	this.camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.001, 50);
 	this.camera.up = new THREE.Vector3(0, 0, 1);
-	this.camera.position = new THREE.Vector3(0, 3, 3);
+	this.camera.position = new THREE.Vector3(0, 2, 2);
 	this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 	this.scene = new THREE.Scene();
 
-	this.scene.add(this.generateVoxelGrid());
+	//this.scene.add(this.generateVoxelGrid());
 
 	// start canvas
 	this.renderer = new THREE.WebGLRenderer();

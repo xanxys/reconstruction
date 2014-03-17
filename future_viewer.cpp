@@ -1,5 +1,6 @@
 #include "future_viewer.h"
 
+#include <map>
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -289,6 +290,8 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		return sendStaticFile(uri[1]);
 	} else if(uri.size() == 1 && uri[0] == "points") {
 		return handlePoints();
+	} else if(uri.size() == 1 && uri[0] == "voxels") {
+		return handleVoxels();
 	}
 	return Response::notFound();
 }
@@ -317,4 +320,38 @@ Response ReconServer::handlePoints() {
 		}
 	}
 	return Response(vs);
+}
+
+Response ReconServer::handleVoxels() {
+	Json::Value root;
+	{
+		std::lock_guard<std::mutex> lock(latest_cloud_lock);
+		if(!latest_cloud) {
+			return Response::notFound();
+		}
+
+		const float size = 0.1;
+		std::map<std::tuple<int, int, int>, bool> voxels;
+		for(const auto& pt : latest_cloud->points) {
+			if(!std::isfinite(pt.x)) {
+				continue;
+			}
+
+			auto ix = pt.getVector3fMap() / size;
+			auto key = std::make_tuple(
+				static_cast<int>(std::floor(ix.x())),
+				static_cast<int>(std::floor(ix.y())),
+				static_cast<int>(std::floor(ix.z())));
+			voxels[key] = true;
+		}
+
+		for(const auto& pair : voxels) {
+			Json::Value vx;
+			vx["x"] = std::get<0>(pair.first);
+			vx["y"] = std::get<1>(pair.first);
+			vx["z"] = std::get<2>(pair.first);
+			root.append(vx);
+		}
+	}
+	return Response(root);
 }

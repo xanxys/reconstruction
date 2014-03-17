@@ -41,6 +41,7 @@ public:
 		std::string method, std::string data) override;
 private:
 	Response handlePoints();
+	Response handleVoxels();
 private:
 	// Used to pass point cloud from grabber thread to handler thread.
 	std::mutex latest_cloud_lock;
