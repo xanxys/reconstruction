@@ -10,13 +10,14 @@
 
 #include <Eigen/Dense>
 #include <pcl/point_types.h>
-#include <pcl/visualization/cloud_viewer.h>
-#include <pcl/visualization/pcl_visualizer.h>
+//#include <pcl/visualization/cloud_viewer.h>
+//#include <pcl/visualization/pcl_visualizer.h>
 
 #include "web_server.h"
 
 // PCLVisualizer is useless for cool-looking graphics.
 // Stick with point cloud modification.
+/*
 class FutureViewer {
 public:
 	FutureViewer();
@@ -32,6 +33,19 @@ private:
 
 	pcl::visualization::PCLVisualizer visualizer;
 };
+*/
+
+class VoxelTraversal {
+public:
+	VoxelTraversal(float size, Eigen::Vector3f org, Eigen::Vector3f dir);
+	std::tuple<int, int, int> next();
+private:
+	const float size;
+	const Eigen::Vector3f org;
+	const Eigen::Vector3f dir;
+	float t;
+};
+
 
 class ReconServer : public WebServer {
 public:
@@ -40,6 +54,7 @@ public:
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
 private:
+	// TODO: synchronized
 	Response handlePoints();
 	Response handleVoxels();
 private:

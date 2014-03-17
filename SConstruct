@@ -7,12 +7,9 @@ env = Environment(
 	CPPPATH = [
 		'/usr/include/eigen3',
 		'/usr/include/pcl-1.6',
-		'/usr/include/vtk',
 		'/usr/include/ni',
-		
 	],
 	LIBPATH = [
-		'/usr/lib64/vtk/',
 	])
 env['ENV']['TERM'] = os.environ['TERM']
 
@@ -38,8 +35,4 @@ env.Program(
 		'libpcl_segmentation',
 		'libpcl_visualization',
 		'libpthread',
-		'libvtkCommon',
-		'libvtkFiltering',
-		'libvtkGraphics',
-		'libvtkRendering',
 		])

@@ -23,7 +23,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/visualization/cloud_viewer.h>
+// #include <pcl/visualization/cloud_viewer.h>
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
@@ -40,14 +40,14 @@ private:
 };
 
 ColorSet::ColorSet() : index(0), cycle(
-	{
-		{255, 0, 0},
-		{127, 127, 0},
-		{0, 255, 0},
-		{0, 127, 127},
-		{0, 0, 255},
-		{127, 0, 127}
-	}) {
+{
+	{255, 0, 0},
+	{127, 127, 0},
+	{0, 255, 0},
+	{0, 127, 127},
+	{0, 0, 255},
+	{127, 0, 127}
+}) {
 }
 
 void ColorSet::next() {
@@ -101,6 +101,7 @@ ColorCloud::Ptr concat(ColorCloud::Ptr c0, ColorCloud::Ptr c1) {
 }
 
 
+/*
 FutureViewer::FutureViewer() : visualizer("Time Lens2") {
 	visualizer.addCoordinateSystem(1.0);
 	visualizer.addPointCloud(ColorCloud::ConstPtr(new ColorCloud()));
@@ -263,12 +264,39 @@ void FutureViewer::run() {
 	}
 	source->stop();
 }
+*/
+
+VoxelTraversal::VoxelTraversal(float size, Eigen::Vector3f org, Eigen::Vector3f dir) :
+	t(0), size(size), org(org), dir(dir) {
+}
+
+std::tuple<int, int, int> VoxelTraversal::next() {
+	const auto index_f = org / size + dir * (t + 1e-3);
+
+	const auto key = std::make_tuple(
+		std::floor(index_f(0)),
+		std::floor(index_f(1)),
+		std::floor(index_f(2)));
+
+	const auto frac = Eigen::Vector3f(
+		index_f(0) - std::floor(index_f(0)),
+		index_f(1) - std::floor(index_f(1)),
+		index_f(2) - std::floor(index_f(2)));
+
+	const auto remaining = Eigen::Vector3f(
+		(dir(0) < 0) ? -frac(0) : 1 - frac(0),
+		(dir(1) < 0) ? -frac(1) : 1 - frac(1),
+		(dir(2) < 0) ? -frac(2) : 1 - frac(2));
+
+	t += remaining.cwiseQuotient(dir).minCoeff();
+	return key;
+}
 
 ReconServer::ReconServer() {
 	pcl::Grabber* source = new pcl::OpenNIGrabber();
 
 	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
-		boost::bind(&ReconServer::cloudCallback, this, _1);
+	boost::bind(&ReconServer::cloudCallback, this, _1);
 
 	source->registerCallback(f);
 	source->start();
@@ -331,6 +359,8 @@ Response ReconServer::handleVoxels() {
 		}
 
 		const float size = 0.1;
+
+		// known to be filled
 		std::map<std::tuple<int, int, int>, bool> voxels;
 		for(const auto& pt : latest_cloud->points) {
 			if(!std::isfinite(pt.x)) {
@@ -345,7 +375,33 @@ Response ReconServer::handleVoxels() {
 			voxels[key] = true;
 		}
 
-		for(const auto& pair : voxels) {
+		const auto& camera_origin = Eigen::Vector3f::Zero();
+
+		std::map<std::tuple<int, int, int>, bool> voxels_empty;
+		for(const auto& pair_filled : voxels) {
+			// cast ray from camera
+			const auto pos = Eigen::Vector3f(
+				std::get<0>(pair_filled.first),
+				std::get<1>(pair_filled.first),
+				std::get<2>(pair_filled.first)) * size;
+
+			const auto dir = (pos - camera_origin).normalized();
+
+			// traverse until hit.
+			VoxelTraversal traversal(size, camera_origin, dir);
+			for(int i : boost::irange(0, 50)) {
+				const auto key = traversal.next();
+
+				// Hit wall.
+				if(voxels.find(key) != voxels.end()) {
+					break;
+				}
+
+				voxels_empty[key] = true;
+			}
+		}
+
+		for(const auto& pair : voxels_empty) {
 			Json::Value vx;
 			vx["x"] = std::get<0>(pair.first);
 			vx["y"] = std::get<1>(pair.first);
