@@ -237,7 +237,7 @@ Response ReconServer::handleVoxels() {
 
 			// traverse until hit.
 			VoxelTraversal traversal(size, camera_origin, dir);
-			for(int i : boost::irange(0, 150)) {
+			for(int i : boost::irange(0, 100)) {
 				const auto key = traversal.next();
 
 				// Hit wall.
@@ -249,7 +249,20 @@ Response ReconServer::handleVoxels() {
 			}
 		}
 
-		for(const auto& pair : voxels_empty) {
+		std::map<std::tuple<int, int, int>, bool> voxels_unknown;
+		for(int ix : boost::irange(-10, 10)) {
+			for(int iy : boost::irange(-10, 10)) {
+				for(int iz : boost::irange(10, 30)) {
+					const auto key = std::make_tuple(ix, iy, iz);
+
+					if(voxels.find(key) == voxels.end() && voxels_empty.find(key) == voxels_empty.end()) {
+						voxels_unknown[key] = true;
+					}
+				}
+			}
+		}
+
+		for(const auto& pair : voxels_unknown) {
 			Json::Value vx;
 			vx["x"] = std::get<0>(pair.first);
 			vx["y"] = std::get<1>(pair.first);
