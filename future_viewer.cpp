@@ -264,9 +264,21 @@ void FutureViewer::run() {
 }
 
 ReconServer::ReconServer() {
+	pcl::Grabber* source = new pcl::OpenNIGrabber();
 
+	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
+		boost::bind(&ReconServer::cloudCallback, this, _1);
+
+	source->registerCallback(f);
+	source->start();
 }
 
+void ReconServer::cloudCallback(const ColorCloud::ConstPtr& cloud) {
+	{
+		std::lock_guard<std::mutex> lock(latest_cloud_lock);
+		latest_cloud = cloud;
+	}
+}
 
 Response ReconServer::handleRequest(std::vector<std::string> uri,
 	std::string method, std::string data) {
@@ -275,6 +287,34 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		return sendStaticFile("/index.html", "text/html");
 	} else if(uri.size() == 2 && uri[0] == "static") {
 		return sendStaticFile(uri[1]);
-	}	
+	} else if(uri.size() == 1 && uri[0] == "points") {
+		return handlePoints();
+	}
 	return Response::notFound();
+}
+
+Response ReconServer::handlePoints() {
+	Json::Value vs;
+	{
+		std::lock_guard<std::mutex> lock(latest_cloud_lock);
+		if(!latest_cloud) {
+			return Response::notFound();
+		}
+
+		for(const auto& pt : latest_cloud->points) {
+			if(!std::isfinite(pt.x)) {
+				continue;
+			}
+			
+			Json::Value p;
+			p["x"] = pt.x;
+			p["y"] = pt.y;
+			p["z"] = pt.z;
+			p["r"] = pt.r / 255.0;
+			p["g"] = pt.g / 255.0;
+			p["b"] = pt.b / 255.0;
+			vs.append(p);
+		}
+	}
+	return Response(vs);
 }

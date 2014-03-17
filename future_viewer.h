@@ -36,7 +36,13 @@ private:
 class ReconServer : public WebServer {
 public:
 	ReconServer();
-	void cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
+private:
+	Response handlePoints();
+private:
+	// Used to pass point cloud from grabber thread to handler thread.
+	std::mutex latest_cloud_lock;
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr latest_cloud;
 };
