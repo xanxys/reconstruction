@@ -34,14 +34,16 @@ public:
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
 private:
-	// TODO: synchronized
-	Response handlePoints();
-	Response handleVoxels();
-	Response handleRGB();
+	Response handlePoints(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	Response handleVoxels(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	Response handleRGB(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
 	static Response sendImage(cv::Mat image);
 private:
+	int new_id;
+
 	// Used to pass point cloud from grabber thread to handler thread.
 	std::mutex latest_cloud_lock;
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr latest_cloud;
+	std::map<std::string, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr> clouds;
 };

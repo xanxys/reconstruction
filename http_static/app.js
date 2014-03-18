@@ -5,48 +5,59 @@ var DebugFE = function() {
 
 	var _this = this;
 	$('#ui_update').click(function() {
-		$.ajax('/points').done(function(data) {
-			var geom = new THREE.Geometry();
-			geom.vertices = _.map(data, function(p) {
-				return new THREE.Vector3(p.x, p.y, p.z);
-			});
-			geom.colors = _.map(data, function(p) {
-				return new THREE.Color(p.r, p.g, p.b);
-			});
-			var cloud = new THREE.ParticleSystem(geom,
-				new THREE.ParticleSystemMaterial({
-					vertexColors: true,
-					size: 0.005
-				}));
-
-			if(_this.cloud !== undefined) {
-				_this.scene.remove(_this.cloud);
-			}
-			_this.cloud = cloud;
-			_this.scene.add(cloud);
-		});
-
-		$.ajax('/voxels').done(function(data) {
-			var voxels = new THREE.Object3D();
-			_.each(data, function(vx) {
-				var vx_three = new THREE.Mesh(
-					new THREE.CubeGeometry(0.1, 0.1, 0.1),
-					new THREE.MeshBasicMaterial({
-						color: 'red',
-						opacity: 0.3,
-						transparent: true
-					}));
-				vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(0.1);
-				voxels.add(vx_three);
-			});
-
-			if(_this.voxels !== undefined) {
-				_this.scene.remove(_this.voxels);
-			}
-			_this.voxels = voxels;
-			_this.scene.add(voxels);
+		$.post('/at').done(function(data) {
+			_this.current_id = data.id;
+			_this.updateViews();
 		});
 	});
+};
+
+DebugFE.prototype.updateViews = function() {
+	var _this = this;
+
+	$.ajax('/at/' + this.current_id + '/points').done(function(data) {
+		var geom = new THREE.Geometry();
+		geom.vertices = _.map(data, function(p) {
+			return new THREE.Vector3(p.x, p.y, p.z);
+		});
+		geom.colors = _.map(data, function(p) {
+			return new THREE.Color(p.r, p.g, p.b);
+		});
+		var cloud = new THREE.ParticleSystem(geom,
+			new THREE.ParticleSystemMaterial({
+				vertexColors: true,
+				size: 0.005
+			}));
+
+		if(_this.cloud !== undefined) {
+			_this.scene.remove(_this.cloud);
+		}
+		_this.cloud = cloud;
+		_this.scene.add(cloud);
+	});
+
+	$.ajax('/at/' + this.current_id + '/voxels').done(function(data) {
+		var voxels = new THREE.Object3D();
+		_.each(data, function(vx) {
+			var vx_three = new THREE.Mesh(
+				new THREE.CubeGeometry(0.1, 0.1, 0.1),
+				new THREE.MeshBasicMaterial({
+					color: 'red',
+					opacity: 0.3,
+					transparent: true
+				}));
+			vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(0.1);
+			voxels.add(vx_three);
+		});
+
+		if(_this.voxels !== undefined) {
+			_this.scene.remove(_this.voxels);
+		}
+		_this.voxels = voxels;
+		_this.scene.add(voxels);
+	});
+
+	$('#ui_image').attr('src', '/at/' + this.current_id + '/rgb');
 };
 
 DebugFE.prototype.run = function() {

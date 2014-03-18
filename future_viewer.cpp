@@ -100,7 +100,7 @@ ColorCloud::Ptr concat(ColorCloud::Ptr c0, ColorCloud::Ptr c1) {
 
 
 VoxelTraversal::VoxelTraversal(float size, Eigen::Vector3f org, Eigen::Vector3f dir) :
-	org(org / size), dir(dir) {
+org(org / size), dir(dir) {
 	index = Eigen::Vector3i(
 		std::floor(org(0)),
 		std::floor(org(1)),
@@ -140,7 +140,7 @@ std::tuple<int, int, int> VoxelTraversal::next() {
 	return key;
 }
 
-ReconServer::ReconServer() {
+ReconServer::ReconServer() : new_id(0) {
 	pcl::Grabber* source = new pcl::OpenNIGrabber();
 
 	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
@@ -164,134 +164,142 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		return sendStaticFile("/index.html", "text/html");
 	} else if(uri.size() == 2 && uri[0] == "static") {
 		return sendStaticFile(uri[1]);
-	} else if(uri.size() == 1 && uri[0] == "points") {
-		return handlePoints();
-	} else if(uri.size() == 1 && uri[0] == "voxels") {
-		return handleVoxels();
-	} else if(uri.size() == 1 && uri[0] == "rgb") {
-		return handleRGB();
+	} else if(uri.size() == 1 && uri[0] == "at" && method == "POST") {
+		const std::string id = std::to_string(new_id++);
+		{
+			std::lock_guard<std::mutex> lock(latest_cloud_lock);
+			// TODO: might need copying (if the grabber reuses cloud every frame)
+			clouds[id] = latest_cloud;
+		}
+		Json::Value v;
+		v["id"] = id;
+		return v;
+	} else if(uri.size() >= 3 && uri[0] == "at") {
+		const std::string id = uri[1];
+
+		if(clouds.find(id) == clouds.end()) {
+			return Response::notFound();
+		}
+
+		const auto& cloud = clouds.find(id)->second;
+
+		if(uri[2] == "points") {
+			return handlePoints(cloud);
+		} else if(uri[2] == "voxels") {
+			return handleVoxels(cloud);
+		} else if(uri[2] == "rgb") {
+			return handleRGB(cloud);
+		}
+
+		return Response::notFound();
 	}
 	return Response::notFound();
 }
 
-Response ReconServer::handlePoints() {
+Response ReconServer::handlePoints(const ColorCloud::ConstPtr& cloud) {
 	Json::Value vs;
-	{
-		std::lock_guard<std::mutex> lock(latest_cloud_lock);
-		if(!latest_cloud) {
-			return Response::notFound();
-		}
 
-		for(const auto& pt : latest_cloud->points) {
-			if(!std::isfinite(pt.x)) {
-				continue;
-			}
-			
-			Json::Value p;
-			p["x"] = pt.x;
-			p["y"] = pt.y;
-			p["z"] = pt.z;
-			p["r"] = pt.r / 255.0;
-			p["g"] = pt.g / 255.0;
-			p["b"] = pt.b / 255.0;
-			vs.append(p);
+	for(const auto& pt : cloud->points) {
+		if(!std::isfinite(pt.x)) {
+			continue;
 		}
+		
+		Json::Value p;
+		p["x"] = pt.x;
+		p["y"] = pt.y;
+		p["z"] = pt.z;
+		p["r"] = pt.r / 255.0;
+		p["g"] = pt.g / 255.0;
+		p["b"] = pt.b / 255.0;
+		vs.append(p);
 	}
 	return Response(vs);
 }
 
-Response ReconServer::handleVoxels() {
+Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud) {
 	Json::Value root;
-	{
-		std::lock_guard<std::mutex> lock(latest_cloud_lock);
-		if(!latest_cloud) {
-			return Response::notFound();
+
+
+	const float size = 0.1;
+
+	// known to be filled
+	std::map<std::tuple<int, int, int>, bool> voxels;
+	for(const auto& pt : cloud->points) {
+		if(!std::isfinite(pt.x)) {
+			continue;
 		}
 
-		const float size = 0.1;
+		auto ix = pt.getVector3fMap() / size;
+		auto key = std::make_tuple(
+			static_cast<int>(std::floor(ix.x())),
+			static_cast<int>(std::floor(ix.y())),
+			static_cast<int>(std::floor(ix.z())));
+		voxels[key] = true;
+	}
 
-		// known to be filled
-		std::map<std::tuple<int, int, int>, bool> voxels;
-		for(const auto& pt : latest_cloud->points) {
-			if(!std::isfinite(pt.x)) {
-				continue;
+	const auto& camera_origin = Eigen::Vector3f::Zero();
+
+	std::map<std::tuple<int, int, int>, bool> voxels_empty;
+	for(const auto& pair_filled : voxels) {
+		// cast ray from camera
+		const auto pos = Eigen::Vector3f(
+			std::get<0>(pair_filled.first) + 0.5,
+			std::get<1>(pair_filled.first) + 0.5,
+			std::get<2>(pair_filled.first) + 0.5) * size;
+
+		const auto dir = (pos - camera_origin).normalized();
+
+		// traverse until hit.
+		VoxelTraversal traversal(size, camera_origin, dir);
+		for(int i : boost::irange(0, 100)) {
+			const auto key = traversal.next();
+
+			// Hit wall.
+			if(voxels.find(key) != voxels.end()) {
+				break;
 			}
 
-			auto ix = pt.getVector3fMap() / size;
-			auto key = std::make_tuple(
-				static_cast<int>(std::floor(ix.x())),
-				static_cast<int>(std::floor(ix.y())),
-				static_cast<int>(std::floor(ix.z())));
-			voxels[key] = true;
+			voxels_empty[key] = true;
 		}
+	}
 
-		const auto& camera_origin = Eigen::Vector3f::Zero();
+	std::map<std::tuple<int, int, int>, bool> voxels_unknown;
+	for(int ix : boost::irange(-12, 12)) {
+		for(int iy : boost::irange(-12, 12)) {
+			for(int iz : boost::irange(10, 35)) {
+				const auto key = std::make_tuple(ix, iy, iz);
 
-		std::map<std::tuple<int, int, int>, bool> voxels_empty;
-		for(const auto& pair_filled : voxels) {
-			// cast ray from camera
-			const auto pos = Eigen::Vector3f(
-				std::get<0>(pair_filled.first) + 0.5,
-				std::get<1>(pair_filled.first) + 0.5,
-				std::get<2>(pair_filled.first) + 0.5) * size;
-
-			const auto dir = (pos - camera_origin).normalized();
-
-			// traverse until hit.
-			VoxelTraversal traversal(size, camera_origin, dir);
-			for(int i : boost::irange(0, 100)) {
-				const auto key = traversal.next();
-
-				// Hit wall.
-				if(voxels.find(key) != voxels.end()) {
-					break;
-				}
-
-				voxels_empty[key] = true;
-			}
-		}
-
-		std::map<std::tuple<int, int, int>, bool> voxels_unknown;
-		for(int ix : boost::irange(-12, 12)) {
-			for(int iy : boost::irange(-12, 12)) {
-				for(int iz : boost::irange(10, 35)) {
-					const auto key = std::make_tuple(ix, iy, iz);
-
-					if(voxels.find(key) == voxels.end() && voxels_empty.find(key) == voxels_empty.end()) {
-						voxels_unknown[key] = true;
-					}
+				if(voxels.find(key) == voxels.end() && voxels_empty.find(key) == voxels_empty.end()) {
+					voxels_unknown[key] = true;
 				}
 			}
 		}
+	}
 
-		for(const auto& pair : voxels) {
-			Json::Value vx;
-			vx["x"] = std::get<0>(pair.first);
-			vx["y"] = std::get<1>(pair.first);
-			vx["z"] = std::get<2>(pair.first);
-			root.append(vx);
-		}
+	for(const auto& pair : voxels) {
+		Json::Value vx;
+		vx["x"] = std::get<0>(pair.first);
+		vx["y"] = std::get<1>(pair.first);
+		vx["z"] = std::get<2>(pair.first);
+		root.append(vx);
 	}
 	return Response(root);
 }
 
-Response ReconServer::handleRGB() {
-	{
-		std::lock_guard<std::mutex> lock(latest_cloud_lock);
-		if(!latest_cloud || latest_cloud->points.size() != latest_cloud->width * latest_cloud->height) {
-			return Response::notFound();
-		}
-
-		cv::Mat rgb(latest_cloud->height, latest_cloud->width, CV_8UC3);
-		for(int y : boost::irange(0, (int)latest_cloud->height)) {
-			for(int x : boost::irange(0, (int)latest_cloud->width)) {
-				const pcl::PointXYZRGBA& pt = latest_cloud->points[y * latest_cloud->width + x];
-				rgb.at<cv::Vec3b>(y, x) = cv::Vec3b(pt.b, pt.g, pt.r);
-			}
-		}
-
-		return sendImage(rgb);
+Response ReconServer::handleRGB(const ColorCloud::ConstPtr& cloud) {
+	if(cloud->points.size() != cloud->width * cloud->height) {
+		return Response::notFound();
 	}
+
+	cv::Mat rgb(cloud->height, cloud->width, CV_8UC3);
+	for(int y : boost::irange(0, (int)cloud->height)) {
+		for(int x : boost::irange(0, (int)cloud->width)) {
+			const pcl::PointXYZRGBA& pt = cloud->points[y * cloud->width + x];
+			rgb.at<cv::Vec3b>(y, x) = cv::Vec3b(pt.b, pt.g, pt.r);
+		}
+	}
+
+	return sendImage(rgb);
 }
 
 Response ReconServer::sendImage(cv::Mat image) {
