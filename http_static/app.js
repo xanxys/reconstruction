@@ -10,6 +10,23 @@ var DebugFE = function() {
 			_this.updateViews();
 		});
 	});
+
+	var ctx = $('#ui_grabcut')[0].getContext('2d');
+	ctx.fillStyle = 'red';
+	ctx.beginPath();
+	ctx.rect(0, 0, 100, 100);
+	ctx.fill();
+
+	$('#ui_grabcut').mousedown(function(event) {
+	});
+	$('#ui_grabcut').mousemove(function(event) {
+		ctx.beginPath();
+		ctx.arc(event.offsetX, event.offsetY, 5, 0, 2 * Math.PI);
+		ctx.fill();
+	});
+	$('#ui_grabcut').mouseup(function(event) {
+	});
+
 };
 
 DebugFE.prototype.updateViews = function() {
@@ -57,7 +74,14 @@ DebugFE.prototype.updateViews = function() {
 		_this.scene.add(voxels);
 	});
 
-	$('#ui_image').attr('src', '/at/' + this.current_id + '/rgb');
+	
+
+	var img = new Image();
+	img.onload = function() {
+		var ctx = $('#ui_grabcut')[0].getContext('2d');
+		ctx.drawImage(img, 0, 0);
+	};
+	img.src = '/at/' + this.current_id + '/rgb';
 };
 
 DebugFE.prototype.run = function() {
@@ -73,10 +97,10 @@ DebugFE.prototype.run = function() {
 	this.scene.add(this.generateCameraCone(0.994837674, 0.750491578));
 
 	// start canvas
-	this.renderer = new THREE.WebGLRenderer();
+	this.renderer = new THREE.WebGLRenderer({
+		canvas: $('#ui_3d')[0]
+	});
 	this.renderer.setClearColor(this.for_figure ? '#222': '#444');
-	this.renderer.setSize(800, 600); //window.innerWidth, window.innerHeight);
-	document.body.appendChild(this.renderer.domElement);
 
 	// add mouse control (do this after canvas insertion)
 	this.controls = new THREE.TrackballControls(this.camera, this.renderer.domElement);
