@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
 #include "web_server.h"
@@ -36,6 +37,9 @@ private:
 	// TODO: synchronized
 	Response handlePoints();
 	Response handleVoxels();
+	Response handleRGB();
+
+	static Response sendImage(cv::Mat image);
 private:
 	// Used to pass point cloud from grabber thread to handler thread.
 	std::mutex latest_cloud_lock;

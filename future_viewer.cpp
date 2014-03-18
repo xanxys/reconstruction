@@ -168,6 +168,8 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		return handlePoints();
 	} else if(uri.size() == 1 && uri[0] == "voxels") {
 		return handleVoxels();
+	} else if(uri.size() == 1 && uri[0] == "rgb") {
+		return handleRGB();
 	}
 	return Response::notFound();
 }
@@ -229,9 +231,9 @@ Response ReconServer::handleVoxels() {
 		for(const auto& pair_filled : voxels) {
 			// cast ray from camera
 			const auto pos = Eigen::Vector3f(
-				std::get<0>(pair_filled.first),
-				std::get<1>(pair_filled.first),
-				std::get<2>(pair_filled.first)) * size;
+				std::get<0>(pair_filled.first) + 0.5,
+				std::get<1>(pair_filled.first) + 0.5,
+				std::get<2>(pair_filled.first) + 0.5) * size;
 
 			const auto dir = (pos - camera_origin).normalized();
 
@@ -250,9 +252,9 @@ Response ReconServer::handleVoxels() {
 		}
 
 		std::map<std::tuple<int, int, int>, bool> voxels_unknown;
-		for(int ix : boost::irange(-10, 10)) {
-			for(int iy : boost::irange(-10, 10)) {
-				for(int iz : boost::irange(10, 30)) {
+		for(int ix : boost::irange(-12, 12)) {
+			for(int iy : boost::irange(-12, 12)) {
+				for(int iz : boost::irange(10, 35)) {
 					const auto key = std::make_tuple(ix, iy, iz);
 
 					if(voxels.find(key) == voxels.end() && voxels_empty.find(key) == voxels_empty.end()) {
@@ -262,7 +264,7 @@ Response ReconServer::handleVoxels() {
 			}
 		}
 
-		for(const auto& pair : voxels_unknown) {
+		for(const auto& pair : voxels) {
 			Json::Value vx;
 			vx["x"] = std::get<0>(pair.first);
 			vx["y"] = std::get<1>(pair.first);
@@ -271,4 +273,31 @@ Response ReconServer::handleVoxels() {
 		}
 	}
 	return Response(root);
+}
+
+Response ReconServer::handleRGB() {
+	{
+		std::lock_guard<std::mutex> lock(latest_cloud_lock);
+		if(!latest_cloud || latest_cloud->points.size() != latest_cloud->width * latest_cloud->height) {
+			return Response::notFound();
+		}
+
+		cv::Mat rgb(latest_cloud->height, latest_cloud->width, CV_8UC3);
+		for(int y : boost::irange(0, (int)latest_cloud->height)) {
+			for(int x : boost::irange(0, (int)latest_cloud->width)) {
+				const pcl::PointXYZRGBA& pt = latest_cloud->points[y * latest_cloud->width + x];
+				rgb.at<cv::Vec3b>(y, x) = cv::Vec3b(pt.b, pt.g, pt.r);
+			}
+		}
+
+		return sendImage(rgb);
+	}
+}
+
+Response ReconServer::sendImage(cv::Mat image) {
+	std::vector<uchar> buffer;
+	cv::imencode(".jpeg", image, buffer);
+
+	std::string buffer_s(buffer.begin(), buffer.end());
+	return Response(buffer_s, "image/jpeg");
 }
