@@ -37,8 +37,10 @@ private:
 	Response handlePoints(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	Response handleVoxels(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	Response handleRGB(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	Response handleGrabcut(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud, const std::string& data);
 
 	static Response sendImage(cv::Mat image);
+	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 private:
 	int new_id;
 

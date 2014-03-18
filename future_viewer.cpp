@@ -2,6 +2,7 @@
 
 #include <map>
 #include <cmath>
+#include <exception>
 #include <iostream>
 #include <sstream>
 #include <random>
@@ -22,6 +23,8 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
+
+#include "base64.h"
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
@@ -189,6 +192,8 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			return handleVoxels(cloud);
 		} else if(uri[2] == "rgb") {
 			return handleRGB(cloud);
+		} else if(uri[2] == "grabcut" && method == "POST") {
+			return handleGrabcut(cloud, data);
 		}
 
 		return Response::notFound();
@@ -287,8 +292,69 @@ Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud) {
 }
 
 Response ReconServer::handleRGB(const ColorCloud::ConstPtr& cloud) {
+	return sendImage(extractImageFromPointCloud(cloud));
+}
+
+Response ReconServer::sendImage(cv::Mat image) {
+	std::vector<uchar> buffer;
+	cv::imencode(".jpeg", image, buffer);
+
+	std::string buffer_s(buffer.begin(), buffer.end());
+	return Response(buffer_s, "image/jpeg");
+}
+
+Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std::string& data) {
+	Json::Value root;
+	Json::Reader().parse(data, root);
+	const std::string data_url = root["image"].asString();
+	const std::string binary = base64_decode(data_url.substr(data_url.find(",") + 1));
+	const std::vector<uint8_t> blob(binary.begin(), binary.end());
+
+	const cv::Mat mask = cv::imdecode(blob, CV_LOAD_IMAGE_COLOR);
+	if(!mask.data) {
+		return Response(400, "Invalid image", "text/plain");
+	}
+	const cv::Mat image = extractImageFromPointCloud(cloud);
+
+	if(mask.size() != image.size()) {
+		return Response(400, "Invalid image size", "text/plain");
+	}
+
+	cv::imwrite("user-spec.png", mask);
+
+	cv::Mat mask_parsed(mask.rows, mask.cols, CV_8UC1);
+	for(int y : boost::irange(0, mask.rows)) {
+		for(int x : boost::irange(0, mask.cols)) {
+			const auto color = mask.at<cv::Vec3b>(y, x);
+
+			uint8_t val = cv::GC_PR_BGD;
+			if(color[0] > 127) {
+				// blueish -> FG
+				val = cv::GC_FGD;
+			} else if(color[2] > 127) {
+				// reddish -> BG
+				val = cv::GC_BGD;
+			}
+			mask_parsed.at<uint8_t>(y, x) = val;
+		}
+	}
+
+	cv::imwrite("user-spec-parsed.png", mask_parsed);
+
+	std::cout << "Parsed images for grabcut" << std::endl;
+
+	cv::Mat bgd_model;
+	cv::Mat fgd_model;
+	cv::grabCut(image, mask_parsed, cv::Rect(), bgd_model, fgd_model, 1, cv::GC_INIT_WITH_MASK);
+
+	cv::imwrite("mask_refined.png", mask_parsed);
+	return sendImage(mask_parsed);
+}
+
+cv::Mat ReconServer::extractImageFromPointCloud(
+	const ColorCloud::ConstPtr& cloud) {
 	if(cloud->points.size() != cloud->width * cloud->height) {
-		return Response::notFound();
+		throw std::runtime_error("Point cloud is not an image");
 	}
 
 	cv::Mat rgb(cloud->height, cloud->width, CV_8UC3);
@@ -298,14 +364,5 @@ Response ReconServer::handleRGB(const ColorCloud::ConstPtr& cloud) {
 			rgb.at<cv::Vec3b>(y, x) = cv::Vec3b(pt.b, pt.g, pt.r);
 		}
 	}
-
-	return sendImage(rgb);
-}
-
-Response ReconServer::sendImage(cv::Mat image) {
-	std::vector<uchar> buffer;
-	cv::imencode(".jpeg", image, buffer);
-
-	std::string buffer_s(buffer.begin(), buffer.end());
-	return Response(buffer_s, "image/jpeg");
+	return rgb;
 }

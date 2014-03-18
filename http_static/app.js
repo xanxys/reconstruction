@@ -11,22 +11,45 @@ var DebugFE = function() {
 		});
 	});
 
-	var ctx = $('#ui_grabcut')[0].getContext('2d');
-	ctx.fillStyle = 'red';
-	ctx.beginPath();
-	ctx.rect(0, 0, 100, 100);
-	ctx.fill();
-
-	$('#ui_grabcut').mousedown(function(event) {
+	var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
+	ctx.fillStyle = 'blue';
+	var drawing = false;
+	$('#ui_grabcut_drawing').mousedown(function(event) {
+		drawing = true;
 	});
-	$('#ui_grabcut').mousemove(function(event) {
+	$('#ui_grabcut_drawing').mousemove(function(event) {
+		if(!drawing) {
+			return;
+		}
+
 		ctx.beginPath();
 		ctx.arc(event.offsetX, event.offsetY, 5, 0, 2 * Math.PI);
 		ctx.fill();
 	});
-	$('#ui_grabcut').mouseup(function(event) {
+	$('#ui_grabcut_drawing').mouseup(function(event) {
+		drawing = alse;
 	});
 
+	$('#ui_draw_fg').click(function() {
+		ctx.fillStyle = 'blue';
+	});
+
+	$('#ui_draw_bg').click(function() {
+		ctx.fillStyle = 'red';
+	});
+
+	$('#ui_do_grabcut').click(function() {
+		$.ajax({
+			type: 'POST',
+			url: '/at/' + _this.current_id + '/grabcut',
+			data: JSON.stringify({
+				image: $('#ui_grabcut_drawing')[0].toDataURL()
+			}),
+			contentType: 'application/json'
+		}).done(function(data) {
+			console.log(data);
+		});
+	});
 };
 
 DebugFE.prototype.updateViews = function() {

@@ -78,8 +78,6 @@ int WebServer::eventHandler(struct mg_event* event) {
 		req_parsed.erase(req_parsed.begin());
 	}
 
-	std::cout << uri << " : " << req_parsed.size() << std::endl;
-
 	// Get method
 	const std::string method(event->request_info->request_method);
 
@@ -95,10 +93,24 @@ int WebServer::eventHandler(struct mg_event* event) {
 		}		
 	}
 
-	auto response = reinterpret_cast<WebServer*>(event->user_data)
-	->handleRequest(req_parsed, method, data);
-	const std::string response_str = response.serialize();
-	mg_write(event->conn, response_str.data(), response_str.size());
+	if(data_size) {
+		std::cout << method << " " << uri << " : " << std::stoi(data_size) << "B" << std::endl;
+	} else {
+		std::cout << method << " " << uri << std::endl;
+	}
+
+	try {
+		auto response = reinterpret_cast<WebServer*>(event->user_data)
+			->handleRequest(req_parsed, method, data);
+		const std::string response_str = response.serialize();
+		mg_write(event->conn, response_str.data(), response_str.size());
+	} catch(std::exception& exc) {
+		const std::string response_str = Response(500, exc.what(), "text/plain").serialize();
+		mg_write(event->conn, response_str.data(), response_str.size());
+	} catch(...) {
+		const std::string response_str = Response(500, "Unknown exception", "text/plain").serialize();
+		mg_write(event->conn, response_str.data(), response_str.size());
+	}
 
 	return 1;
 }
