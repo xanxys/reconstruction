@@ -27,7 +27,7 @@ var DebugFE = function() {
 		ctx.fill();
 	});
 	$('#ui_grabcut_drawing').mouseup(function(event) {
-		drawing = alse;
+		drawing = false;
 	});
 
 	$('#ui_draw_fg').click(function() {
@@ -36,6 +36,10 @@ var DebugFE = function() {
 
 	$('#ui_draw_bg').click(function() {
 		ctx.fillStyle = 'red';
+	});
+
+	$('#ui_clear').click(function() {
+		ctx.clearRect(0, 0, 640, 480);
 	});
 
 	$('#ui_do_grabcut').click(function() {
@@ -47,7 +51,11 @@ var DebugFE = function() {
 			}),
 			contentType: 'application/json'
 		}).done(function(data) {
-			console.log(data);
+			$('#ui_modal_result').empty();
+			var img = new Image();
+			img.src = data['image'];
+			$('#ui_modal_result').append(img);
+			$('#myModal').modal();
 		});
 	});
 };

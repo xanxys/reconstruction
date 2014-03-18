@@ -320,8 +320,6 @@ Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std
 		return Response(400, "Invalid image size", "text/plain");
 	}
 
-	cv::imwrite("user-spec.png", mask);
-
 	cv::Mat mask_parsed(mask.rows, mask.cols, CV_8UC1);
 	for(int y : boost::irange(0, mask.rows)) {
 		for(int x : boost::irange(0, mask.cols)) {
@@ -339,16 +337,30 @@ Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std
 		}
 	}
 
-	cv::imwrite("user-spec-parsed.png", mask_parsed);
-
-	std::cout << "Parsed images for grabcut" << std::endl;
-
 	cv::Mat bgd_model;
 	cv::Mat fgd_model;
-	cv::grabCut(image, mask_parsed, cv::Rect(), bgd_model, fgd_model, 1, cv::GC_INIT_WITH_MASK);
+	cv::grabCut(image, mask_parsed, cv::Rect(), bgd_model, fgd_model, 3, cv::GC_INIT_WITH_MASK);
 
-	cv::imwrite("mask_refined.png", mask_parsed);
-	return sendImage(mask_parsed);
+	
+	cv::Mat image_clipped(mask.rows, mask.cols, CV_8UC3);
+	for(int y : boost::irange(0, mask.rows)) {
+		for(int x : boost::irange(0, mask.cols)) {
+			const uint8_t flag = mask_parsed.at<uint8_t>(y, x);
+
+			if(flag == cv::GC_FGD || flag == cv::GC_PR_FGD) {
+				image_clipped.at<cv::Vec3b>(y, x) = image.at<cv::Vec3b>(y, x);
+			}
+		}
+	}
+
+	std::vector<uchar> buffer;
+	cv::imencode(".jpeg", image_clipped, buffer);
+	const std::string buffer_s(buffer.begin(), buffer.end());
+
+	Json::Value result;
+	result["image"] = "data:image/jpeg;base64," +
+		base64_encode(reinterpret_cast<const uint8_t*>(buffer_s.data()), buffer_s.size());
+	return Response(result);
 }
 
 cv::Mat ReconServer::extractImageFromPointCloud(
