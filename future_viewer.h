@@ -14,19 +14,7 @@
 
 #include "web_server.h"
 
-
-class VoxelTraversal {
-public:
-	VoxelTraversal(float size, Eigen::Vector3f org, Eigen::Vector3f dir);
-	std::tuple<int, int, int> next();
-private:
-	const Eigen::Vector3f org;
-	const Eigen::Vector3f dir;
-	Eigen::Vector3i index;
-	Eigen::Vector3f frac;
-};
-
-
+// A controller. Two models are OpenNI grabber and SceneAnalyzer.
 class ReconServer : public WebServer {
 public:
 	ReconServer();
@@ -42,7 +30,6 @@ private:
 	static cv::Mat imageFromDataURL(const std::string& url);
 	static std::string dataURLFromImage(const cv::Mat& image);
 	static Response sendImage(cv::Mat image);
-	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 private:
 	int new_id;
 

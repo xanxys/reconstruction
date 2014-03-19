@@ -1,4 +1,4 @@
-#include "future_viewer.h"
+#include "analyzer.h"
 
 #include <iostream>
 #include <random>
