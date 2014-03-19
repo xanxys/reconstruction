@@ -71,6 +71,11 @@ std::tuple<int, int, int> VoxelTraversal::next() {
 }
 
 
+VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
+
+}
+
+
 SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& cloud) :
 	cloud(cloud), voxel_size(0.1) {
 }
@@ -84,10 +89,20 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {
 }
 
 std::map<std::tuple<int, int, int>, VoxelState> SceneAnalyzer::getVoxels() {
+	std::map<std::tuple<int, int, int>, VoxelState> voxels;
+	for(const auto& pair : getVoxelsDetailed()) {
+		voxels[pair.first] = pair.second.state;
+	}
+	return voxels;
+}
+
+std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDetailed() {
 	const float size = voxel_size;
 
 	// known to be filled
 	std::map<std::tuple<int, int, int>, bool> voxels;
+	std::map<std::tuple<int, int, int>, Eigen::Vector3f> voxels_accum;
+	std::map<std::tuple<int, int, int>, int> voxels_count;
 	for(const auto& pt : cloud->points) {
 		if(!std::isfinite(pt.x)) {
 			continue;
@@ -98,7 +113,15 @@ std::map<std::tuple<int, int, int>, VoxelState> SceneAnalyzer::getVoxels() {
 			static_cast<int>(std::floor(ix.x())),
 			static_cast<int>(std::floor(ix.y())),
 			static_cast<int>(std::floor(ix.z())));
+
 		voxels[key] = true;
+		if(voxels_accum.find(key) == voxels_accum.end()) {
+			voxels_accum[key] = Eigen::Vector3f(pt.r, pt.g, pt.b);
+			voxels_count[key] = 1;
+		} else {
+			voxels_accum[key] += Eigen::Vector3f(pt.r, pt.g, pt.b);
+			voxels_count[key] += 1;
+		}
 	}
 
 	const auto& camera_origin = Eigen::Vector3f::Zero();
@@ -127,36 +150,29 @@ std::map<std::tuple<int, int, int>, VoxelState> SceneAnalyzer::getVoxels() {
 		}
 	}
 
-	std::map<std::tuple<int, int, int>, bool> voxels_unknown;
-	for(int ix : boost::irange(-12, 12)) {
-		for(int iy : boost::irange(-12, 12)) {
-			for(int iz : boost::irange(10, 35)) {
-				const auto key = std::make_tuple(ix, iy, iz);
-
-				if(voxels.find(key) == voxels.end() && voxels_empty.find(key) == voxels_empty.end()) {
-					voxels_unknown[key] = true;
-				}
-			}
-		}
-	}
-
-	std::map<std::tuple<int, int, int>, VoxelState> voxel_merged;
+	std::map<std::tuple<int, int, int>, VoxelDescription> voxel_merged;
 	for(const auto& pair_filled : voxels) {
-		voxel_merged[pair_filled.first] = VoxelState::OCCUPIED;
+		VoxelDescription desc;
+		desc.state = VoxelState::OCCUPIED;
+		desc.average_image_color =
+			voxels_accum[pair_filled.first] / voxels_count[pair_filled.first];
+		voxel_merged[pair_filled.first] = desc;
 	}
 	for(const auto& pair_empty : voxels_empty) {
-		voxel_merged[pair_empty.first] = VoxelState::EMPTY;
+		VoxelDescription desc;
+		desc.state = VoxelState::EMPTY;
+		voxel_merged[pair_empty.first] = desc;
 	}
 	return voxel_merged;
 }
 
 Json::Value SceneAnalyzer::getObjects() {
-	const auto voxels = getVoxels();
+	const auto voxels = getVoxelsDetailed();
 
 	// find floor
 	int iy_floor = 0;
 	for(const auto& pair : voxels) {
-		if(pair.second == VoxelState::OCCUPIED) {
+		if(pair.second.state == VoxelState::OCCUPIED) {
 			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
 		}
 	}
@@ -166,7 +182,7 @@ Json::Value SceneAnalyzer::getObjects() {
 	Json::Value objects;
 
 	std::mt19937 gen;
-	for(int i : boost::irange(0, 1000)) {
+	for(int i : boost::irange(0, 10000)) {
 		// Generate box params
 		const float height = std::uniform_real_distribution<float>(0.05, 2)(gen);
 
@@ -191,24 +207,42 @@ Json::Value SceneAnalyzer::getObjects() {
 		object["sy"] = box_size.y();
 		object["sz"] = box_size.z();
 
-		bool collision = false;
+		bool collision_empty = false;
+		bool collision_occupied = false;
+		Eigen::Vector3f avg_color(0, 0, 0);
+		int avg_count = 0;
 		for(const auto& pair : voxels) {
-			if(pair.second == VoxelState::EMPTY) {
-				const auto voxel_center = Eigen::Vector3f(
+			const auto voxel_center = Eigen::Vector3f(
 					0.5 + std::get<0>(pair.first),
 					0.5 + std::get<1>(pair.first),
 					0.5 + std::get<2>(pair.first)) * voxel_size;
 
-				const auto dp = Eigen::AngleAxisf(-rot_y, Eigen::Vector3f::UnitY()) * (voxel_center - box_center);
+			const auto dp = Eigen::AngleAxisf(-rot_y, Eigen::Vector3f::UnitY()) * (voxel_center - box_center);
 
-				if((dp.array() > (-box_size / 2).array()).all() &&
-					(dp.array() < (box_size / 2).array()).all()) {
-					collision = true;
+			const bool collision =
+				(dp.array() > (-box_size / 2).array()).all() &&
+				(dp.array() < (box_size / 2).array()).all();
+
+
+			if(pair.second.state == VoxelState::EMPTY) {
+				collision_empty |= collision;
+			} else if(pair.second.state == VoxelState::OCCUPIED) {
+				if(collision) {
+					collision_occupied = true;
+					avg_color += pair.second.average_image_color;
+					avg_count += 1;
 				}
 			}
 		}
+		if(avg_count > 0) {
+			avg_color /= avg_count;
 
-		object["valid"] = !collision;
+			object["r"] = avg_color.x();
+			object["g"] = avg_color.y();
+			object["b"] = avg_color.z();
+		}
+
+		object["valid"] = !collision_empty & collision_occupied;
 
 		objects.append(object);
 	}

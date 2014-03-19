@@ -22,6 +22,15 @@ enum class VoxelState {
 	EMPTY
 };
 
+
+class VoxelDescription {
+public:
+	VoxelDescription();
+public:
+	VoxelState state;
+	Eigen::Vector3f average_image_color;
+};
+
 // Analyze a single RGB-D frame.
 // Camera is always at the origin.
 class SceneAnalyzer {
@@ -35,6 +44,7 @@ public:
 
 	cv::Mat getRGBImage();
 	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
+	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
 	Json::Value getObjects();
 protected:
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
