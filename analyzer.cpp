@@ -83,7 +83,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {
 	return cloud;
 }
 
-std::map<std::tuple<int, int, int>, bool> SceneAnalyzer::getVoxels() {
+std::map<std::tuple<int, int, int>, VoxelState> SceneAnalyzer::getVoxels() {
 	const float size = voxel_size;
 
 	// known to be filled
@@ -140,14 +140,25 @@ std::map<std::tuple<int, int, int>, bool> SceneAnalyzer::getVoxels() {
 		}
 	}
 
-	return voxels;
+	std::map<std::tuple<int, int, int>, VoxelState> voxel_merged;
+	for(const auto& pair_filled : voxels) {
+		voxel_merged[pair_filled.first] = VoxelState::OCCUPIED;
+	}
+	for(const auto& pair_empty : voxels_empty) {
+		voxel_merged[pair_empty.first] = VoxelState::EMPTY;
+	}
+	return voxel_merged;
 }
 
 Json::Value SceneAnalyzer::getObjects() {
+	const auto voxels = getVoxels();
+
 	// find floor
 	int iy_floor = 0;
-	for(const auto& pair : getVoxels()) {
-		iy_floor = std::max(iy_floor, std::get<1>(pair.first));
+	for(const auto& pair : voxels) {
+		if(pair.second == VoxelState::OCCUPIED) {
+			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
+		}
 	}
 	const float y_floor = (iy_floor + 1) * voxel_size;
 
@@ -156,16 +167,48 @@ Json::Value SceneAnalyzer::getObjects() {
 
 	std::mt19937 gen;
 	for(int i : boost::irange(0, 1000)) {
+		// Generate box params
 		const float height = std::uniform_real_distribution<float>(0.05, 2)(gen);
 
+		const Eigen::Vector3f box_center(
+			std::uniform_real_distribution<float>(-1.25, 1.25)(gen),
+			y_floor - height / 2,
+			std::uniform_real_distribution<float>(0, 3)(gen));
+
+		const float rot_y = std::uniform_real_distribution<float>(0, 2 * pi)(gen);
+
+		const Eigen::Vector3f box_size(
+			std::uniform_real_distribution<float>(0.05, 2)(gen),
+			height,
+			std::uniform_real_distribution<float>(0.05, 2)(gen));
+
 		Json::Value object;
-		object["px"] = std::uniform_real_distribution<float>(-1.25, 1.25)(gen);
-		object["py"] = y_floor - height / 2;
-		object["pz"] = std::uniform_real_distribution<float>(0, 3)(gen);
-		object["ry"] = std::uniform_real_distribution<float>(0, 2 * pi)(gen);
-		object["sx"] = std::uniform_real_distribution<float>(0.05, 2)(gen);
-		object["sy"] = height;
-		object["sz"] = std::uniform_real_distribution<float>(0.05, 2)(gen);
+		object["px"] = box_center.x();
+		object["py"] = box_center.y();
+		object["pz"] = box_center.z();
+		object["ry"] = rot_y;
+		object["sx"] = box_size.x();
+		object["sy"] = box_size.y();
+		object["sz"] = box_size.z();
+
+		bool collision = false;
+		for(const auto& pair : voxels) {
+			if(pair.second == VoxelState::EMPTY) {
+				const auto voxel_center = Eigen::Vector3f(
+					0.5 + std::get<0>(pair.first),
+					0.5 + std::get<1>(pair.first),
+					0.5 + std::get<2>(pair.first)) * voxel_size;
+
+				const auto dp = Eigen::AngleAxisf(-rot_y, Eigen::Vector3f::UnitY()) * (voxel_center - box_center);
+
+				if((dp.array() > (-box_size / 2).array()).all() &&
+					(dp.array() < (box_size / 2).array()).all()) {
+					collision = true;
+				}
+			}
+		}
+
+		object["valid"] = !collision;
 
 		objects.append(object);
 	}

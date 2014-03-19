@@ -137,14 +137,20 @@ DebugFE.prototype.updateViews = function() {
 
 	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
 		var objects = new THREE.Object3D();
+		var num_invalid = 0;
 		_.each(data, function(object_desc) {
+			if(!object_desc.valid) {
+				num_invalid += 1;
+				return;
+			}
+
 			var obj = new THREE.Mesh(
 				new THREE.CubeGeometry(
 					object_desc.sx,
 					object_desc.sy,
 					object_desc.sz),
 				new THREE.MeshBasicMaterial({
-					color: 'gray',
+					color: object_desc.valid ? 'gray' : 'red',
 					wireframe: true
 				}));
 			obj.position = new THREE.Vector3(
@@ -152,9 +158,10 @@ DebugFE.prototype.updateViews = function() {
 				object_desc.py,
 				object_desc.pz);
 
-			obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, -1, 0), object_desc.ry);
+			obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), object_desc.ry);
 			objects.add(obj);
 		});
+		console.log('Invalid Object Proxies ', num_invalid, '/', data.length);
 
 		if(_this.objects !== undefined) {
 			_this.scene.remove(_this.objects);

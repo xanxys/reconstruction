@@ -118,6 +118,10 @@ Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud) {
 
 	Json::Value root;
 	for(const auto& pair : analyzer.getVoxels()) {
+		if(pair.second != VoxelState::OCCUPIED) {
+			continue;
+		}
+		
 		Json::Value vx;
 		vx["x"] = std::get<0>(pair.first);
 		vx["y"] = std::get<1>(pair.first);

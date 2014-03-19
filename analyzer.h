@@ -17,6 +17,10 @@ private:
 	Eigen::Vector3f frac;
 };
 
+enum class VoxelState {
+	OCCUPIED,
+	EMPTY
+};
 
 // Analyze a single RGB-D frame.
 // Camera is always at the origin.
@@ -30,7 +34,7 @@ public:
 	float getFloor();
 
 	cv::Mat getRGBImage();
-	std::map<std::tuple<int, int, int>, bool> getVoxels();
+	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
 	Json::Value getObjects();
 protected:
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
