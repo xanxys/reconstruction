@@ -30,7 +30,6 @@ LIBS = [
 	'libpcl_kdtree',
 	'libpcl_search',
 	'libpcl_segmentation',
-	'libpcl_visualization',
 	'libpthread',
 ]
 
