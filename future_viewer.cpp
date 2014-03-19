@@ -306,11 +306,7 @@ Response ReconServer::sendImage(cv::Mat image) {
 Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std::string& data) {
 	Json::Value root;
 	Json::Reader().parse(data, root);
-	const std::string data_url = root["image"].asString();
-	const std::string binary = base64_decode(data_url.substr(data_url.find(",") + 1));
-	const std::vector<uint8_t> blob(binary.begin(), binary.end());
-
-	const cv::Mat mask = cv::imdecode(blob, CV_LOAD_IMAGE_COLOR);
+	const cv::Mat mask = imageFromDataURL(root["image"].asString());
 	if(!mask.data) {
 		return Response(400, "Invalid image", "text/plain");
 	}
@@ -353,13 +349,8 @@ Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std
 		}
 	}
 
-	std::vector<uchar> buffer;
-	cv::imencode(".jpeg", image_clipped, buffer);
-	const std::string buffer_s(buffer.begin(), buffer.end());
-
 	Json::Value result;
-	result["image"] = "data:image/jpeg;base64," +
-		base64_encode(reinterpret_cast<const uint8_t*>(buffer_s.data()), buffer_s.size());
+	result["image"] = dataURLFromImage(image_clipped);
 	return Response(result);
 }
 
@@ -377,4 +368,20 @@ cv::Mat ReconServer::extractImageFromPointCloud(
 		}
 	}
 	return rgb;
+}
+
+cv::Mat ReconServer::imageFromDataURL(const std::string& data_url) {
+	const std::string binary = base64_decode(data_url.substr(data_url.find(",") + 1));
+	const std::vector<uint8_t> blob(binary.begin(), binary.end());
+
+	return cv::imdecode(blob, CV_LOAD_IMAGE_COLOR);
+}
+
+std::string ReconServer::dataURLFromImage(const cv::Mat& image) {
+	std::vector<uchar> buffer;
+	cv::imencode(".jpeg", image, buffer);
+	const std::string buffer_s(buffer.begin(), buffer.end());
+
+	return "data:image/jpeg;base64," +
+		base64_encode(reinterpret_cast<const uint8_t*>(buffer_s.data()), buffer_s.size());
 }
