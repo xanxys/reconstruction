@@ -83,6 +83,8 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			return handleRGB(cloud);
 		} else if(uri[2] == "grabcut" && method == "POST") {
 			return handleGrabcut(cloud, data);
+		} else if(uri[2] == "objects") {
+			return handleObjects(cloud);
 		}
 
 		return Response::notFound();
@@ -91,9 +93,10 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 }
 
 Response ReconServer::handlePoints(const ColorCloud::ConstPtr& cloud) {
-	Json::Value vs;
+	SceneAnalyzer analyzer(cloud);
 
-	for(const auto& pt : cloud->points) {
+	Json::Value vs;
+	for(const auto& pt : analyzer.getCloud()->points) {
 		if(!std::isfinite(pt.x)) {
 			continue;
 		}
@@ -126,14 +129,6 @@ Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud) {
 
 Response ReconServer::handleRGB(const ColorCloud::ConstPtr& cloud) {
 	return sendImage(SceneAnalyzer(cloud).getRGBImage());
-}
-
-Response ReconServer::sendImage(cv::Mat image) {
-	std::vector<uchar> buffer;
-	cv::imencode(".jpeg", image, buffer);
-
-	std::string buffer_s(buffer.begin(), buffer.end());
-	return Response(buffer_s, "image/jpeg");
 }
 
 Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std::string& data) {
@@ -185,6 +180,21 @@ Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std
 	result["image"] = dataURLFromImage(image_clipped);
 	return Response(result);
 }
+
+Response ReconServer::handleObjects(const ColorCloud::ConstPtr& cloud) {
+	SceneAnalyzer analyzer(cloud);
+	Json::Value result = analyzer.getObjects();
+	return Response(result);
+}
+
+Response ReconServer::sendImage(cv::Mat image) {
+	std::vector<uchar> buffer;
+	cv::imencode(".jpeg", image, buffer);
+
+	std::string buffer_s(buffer.begin(), buffer.end());
+	return Response(buffer_s, "image/jpeg");
+}
+
 
 cv::Mat ReconServer::imageFromDataURL(const std::string& data_url) {
 	const std::string binary = base64_decode(data_url.substr(data_url.find(",") + 1));

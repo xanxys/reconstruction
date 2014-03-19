@@ -62,6 +62,7 @@ var DebugFE = function() {
 
 DebugFE.prototype.updateViews = function() {
 	var _this = this;
+	var voxel_size = 0.1;
 
 	$.ajax('/at/' + this.current_id + '/points').done(function(data) {
 		var geom = new THREE.Geometry();
@@ -85,18 +86,47 @@ DebugFE.prototype.updateViews = function() {
 	});
 
 	$.ajax('/at/' + this.current_id + '/voxels').done(function(data) {
+		var iy_floor = _.max(_.map(data, function(vx) {
+			return vx.y;
+		}));
+
 		var voxels = new THREE.Object3D();
 		_.each(data, function(vx) {
 			var vx_three = new THREE.Mesh(
-				new THREE.CubeGeometry(0.1, 0.1, 0.1),
+				new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
 				new THREE.MeshBasicMaterial({
-					color: 'red',
+					color: 'orange',
 					opacity: 0.3,
 					transparent: true
 				}));
-			vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(0.1);
+			vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(voxel_size);
 			voxels.add(vx_three);
+
+			if(vx.y === iy_floor) {
+				var shadow = new THREE.Mesh(new THREE.CubeGeometry(voxel_size * 2, 0.05, voxel_size * 2),
+					new THREE.MeshBasicMaterial({
+						color: 'black',
+						opacity: 0.1,
+						transparent: true
+					}));
+				shadow.position = new THREE.Vector3(
+					vx.x + 0.5,
+					1 + iy_floor,
+					vx.z + 0.5).multiplyScalar(voxel_size);
+				voxels.add(shadow);
+			}
 		});
+
+		// generate floor
+		var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
+			new THREE.MeshBasicMaterial({
+				color: '#ccc'
+			}));
+		floor.position = new THREE.Vector3(
+			0,
+			voxel_size * (1 + iy_floor),
+			0);
+		voxels.add(floor);
 
 		if(_this.voxels !== undefined) {
 			_this.scene.remove(_this.voxels);
@@ -105,7 +135,33 @@ DebugFE.prototype.updateViews = function() {
 		_this.scene.add(voxels);
 	});
 
-	
+	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
+		var objects = new THREE.Object3D();
+		_.each(data, function(object_desc) {
+			var obj = new THREE.Mesh(
+				new THREE.CubeGeometry(
+					object_desc.sx,
+					object_desc.sy,
+					object_desc.sz),
+				new THREE.MeshBasicMaterial({
+					color: 'gray',
+					wireframe: true
+				}));
+			obj.position = new THREE.Vector3(
+				object_desc.px,
+				object_desc.py,
+				object_desc.pz);
+
+			obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, -1, 0), object_desc.ry);
+			objects.add(obj);
+		});
+
+		if(_this.objects !== undefined) {
+			_this.scene.remove(_this.objects);
+		}
+		_this.objects = objects;
+		_this.scene.add(objects);
+	});
 
 	var img = new Image();
 	img.onload = function() {

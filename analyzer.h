@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
@@ -18,14 +19,23 @@ private:
 
 
 // Analyze a single RGB-D frame.
+// Camera is always at the origin.
 class SceneAnalyzer {
 public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
+	// Return aligned cloud.
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud();
+
+	float getFloor();
+
 	cv::Mat getRGBImage();
 	std::map<std::tuple<int, int, int>, bool> getVoxels();
+	Json::Value getObjects();
 protected:
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud;
+private:
+	const float voxel_size;
 };

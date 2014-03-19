@@ -27,6 +27,7 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
+const double pi = 3.14159265359;
 
 VoxelTraversal::VoxelTraversal(float size, Eigen::Vector3f org, Eigen::Vector3f dir) :
 org(org / size), dir(dir) {
@@ -70,15 +71,20 @@ std::tuple<int, int, int> VoxelTraversal::next() {
 }
 
 
-SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& cloud) : cloud(cloud) {
+SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& cloud) :
+	cloud(cloud), voxel_size(0.1) {
 }
 
 cv::Mat SceneAnalyzer::getRGBImage() {
 	return extractImageFromPointCloud(cloud);
 }
 
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {
+	return cloud;
+}
+
 std::map<std::tuple<int, int, int>, bool> SceneAnalyzer::getVoxels() {
-	const float size = 0.1;
+	const float size = voxel_size;
 
 	// known to be filled
 	std::map<std::tuple<int, int, int>, bool> voxels;
@@ -137,6 +143,35 @@ std::map<std::tuple<int, int, int>, bool> SceneAnalyzer::getVoxels() {
 	return voxels;
 }
 
+Json::Value SceneAnalyzer::getObjects() {
+	// find floor
+	int iy_floor = 0;
+	for(const auto& pair : getVoxels()) {
+		iy_floor = std::max(iy_floor, std::get<1>(pair.first));
+	}
+	const float y_floor = (iy_floor + 1) * voxel_size;
+
+	//
+	Json::Value objects;
+
+	std::mt19937 gen;
+	for(int i : boost::irange(0, 1000)) {
+		const float height = std::uniform_real_distribution<float>(0.05, 2)(gen);
+
+		Json::Value object;
+		object["px"] = std::uniform_real_distribution<float>(-1.25, 1.25)(gen);
+		object["py"] = y_floor - height / 2;
+		object["pz"] = std::uniform_real_distribution<float>(0, 3)(gen);
+		object["ry"] = std::uniform_real_distribution<float>(0, 2 * pi)(gen);
+		object["sx"] = std::uniform_real_distribution<float>(0.05, 2)(gen);
+		object["sy"] = height;
+		object["sz"] = std::uniform_real_distribution<float>(0.05, 2)(gen);
+
+		objects.append(object);
+	}
+
+	return objects;
+}
 
 cv::Mat SceneAnalyzer::extractImageFromPointCloud(
 	const ColorCloud::ConstPtr& cloud) {
