@@ -178,8 +178,41 @@ Json::Value SceneAnalyzer::getObjects() {
 	}
 	const float y_floor = (iy_floor + 1) * voxel_size;
 
+	// find walls by projection
+	std::map<std::tuple<int, int>, int> projected;
+	for(const auto& pair : voxels) {
+		if(pair.second.state == VoxelState::OCCUPIED) {
+			const auto key = std::make_tuple(
+				std::get<0>(pair.first),
+				std::get<2>(pair.first));
+
+			projected[key] += 1;
+		}
+	}
+
 	//
 	Json::Value objects;
+
+	for(const auto& wall_tile : projected) {
+		if(wall_tile.second < 5) {
+			continue;
+		}
+
+		Json::Value object;
+		object["px"] = (std::get<0>(wall_tile.first) + 0.5) * voxel_size;
+		object["py"] = 0;
+		object["pz"] = (std::get<1>(wall_tile.first) + 0.5) * voxel_size;
+		object["ry"] = 0;
+		object["sx"] = 0.03;
+		object["sy"] = 3;
+		object["sz"] = 0.03;
+		object["valid"] = true;
+		object["r"] = 0;
+		object["g"] = 0;
+		object["b"] = 255;
+
+		objects.append(object);
+	}
 
 	std::mt19937 gen;
 	for(int i : boost::irange(0, 10000)) {

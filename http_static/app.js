@@ -151,7 +151,10 @@ DebugFE.prototype.updateViews = function() {
 					object_desc.sz),
 				new THREE.MeshBasicMaterial({
 					color: object_desc.valid ?
-						new THREE.Color(object_desc.r / 255, object_desc.g / 255, object_desc.b / 255) :
+						new THREE.Color(
+							object_desc.r / 255,
+							object_desc.g / 255,
+							object_desc.b / 255) :
 						'red',
 					opacity: 0.3,
 					transparent: true
