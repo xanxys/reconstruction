@@ -77,7 +77,7 @@ VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 
 
 SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& cloud) :
-	cloud(cloud), voxel_size(0.1) {
+cloud(cloud), voxel_size(0.1) {
 }
 
 cv::Mat SceneAnalyzer::getRGBImage() {
@@ -155,7 +155,7 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDe
 		VoxelDescription desc;
 		desc.state = VoxelState::OCCUPIED;
 		desc.average_image_color =
-			voxels_accum[pair_filled.first] / voxels_count[pair_filled.first];
+		voxels_accum[pair_filled.first] / voxels_count[pair_filled.first];
 		voxel_merged[pair_filled.first] = desc;
 	}
 	for(const auto& pair_empty : voxels_empty) {
@@ -167,6 +167,8 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDe
 }
 
 Json::Value SceneAnalyzer::getObjects() {
+	Json::Value objects;
+
 	const auto voxels = getVoxelsDetailed();
 
 	// find floor
@@ -178,7 +180,7 @@ Json::Value SceneAnalyzer::getObjects() {
 	}
 	const float y_floor = (iy_floor + 1) * voxel_size;
 
-	// find walls by projection
+	// find walls by 3D -> 2D projection
 	std::map<std::tuple<int, int>, int> projected;
 	for(const auto& pair : voxels) {
 		if(pair.second.state == VoxelState::OCCUPIED) {
@@ -190,8 +192,47 @@ Json::Value SceneAnalyzer::getObjects() {
 		}
 	}
 
+	// find x limits
+	int ix0 = 0;
+	int ix1 = 0;
+	for(const auto& pair : projected) {
+		ix0 = std::min(ix0, std::get<0>(pair.first));
+		ix1 = std::max(ix1, std::get<0>(pair.first));
+	}
+
+	{
+		Json::Value object;
+		object["px"] = (ix0 + 0.5) * voxel_size;
+		object["py"] = 0;
+		object["pz"] = 2;
+		object["ry"] = 0;
+		object["sx"] = 0.03;
+		object["sy"] = 3;
+		object["sz"] = 4;
+		object["valid"] = true;
+		object["r"] = 0;
+		object["g"] = 255;
+		object["b"] = 0;
+		objects.append(object);
+	}
+	{
+		Json::Value object;
+		object["px"] = (ix1 + 0.5) * voxel_size;
+		object["py"] = 0;
+		object["pz"] = 2;
+		object["ry"] = 0;
+		object["sx"] = 0.03;
+		object["sy"] = 3;
+		object["sz"] = 4;
+		object["valid"] = true;
+		object["r"] = 0;
+		object["g"] = 255;
+		object["b"] = 0;
+		objects.append(object);
+	}
+
 	//
-	Json::Value objects;
+	
 
 	for(const auto& wall_tile : projected) {
 		if(wall_tile.second < 5) {
@@ -246,15 +287,15 @@ Json::Value SceneAnalyzer::getObjects() {
 		int avg_count = 0;
 		for(const auto& pair : voxels) {
 			const auto voxel_center = Eigen::Vector3f(
-					0.5 + std::get<0>(pair.first),
-					0.5 + std::get<1>(pair.first),
-					0.5 + std::get<2>(pair.first)) * voxel_size;
+				0.5 + std::get<0>(pair.first),
+				0.5 + std::get<1>(pair.first),
+				0.5 + std::get<2>(pair.first)) * voxel_size;
 
 			const auto dp = Eigen::AngleAxisf(-rot_y, Eigen::Vector3f::UnitY()) * (voxel_center - box_center);
 
 			const bool collision =
-				(dp.array() > (-box_size / 2).array()).all() &&
-				(dp.array() < (box_size / 2).array()).all();
+			(dp.array() > (-box_size / 2).array()).all() &&
+			(dp.array() < (box_size / 2).array()).all();
 
 
 			if(pair.second.state == VoxelState::EMPTY) {
