@@ -85,7 +85,7 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 	seg.setOptimizeCoefficients(true);
 	seg.setModelType(pcl::SACMODEL_PLANE);
 	seg.setMethodType(pcl::SAC_RANSAC);
-	seg.setDistanceThreshold(0.01);
+	seg.setDistanceThreshold(0.03);  // 0.03 is better than 0.01.
 
 	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -98,11 +98,11 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 		coefficients->values[2]).normalized();
 
 	const Eigen::Vector3f up(0, -1, 0);
-
 	Eigen::Matrix3f rotation(Eigen::Matrix3f::Identity());
 	if(normal.dot(up) >= std::cos(pi / 4)) {
 		// the plane is likely to be floor
 		std::cout << "Correcting w/ floor" << std::endl;
+
 		const auto axis = up.cross(normal);
 
 		rotation = Eigen::AngleAxisf(
@@ -114,7 +114,14 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 		// the plane is likely to be wall
 		std::cout << "Correcting w/ wall" << std::endl;
 
+		const Eigen::Vector3f forward(0, 0, 1);
+		const auto axis = forward.cross(normal);
 
+		rotation = Eigen::AngleAxisf(
+			-std::asin(axis.norm()),
+			axis.normalized());
+
+		// TODO: adjust Z-rotation
 	}
 
 	// apply rotation.
