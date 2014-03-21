@@ -1,3 +1,4 @@
+"use strict";
 
 var DebugFE = function() {
 	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
@@ -60,6 +61,18 @@ var DebugFE = function() {
 		});
 	});
 
+	$('#ui_layers a').click(function(event) {
+		console.log(event);
+		$(event.target).toggleClass('active');
+		if($(event.target).hasClass('active')) {
+			var layer_name = $(event.target).text();
+
+			if(layer_name === 'Voxels') {
+
+			}
+		}
+	});
+
 	_this.updateSceneList();
 };
 
@@ -69,7 +82,7 @@ DebugFE.prototype.updateSceneList = function() {
 	$.ajax('/scenes').done(function(scenes) {
 		_.each(scenes, function(scene) {
 			var entry = $('<a/>')
-				.text(scene.id).attr('href', '#').addClass('list-group-item');
+			.text(scene.id).attr('href', '#').addClass('list-group-item');
 
 			if(scene.id === _this.current_id) {
 				entry.addClass('active');
@@ -87,21 +100,9 @@ DebugFE.prototype.updateSceneList = function() {
 
 DebugFE.prototype.updateViews = function() {
 	var _this = this;
-	var voxel_size = 0.1;
 
 	$.ajax('/at/' + this.current_id + '/points').done(function(data) {
-		var geom = new THREE.Geometry();
-		geom.vertices = _.map(data, function(p) {
-			return new THREE.Vector3(p.x, p.y, p.z);
-		});
-		geom.colors = _.map(data, function(p) {
-			return new THREE.Color(p.r, p.g, p.b);
-		});
-		var cloud = new THREE.ParticleSystem(geom,
-			new THREE.ParticleSystemMaterial({
-				vertexColors: true,
-				size: 0.005
-			}));
+		var cloud = _this.showPoints(data);
 
 		if(_this.cloud !== undefined) {
 			_this.scene.remove(_this.cloud);
@@ -111,47 +112,7 @@ DebugFE.prototype.updateViews = function() {
 	});
 
 	$.ajax('/at/' + this.current_id + '/voxels').done(function(data) {
-		var iy_floor = _.max(_.map(data, function(vx) {
-			return vx.y;
-		}));
-
-		var voxels = new THREE.Object3D();
-		_.each(data, function(vx) {
-			var vx_three = new THREE.Mesh(
-				new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
-				new THREE.MeshBasicMaterial({
-					color: 'orange',
-					opacity: 0.3,
-					transparent: true
-				}));
-			vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(voxel_size);
-			voxels.add(vx_three);
-
-			if(vx.y === iy_floor) {
-				var shadow = new THREE.Mesh(new THREE.CubeGeometry(voxel_size * 2, 0.05, voxel_size * 2),
-					new THREE.MeshBasicMaterial({
-						color: 'black',
-						opacity: 0.1,
-						transparent: true
-					}));
-				shadow.position = new THREE.Vector3(
-					vx.x + 0.5,
-					1 + iy_floor,
-					vx.z + 0.5).multiplyScalar(voxel_size);
-				voxels.add(shadow);
-			}
-		});
-
-		// generate floor
-		var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
-			new THREE.MeshBasicMaterial({
-				color: '#ccc'
-			}));
-		floor.position = new THREE.Vector3(
-			0,
-			voxel_size * (1 + iy_floor),
-			0);
-		voxels.add(floor);
+		var voxels = _this.showVoxels(data);
 
 		if(_this.voxels !== undefined) {
 			_this.scene.remove(_this.voxels);
@@ -160,8 +121,45 @@ DebugFE.prototype.updateViews = function() {
 		_this.scene.add(voxels);
 	});
 
-$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
+	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
+		var objects = _this.showObjects(data);
+
+		if(_this.objects !== undefined) {
+			_this.scene.remove(_this.objects);
+		}
+		_this.objects = objects;
+		_this.scene.add(objects);
+	});
+
+	var img = new Image();
+	img.onload = function() {
+		var ctx = $('#ui_grabcut')[0].getContext('2d');
+		ctx.drawImage(img, 0, 0);
+	};
+	img.src = '/at/' + this.current_id + '/rgb';
+};
+
+DebugFE.prototype.showPoints = function(data) {
+	var geom = new THREE.Geometry();
+	geom.vertices = _.map(data, function(p) {
+		return new THREE.Vector3(p.x, p.y, p.z);
+	});
+	geom.colors = _.map(data, function(p) {
+		return new THREE.Color(p.r, p.g, p.b);
+	});
+	var cloud = new THREE.ParticleSystem(geom,
+		new THREE.ParticleSystemMaterial({
+			vertexColors: true,
+			size: 0.005
+		}));
+	return cloud;
+};
+
+DebugFE.prototype.showObjects = function(data) {
 	var objects = new THREE.Object3D();
+
+	var voxel_size = 0.1;
+
 	var num_invalid = 0;
 	_.each(data, function(object_desc) {
 		if(!object_desc.valid) {
@@ -183,8 +181,8 @@ $.ajax('/at/' + this.current_id + '/objects').done(function(data) {
 				'red',
 				opacity: 0.3,
 				transparent: true
-					//wireframe: true
-				}));
+						//wireframe: true
+					}));
 		obj.position = new THREE.Vector3(
 			object_desc.px,
 			object_desc.py,
@@ -194,20 +192,54 @@ $.ajax('/at/' + this.current_id + '/objects').done(function(data) {
 		objects.add(obj);
 	});
 	console.log('Invalid Object Proxies ', num_invalid, '/', data.length);
-
-	if(_this.objects !== undefined) {
-		_this.scene.remove(_this.objects);
-	}
-	_this.objects = objects;
-	_this.scene.add(objects);
-});
-
-var img = new Image();
-img.onload = function() {
-	var ctx = $('#ui_grabcut')[0].getContext('2d');
-	ctx.drawImage(img, 0, 0);
+	return objects;
 };
-img.src = '/at/' + this.current_id + '/rgb';
+
+DebugFE.prototype.showVoxels = function(data) {
+	var voxel_size = 0.1;
+	
+	var iy_floor = _.max(_.map(data, function(vx) {
+		return vx.y;
+	}));
+
+	var voxels = new THREE.Object3D();
+	_.each(data, function(vx) {
+		var vx_three = new THREE.Mesh(
+			new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
+			new THREE.MeshBasicMaterial({
+				color: 'orange',
+				opacity: 0.3,
+				transparent: true
+			}));
+		vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(voxel_size);
+		voxels.add(vx_three);
+
+		if(vx.y === iy_floor) {
+			var shadow = new THREE.Mesh(new THREE.CubeGeometry(voxel_size * 2, 0.05, voxel_size * 2),
+				new THREE.MeshBasicMaterial({
+					color: 'black',
+					opacity: 0.1,
+					transparent: true
+				}));
+			shadow.position = new THREE.Vector3(
+				vx.x + 0.5,
+				1 + iy_floor,
+				vx.z + 0.5).multiplyScalar(voxel_size);
+			voxels.add(shadow);
+		}
+	});
+
+	// generate floor
+	var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
+		new THREE.MeshBasicMaterial({
+			color: '#ccc'
+		}));
+	floor.position = new THREE.Vector3(
+		0,
+		voxel_size * (1 + iy_floor),
+		0);
+	voxels.add(floor);
+	return voxels;
 };
 
 DebugFE.prototype.run = function() {
