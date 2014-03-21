@@ -17,12 +17,15 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/ModelCoefficients.h>
+#include <pcl/io/pcd_io.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
+
+#include <sensor_msgs/PointCloud2.h>
 
 #include "analyzer.h"
 #include "base64.h"
@@ -31,8 +34,87 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
+float unsafeParseFloat(const uint8_t* ptr) {
+	uint32_t v =
+		(((uint32_t)ptr[3]) << 24) | (((uint32_t)ptr[2]) << 16) |
+		(((uint32_t)ptr[1]) << 8) | (((uint32_t)ptr[0]));
+
+	return *reinterpret_cast<const float*>(ptr);
+}
+
+float unsafeParseFloatBE(const uint8_t* ptr) {
+	uint32_t v =
+		(((uint32_t)ptr[0]) << 24) | (((uint32_t)ptr[1]) << 16) |
+		(((uint32_t)ptr[2]) << 8) | (((uint32_t)ptr[3]));
+
+	return *reinterpret_cast<const float*>(&v);
+}
+
+ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
+	sensor_msgs::PointCloud2::Ptr cloud_org(new sensor_msgs::PointCloud2());
+	Eigen::Vector4f camera_pos;
+	Eigen::Quaternionf camera_rot;
+	if(pcl::io::loadPCDFile(path, *cloud_org, camera_pos, camera_rot) < 0) {
+		throw std::runtime_error("PCD load failed");
+	}
+
+	// Convert to our format.
+	if(cloud_org->width * cloud_org->height != 640 * 480) {
+		throw std::runtime_error("Unexpected frame size (you need to use single-frame dataset)");
+	}
+
+	std::cout << "IsBigEndian " << static_cast<bool>(cloud_org->is_bigendian) << std::endl;
+	for(const auto& field : cloud_org->fields) {
+		std::cout << "Field " << field.name << " @" << field.offset << " ::" << static_cast<int>(field.datatype) << std::endl;
+	}
+
+	ColorCloud::Ptr cloud(new ColorCloud());
+	//pcl::fromROSMsg(*cloud_org, *cloud);
+	cloud->width = 640;
+	cloud->height = 480;
+	//return cloud;
+	const uint64_t stride = 48;
+	const uint64_t offset_x = 19;
+	const uint64_t offset_y = 15;
+	const uint64_t offset_z = 11;
+	const int offset_r = 16;
+	const int offset_g = 20;
+	const int offset_b = 18;
+
+	if(cloud_org->data.size() != 640 * 480 * stride) {
+		throw std::runtime_error("Unexpected point format (data size=" +
+			std::to_string(cloud_org->data.size()));
+	}
+
+	for(int i : boost::irange(0, 640 * 480)) {
+		pcl::PointXYZRGBA pt;
+		pt.x = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_x));
+		pt.y = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_y));
+		pt.z = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_z));
+
+		// +3 is good. +2,+1 shows some random pattern. +0 alamost black. (Z)
+		// bigendian float?
+		//pt.r = *(cloud_org->data.data() + (i * stride + offset_z + 3 + 8));
+		//pt.g = *(cloud_org->data.data() + (i * stride + offset_z + 3 + 4));
+		
+
+		float v = 
+			*(cloud_org->data.data() + (i * stride + 8 + 4)) * 255.0 +
+			*(cloud_org->data.data() + (i * stride + 8 + 3));
+
+		pt.b = v / 2;
+
+
+		//std::cout << "LE " << pt.x << std::endl;
+		//std::cout << "BE " << unsafeParseFloatBE(cloud_org->data.data() + (i * stride + offset_x)) << std::endl;
+		cloud->points.push_back(pt);
+	}
+
+	return cloud;
+}
 
 ReconServer::ReconServer() : new_id(0) {
+	/*
 	pcl::Grabber* source = new pcl::OpenNIGrabber();
 
 	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
@@ -40,6 +122,9 @@ ReconServer::ReconServer() : new_id(0) {
 
 	source->registerCallback(f);
 	source->start();
+	*/
+
+	latest_cloud = loadFromCornellDataset("data/home_or_office/scene1_0.pcd");
 }
 
 void ReconServer::cloudCallback(const ColorCloud::ConstPtr& cloud) {
@@ -213,5 +298,5 @@ std::string ReconServer::dataURLFromImage(const cv::Mat& image) {
 	const std::string buffer_s(buffer.begin(), buffer.end());
 
 	return "data:image/jpeg;base64," +
-		base64_encode(reinterpret_cast<const uint8_t*>(buffer_s.data()), buffer_s.size());
+	base64_encode(reinterpret_cast<const uint8_t*>(buffer_s.data()), buffer_s.size());
 }
