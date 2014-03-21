@@ -13,19 +13,13 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
-#include <pcl/io/openni_grabber.h>
 #include <pcl/kdtree/kdtree.h>
-#include <pcl/kdtree/kdtree.h>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
-
-#include <sensor_msgs/PointCloud2.h>
 
 #include "analyzer.h"
 #include "base64.h"
@@ -34,155 +28,8 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
-float unsafeParseFloat(const uint8_t* ptr) {
-	uint32_t v =
-		(((uint32_t)ptr[3]) << 24) | (((uint32_t)ptr[2]) << 16) |
-		(((uint32_t)ptr[1]) << 8) | (((uint32_t)ptr[0]));
 
-	return *reinterpret_cast<const float*>(ptr);
-}
-
-float unsafeParseFloatBE(const uint8_t* ptr) {
-	uint32_t v =
-		(((uint32_t)ptr[0]) << 24) | (((uint32_t)ptr[1]) << 16) |
-		(((uint32_t)ptr[2]) << 8) | (((uint32_t)ptr[3]));
-
-	return *reinterpret_cast<const float*>(&v);
-}
-
-ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
-	sensor_msgs::PointCloud2::Ptr cloud_org(new sensor_msgs::PointCloud2());
-	Eigen::Vector4f camera_pos;
-	Eigen::Quaternionf camera_rot;
-	if(pcl::io::loadPCDFile(path, *cloud_org, camera_pos, camera_rot) < 0) {
-		throw std::runtime_error("PCD load failed");
-	}
-
-	// Convert to our format.
-	if(cloud_org->width * cloud_org->height != 640 * 480) {
-		throw std::runtime_error("Unexpected frame size (you need to use single-frame dataset)");
-	}
-
-	std::cout << "IsBigEndian " << static_cast<bool>(cloud_org->is_bigendian) << std::endl;
-	for(const auto& field : cloud_org->fields) {
-		std::cout << "Field " << field.name << " @" << field.offset << " ::" << static_cast<int>(field.datatype) << std::endl;
-	}
-
-	ColorCloud::Ptr cloud(new ColorCloud());
-	//pcl::fromROSMsg(*cloud_org, *cloud);
-	cloud->width = 640;
-	cloud->height = 480;
-	//return cloud;
-	const uint64_t stride = 48;
-	const uint64_t offset_x = 19;
-	const uint64_t offset_y = 15;
-	const uint64_t offset_z = 11;
-	const int offset_r = 16;
-	const int offset_g = 20;
-	const int offset_b = 18;
-
-	if(cloud_org->data.size() != 640 * 480 * stride) {
-		throw std::runtime_error("Unexpected point format (data size=" +
-			std::to_string(cloud_org->data.size()));
-	}
-
-	for(int i : boost::irange(0, 640 * 480)) {
-		pcl::PointXYZRGBA pt;
-		pt.x = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_x));
-		pt.y = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_y));
-		pt.z = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_z));
-
-		// +3 is good. +2,+1 shows some random pattern. +0 alamost black. (Z)
-		// bigendian float?
-		//pt.r = *(cloud_org->data.data() + (i * stride + offset_z + 3 + 8));
-		//pt.g = *(cloud_org->data.data() + (i * stride + offset_z + 3 + 4));
-		
-
-		float v = 
-			*(cloud_org->data.data() + (i * stride + 8 + 4)) * 255.0 +
-			*(cloud_org->data.data() + (i * stride + 8 + 3));
-
-		pt.b = v / 2;
-
-
-		//std::cout << "LE " << pt.x << std::endl;
-		//std::cout << "BE " << unsafeParseFloatBE(cloud_org->data.data() + (i * stride + offset_x)) << std::endl;
-		cloud->points.push_back(pt);
-	}
-
-	return cloud;
-}
-
-// Load http://research.microsoft.com/en-us/projects/7-scenes/
-// Quote:
-// Please note: The RGB and depth camera have not been calibrated
-// and we can't provide calibration parameters at the moment.
-// The recorded frames correspond to the raw, uncalibrated camera images.
-// In the KinectFusion pipeline we used the following default intrinsics
-// for the depth camera: Principle point (320,240), Focal length (585,585).
-ColorCloud::ConstPtr loadFromMSDataset(std::string path) {
-	cv::Mat rgb = cv::imread(path +".color.png", CV_LOAD_IMAGE_COLOR);
-	cv::Mat depth_mm = cv::imread(path +".depth.png", CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
-
-	if(rgb.size() != cv::Size(640, 480) || depth_mm.size() != cv::Size(640, 480)) {
-		throw std::runtime_error("Invalid format");
-	}
-
-	// Camera parameter
-	const float cx = 320;
-	const float cy = 240;
-	const float fx = 585;
-	const float fy = 585;
-
-	ColorCloud::Ptr cloud(new ColorCloud());
-	cloud->width = 640;
-	cloud->height = 480;
-	for(int y : boost::irange(0, 480)) {
-		for(int x : boost::irange(0, 640)) {
-			pcl::PointXYZRGBA pt;
-			const uint16_t depth = depth_mm.at<uint16_t>(y, x);
-			if(depth == 0xffff) {
-				pt.x = std::nan("");
-				pt.y = std::nan("");
-				pt.z = std::nan("");
-			} else {
-				pt.z = depth / 1000.0;
-
-				pt.x = (x - cx) / fx * pt.z;
-				pt.y = (y - cy) / fy * pt.z;
-			}
-
-			const auto color = rgb.at<cv::Vec3b>(y, x);
-			pt.r = color[0];
-			pt.g = color[1];
-			pt.b = color[2];
-
-			cloud->points.push_back(pt);
-		}
-	}
-	assert(cloud->points.size() == 640 * 480);
-	return cloud;
-}
-
-ReconServer::ReconServer() : new_id(0) {
-	/*
-	pcl::Grabber* source = new pcl::OpenNIGrabber();
-
-	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
-	boost::bind(&ReconServer::cloudCallback, this, _1);
-
-	source->registerCallback(f);
-	source->start();
-	*/
-
-	latest_cloud = loadFromMSDataset("data/MS/chess-seq1/frame-000000");
-}
-
-void ReconServer::cloudCallback(const ColorCloud::ConstPtr& cloud) {
-	{
-		std::lock_guard<std::mutex> lock(latest_cloud_lock);
-		latest_cloud = cloud;
-	}
+ReconServer::ReconServer() : data_source(true) {
 }
 
 Response ReconServer::handleRequest(std::vector<std::string> uri,
@@ -193,23 +40,12 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 	} else if(uri.size() == 2 && uri[0] == "static") {
 		return sendStaticFile(uri[1]);
 	} else if(uri.size() == 1 && uri[0] == "at" && method == "POST") {
-		const std::string id = std::to_string(new_id++);
-		{
-			std::lock_guard<std::mutex> lock(latest_cloud_lock);
-			// TODO: might need copying (if the grabber reuses cloud every frame)
-			clouds[id] = latest_cloud;
-		}
 		Json::Value v;
-		v["id"] = id;
+		v["id"] = data_source.takeSnapshot();
 		return v;
 	} else if(uri.size() >= 3 && uri[0] == "at") {
 		const std::string id = uri[1];
-
-		if(clouds.find(id) == clouds.end()) {
-			return Response::notFound();
-		}
-
-		const auto& cloud = clouds.find(id)->second;
+		const auto& cloud = data_source.getScene(id);
 
 		if(uri[2] == "points") {
 			return handlePoints(cloud);
