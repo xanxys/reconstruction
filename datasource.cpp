@@ -30,7 +30,13 @@ DataSource::DataSource(bool enable_xtion) : new_id(0) {
 
 std::vector<std::string> DataSource::listScenes() {
 	std::vector<std::string> list = {
-		"MS-chess-1"
+		"MS-chess-1",
+		"MS-heads-1",
+		"MS-stairs-1",
+		"MS-fire-1",
+		"MS-office-1",
+		"MS-pumpkin-1",
+		"MS-redkitchen-1",
 	};
 
 	for(const auto& cloud : xtion_clouds) {
@@ -41,8 +47,8 @@ std::vector<std::string> DataSource::listScenes() {
 }
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id) {
-	if(id == "MS-chess-1") {
-		return loadFromMSDataset("data/MS/chess-seq1/frame-000000");
+	if(id.size() >= 3 && id.substr(0, 3) == "MS-") {
+		return loadFromMSDataset("data/MS/" + id.substr(3) + "/frame-000000");
 	} else {
 		if(xtion_clouds.find(id) != xtion_clouds.end()) {
 			return xtion_clouds[id];
