@@ -113,6 +113,57 @@ ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
 	return cloud;
 }
 
+// Load http://research.microsoft.com/en-us/projects/7-scenes/
+// Quote:
+// Please note: The RGB and depth camera have not been calibrated
+// and we can't provide calibration parameters at the moment.
+// The recorded frames correspond to the raw, uncalibrated camera images.
+// In the KinectFusion pipeline we used the following default intrinsics
+// for the depth camera: Principle point (320,240), Focal length (585,585).
+ColorCloud::ConstPtr loadFromMSDataset(std::string path) {
+	cv::Mat rgb = cv::imread(path +".color.png", CV_LOAD_IMAGE_COLOR);
+	cv::Mat depth_mm = cv::imread(path +".depth.png", CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
+
+	if(rgb.size() != cv::Size(640, 480) || depth_mm.size() != cv::Size(640, 480)) {
+		throw std::runtime_error("Invalid format");
+	}
+
+	// Camera parameter
+	const float cx = 320;
+	const float cy = 240;
+	const float fx = 585;
+	const float fy = 585;
+
+	ColorCloud::Ptr cloud(new ColorCloud());
+	cloud->width = 640;
+	cloud->height = 480;
+	for(int y : boost::irange(0, 480)) {
+		for(int x : boost::irange(0, 640)) {
+			pcl::PointXYZRGBA pt;
+			const uint16_t depth = depth_mm.at<uint16_t>(y, x);
+			if(depth == 0xffff) {
+				pt.x = std::nan("");
+				pt.y = std::nan("");
+				pt.z = std::nan("");
+			} else {
+				pt.z = depth / 1000.0;
+
+				pt.x = (x - cx) / fx * pt.z;
+				pt.y = (y - cy) / fy * pt.z;
+			}
+
+			const auto color = rgb.at<cv::Vec3b>(y, x);
+			pt.r = color[0];
+			pt.g = color[1];
+			pt.b = color[2];
+
+			cloud->points.push_back(pt);
+		}
+	}
+	assert(cloud->points.size() == 640 * 480);
+	return cloud;
+}
+
 ReconServer::ReconServer() : new_id(0) {
 	/*
 	pcl::Grabber* source = new pcl::OpenNIGrabber();
@@ -124,7 +175,7 @@ ReconServer::ReconServer() : new_id(0) {
 	source->start();
 	*/
 
-	latest_cloud = loadFromCornellDataset("data/home_or_office/scene1_0.pcd");
+	latest_cloud = loadFromMSDataset("data/MS/chess-seq1/frame-000000");
 }
 
 void ReconServer::cloudCallback(const ColorCloud::ConstPtr& cloud) {
