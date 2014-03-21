@@ -3,6 +3,7 @@
 var DebugFE = function() {
 	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
 	this.for_figure = false;
+	this.layers = {};
 
 	var _this = this;
 	$('#ui_update').click(function() {
@@ -62,14 +63,13 @@ var DebugFE = function() {
 	});
 
 	$('#ui_layers a').click(function(event) {
-		console.log(event);
 		$(event.target).toggleClass('active');
+		var layer_name = $(event.target).text();
+
 		if($(event.target).hasClass('active')) {
-			var layer_name = $(event.target).text();
-
-			if(layer_name === 'Voxels') {
-
-			}
+			_this.scene.add(_this.layers[layer_name.toLowerCase()]);
+		} else {
+			_this.scene.remove(_this.layers[layer_name.toLowerCase()]);
 		}
 	});
 
@@ -102,32 +102,32 @@ DebugFE.prototype.updateViews = function() {
 	var _this = this;
 
 	$.ajax('/at/' + this.current_id + '/points').done(function(data) {
-		var cloud = _this.showPoints(data);
+		var points = _this.showPoints(data);
 
-		if(_this.cloud !== undefined) {
-			_this.scene.remove(_this.cloud);
+		if(_this.layers['points'] !== undefined) {
+			_this.scene.remove(_this.layers['points']);
 		}
-		_this.cloud = cloud;
-		_this.scene.add(cloud);
+		_this.layers['points'] = points;
+		_this.scene.add(points);
 	});
 
 	$.ajax('/at/' + this.current_id + '/voxels').done(function(data) {
 		var voxels = _this.showVoxels(data);
 
-		if(_this.voxels !== undefined) {
-			_this.scene.remove(_this.voxels);
+		if(_this.layers['voxels'] !== undefined) {
+			_this.scene.remove(_this.layers['voxels']);
 		}
-		_this.voxels = voxels;
+		_this.layers['voxels'] = voxels;
 		_this.scene.add(voxels);
 	});
 
 	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
 		var objects = _this.showObjects(data);
 
-		if(_this.objects !== undefined) {
-			_this.scene.remove(_this.objects);
+		if(_this.layers['objects'] !== undefined) {
+			_this.scene.remove(_this.layers['objects']);
 		}
-		_this.objects = objects;
+		_this.layers['objects'] = objects;
 		_this.scene.add(objects);
 	});
 
@@ -197,7 +197,7 @@ DebugFE.prototype.showObjects = function(data) {
 
 DebugFE.prototype.showVoxels = function(data) {
 	var voxel_size = 0.1;
-	
+
 	var iy_floor = _.max(_.map(data, function(vx) {
 		return vx.y;
 	}));

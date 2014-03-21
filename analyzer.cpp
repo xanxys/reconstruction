@@ -254,7 +254,7 @@ Json::Value SceneAnalyzer::getObjects() {
 	}
 
 	std::mt19937 gen;
-	for(int i : boost::irange(0, 10000)) {
+	for(int i : boost::irange(0, 1000)) {
 		// Generate box params
 		const float height = std::uniform_real_distribution<float>(0.05, 2)(gen);
 
