@@ -60,6 +60,15 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		}
 
 		return Response::notFound();
+	} else if(uri.size() == 1 && uri[0] == "scenes") {
+		Json::Value scenes;
+		for(const auto& id : data_source.listScenes()) {
+			Json::Value entry;
+			entry["id"] = id;
+
+			scenes.append(entry);
+		}
+		return scenes;
 	}
 	return Response::notFound();
 }

@@ -8,6 +8,7 @@ var DebugFE = function() {
 		$.post('/at').done(function(data) {
 			_this.current_id = data.id;
 			_this.updateViews();
+			_this.updateSceneList();
 		});
 	});
 
@@ -56,6 +57,30 @@ var DebugFE = function() {
 			img.src = data['image'];
 			$('#ui_modal_result').append(img);
 			$('#myModal').modal();
+		});
+	});
+
+	_this.updateSceneList();
+};
+
+DebugFE.prototype.updateSceneList = function() {
+	var _this = this;
+	$('#ui_scenes').empty();
+	$.ajax('/scenes').done(function(scenes) {
+		_.each(scenes, function(scene) {
+			var entry = $('<a/>')
+				.text(scene.id).attr('href', '#').addClass('list-group-item');
+
+			if(scene.id === _this.current_id) {
+				entry.addClass('active');
+			}
+
+			entry.click(function() {
+				_this.current_id = scene.id;
+				_this.updateSceneList();
+				_this.updateViews();
+			});
+			$('#ui_scenes').append(entry);	
 		});
 	});
 };
@@ -135,54 +160,54 @@ DebugFE.prototype.updateViews = function() {
 		_this.scene.add(voxels);
 	});
 
-	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
-		var objects = new THREE.Object3D();
-		var num_invalid = 0;
-		_.each(data, function(object_desc) {
-			if(!object_desc.valid) {
-				num_invalid += 1;
-				return;
-			}
+$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
+	var objects = new THREE.Object3D();
+	var num_invalid = 0;
+	_.each(data, function(object_desc) {
+		if(!object_desc.valid) {
+			num_invalid += 1;
+			return;
+		}
 
-			var obj = new THREE.Mesh(
-				new THREE.CubeGeometry(
-					object_desc.sx,
-					object_desc.sy,
-					object_desc.sz),
-				new THREE.MeshBasicMaterial({
-					color: object_desc.valid ?
-						new THREE.Color(
-							object_desc.r / 255,
-							object_desc.g / 255,
-							object_desc.b / 255) :
-						'red',
-					opacity: 0.3,
-					transparent: true
+		var obj = new THREE.Mesh(
+			new THREE.CubeGeometry(
+				object_desc.sx,
+				object_desc.sy,
+				object_desc.sz),
+			new THREE.MeshBasicMaterial({
+				color: object_desc.valid ?
+				new THREE.Color(
+					object_desc.r / 255,
+					object_desc.g / 255,
+					object_desc.b / 255) :
+				'red',
+				opacity: 0.3,
+				transparent: true
 					//wireframe: true
 				}));
-			obj.position = new THREE.Vector3(
-				object_desc.px,
-				object_desc.py,
-				object_desc.pz);
+		obj.position = new THREE.Vector3(
+			object_desc.px,
+			object_desc.py,
+			object_desc.pz);
 
-			obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), object_desc.ry);
-			objects.add(obj);
-		});
-		console.log('Invalid Object Proxies ', num_invalid, '/', data.length);
-
-		if(_this.objects !== undefined) {
-			_this.scene.remove(_this.objects);
-		}
-		_this.objects = objects;
-		_this.scene.add(objects);
+		obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), object_desc.ry);
+		objects.add(obj);
 	});
+	console.log('Invalid Object Proxies ', num_invalid, '/', data.length);
 
-	var img = new Image();
-	img.onload = function() {
-		var ctx = $('#ui_grabcut')[0].getContext('2d');
-		ctx.drawImage(img, 0, 0);
-	};
-	img.src = '/at/' + this.current_id + '/rgb';
+	if(_this.objects !== undefined) {
+		_this.scene.remove(_this.objects);
+	}
+	_this.objects = objects;
+	_this.scene.add(objects);
+});
+
+var img = new Image();
+img.onload = function() {
+	var ctx = $('#ui_grabcut')[0].getContext('2d');
+	ctx.drawImage(img, 0, 0);
+};
+img.src = '/at/' + this.current_id + '/rgb';
 };
 
 DebugFE.prototype.run = function() {
@@ -233,11 +258,11 @@ DebugFE.prototype.generateVoxelGrid = function() {
 				var p0 = origin.clone().add(
 					e0.clone().multiplyScalar(i0 * voxel_size)).add(
 					e1.clone().multiplyScalar(i1 * voxel_size));
-				var p1 = p0.clone().add(e2.clone().multiplyScalar(voxel_n * voxel_size));
+					var p1 = p0.clone().add(e2.clone().multiplyScalar(voxel_n * voxel_size));
 
-				voxel_geom.vertices.push(p0);
-				voxel_geom.vertices.push(p1);
-			});
+					voxel_geom.vertices.push(p0);
+					voxel_geom.vertices.push(p1);
+				});
 		});
 	};
 
