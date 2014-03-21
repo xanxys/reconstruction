@@ -108,7 +108,10 @@ DebugFE.prototype.updateViews = function() {
 			_this.scene.remove(_this.layers['points']);
 		}
 		_this.layers['points'] = points;
-		_this.scene.add(points);
+
+		if($('#ui_layers a:contains(Points)').hasClass('active')) {
+			_this.scene.add(points);
+		}
 	});
 
 	$.ajax('/at/' + this.current_id + '/voxels').done(function(data) {
@@ -118,7 +121,10 @@ DebugFE.prototype.updateViews = function() {
 			_this.scene.remove(_this.layers['voxels']);
 		}
 		_this.layers['voxels'] = voxels;
-		_this.scene.add(voxels);
+
+		if($('#ui_layers a:contains(Voxels)').hasClass('active')) {
+			_this.scene.add(voxels);
+		}
 	});
 
 	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
@@ -128,7 +134,10 @@ DebugFE.prototype.updateViews = function() {
 			_this.scene.remove(_this.layers['objects']);
 		}
 		_this.layers['objects'] = objects;
-		_this.scene.add(objects);
+
+		if($('#ui_layers a:contains(Objects)').hasClass('active')) {
+			_this.scene.add(objects);
+		}
 	});
 
 	var img = new Image();
