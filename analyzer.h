@@ -47,9 +47,10 @@ public:
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
 	Json::Value getObjects();
 protected:
+	static pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
-	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud;
+	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
 private:
 	const float voxel_size;
 };

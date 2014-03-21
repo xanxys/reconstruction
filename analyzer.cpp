@@ -74,8 +74,58 @@ VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 }
 
 
-SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& cloud) :
-cloud(cloud), voxel_size(0.1) {
+SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) :
+	cloud(align(raw_cloud)), voxel_size(0.1) {
+	assert(cloud);
+}
+
+ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
+	// Detect the primary plane.
+	pcl::SACSegmentation<pcl::PointXYZRGBA> seg;
+	seg.setOptimizeCoefficients(true);
+	seg.setModelType(pcl::SACMODEL_PLANE);
+	seg.setMethodType(pcl::SAC_RANSAC);
+	seg.setDistanceThreshold(0.01);
+
+	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+	seg.setInputCloud(cloud);
+	seg.segment(*inliers, *coefficients);
+
+	const auto normal = Eigen::Vector3f(
+		coefficients->values[0],
+		coefficients->values[1],
+		coefficients->values[2]).normalized();
+
+	const Eigen::Vector3f up(0, -1, 0);
+
+	Eigen::Matrix3f rotation(Eigen::Matrix3f::Identity());
+	if(normal.dot(up) >= std::cos(pi / 4)) {
+		// the plane is likely to be floor
+		std::cout << "Correcting w/ floor" << std::endl;
+		const auto axis = up.cross(normal);
+
+		rotation = Eigen::AngleAxisf(
+			-std::asin(axis.norm()),
+			axis.normalized());
+
+		// TODO: adjust Y-rotation
+	} else {
+		// the plane is likely to be wall
+		std::cout << "Correcting w/ wall" << std::endl;
+
+
+	}
+
+	// apply rotation.
+	ColorCloud::Ptr cloud_aligned(new ColorCloud());
+	for(auto pt : cloud->points) {
+		pt.getVector3fMap() = rotation * pt.getVector3fMap();
+		cloud_aligned->points.push_back(pt);
+	}
+	cloud_aligned->width = 640;
+	cloud_aligned->height = 480;
+	return cloud_aligned;
 }
 
 cv::Mat SceneAnalyzer::getRGBImage() {
@@ -83,6 +133,7 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 }
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {
+	assert(cloud);
 	return cloud;
 }
 
