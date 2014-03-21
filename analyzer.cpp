@@ -14,8 +14,6 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree.h>
-#include <pcl/kdtree/kdtree.h>
-#include <pcl/ModelCoefficients.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
