@@ -222,6 +222,20 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDe
 	return voxel_merged;
 }
 
+std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
+	int iy_floor = 0;
+	for(const auto& pair : getVoxelsDetailed()) {
+		if(pair.second.state == VoxelState::OCCUPIED) {
+			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
+		}
+	}
+
+	const float y_floor = voxel_size * (iy_floor + 1);
+
+	cv::Mat texture(256, 256, CV_8UC3);
+	return std::make_pair(texture, y_floor);
+}
+
 Json::Value SceneAnalyzer::getObjects() {
 	Json::Value objects;
 
@@ -312,7 +326,7 @@ Json::Value SceneAnalyzer::getObjects() {
 	}
 
 	std::mt19937 gen;
-	for(int i : boost::irange(0, 1000)) {
+	for(int i : boost::irange(0, 10000)) {
 		// Generate box params
 		const float height = std::uniform_real_distribution<float>(0.05, 2)(gen);
 

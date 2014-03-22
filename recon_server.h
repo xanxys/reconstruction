@@ -21,6 +21,7 @@ private:
 	Response handleRGB(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	Response handleGrabcut(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud, const std::string& data);
 	Response handleObjects(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	Response handlePlanes(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	
 	static cv::Mat imageFromDataURL(const std::string& url);
 	static std::string dataURLFromImage(const cv::Mat& image);

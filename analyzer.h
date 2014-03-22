@@ -37,6 +37,8 @@ class SceneAnalyzer {
 public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
+	std::pair<cv::Mat, float> getPlanes();
+	
 	// Return aligned cloud.
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud();
 

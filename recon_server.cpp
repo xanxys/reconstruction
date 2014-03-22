@@ -49,6 +49,8 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			return handleGrabcut(cloud, data);
 		} else if(uri[2] == "objects") {
 			return handleObjects(cloud);
+		} else if(uri[2] == "planes") {
+			return handlePlanes(cloud);
 		}
 
 		return Response::notFound();
@@ -167,6 +169,18 @@ Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std
 Response ReconServer::handleObjects(const ColorCloud::ConstPtr& cloud) {
 	SceneAnalyzer analyzer(cloud);
 	Json::Value result = analyzer.getObjects();
+	return Response(result);
+}
+
+Response ReconServer::handlePlanes(const ColorCloud::ConstPtr& cloud) {
+	SceneAnalyzer analyzer(cloud);
+	const auto plane = analyzer.getPlanes();
+
+	Json::Value plane_s;
+	plane_s["y"] = std::get<1>(plane);
+
+	Json::Value result;
+	result["planes"] = plane_s;
 	return Response(result);
 }
 

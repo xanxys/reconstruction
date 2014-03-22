@@ -91,6 +91,8 @@ float unsafeParseFloatBE(const uint8_t* ptr) {
 	return *reinterpret_cast<const float*>(&v);
 }
 
+// Not working! And cornell data is super meessy! Don't touch it
+// unless you're super bored.
 ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
 	sensor_msgs::PointCloud2::Ptr cloud_org(new sensor_msgs::PointCloud2());
 	Eigen::Vector4f camera_pos;

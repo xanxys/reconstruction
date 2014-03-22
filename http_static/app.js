@@ -9,6 +9,7 @@ var DebugFE = function() {
 		{label:'EmptyVoxels', endpoint:'voxels_empty', generator:function(d){return _this.showVoxels(d);}},
 		{label:'Objects', endpoint:'objects', generator:function(d){return _this.showObjects(d);}},
 		{label:'Points', endpoint:'points', generator:function(d){return _this.showPoints(d);}},
+		{label:'Planes', endpoint:'planes', generator:function(d){return _this.showPlanes(d);}},
 	];
 
 	var _this = this;
@@ -228,17 +229,18 @@ DebugFE.prototype.showVoxels = function(data) {
 		}
 	});
 
+	return voxels;
+};
+
+DebugFE.prototype.showPlanes = function(data) {
 	// generate floor
 	var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
 		new THREE.MeshBasicMaterial({
 			color: '#ccc'
 		}));
-	floor.position = new THREE.Vector3(
-		0,
-		voxel_size * (1 + iy_floor),
-		0);
-	voxels.add(floor);
-	return voxels;
+	floor.position = new THREE.Vector3(0, data.planes.y, 0);
+
+	return floor;
 };
 
 DebugFE.prototype.run = function() {
