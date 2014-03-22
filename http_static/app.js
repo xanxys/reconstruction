@@ -233,12 +233,17 @@ DebugFE.prototype.showVoxels = function(data) {
 };
 
 DebugFE.prototype.showPlanes = function(data) {
-	// generate floor
+	
+
 	var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
 		new THREE.MeshBasicMaterial({
-			color: '#ccc'
+			color: '#ccc',
+			map: THREE.ImageUtils.loadTexture(data.planes.tex)
 		}));
 	floor.position = new THREE.Vector3(0, data.planes.y, 0);
+
+	
+
 
 	return floor;
 };

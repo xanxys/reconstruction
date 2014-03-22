@@ -31,6 +31,7 @@ public:
 	Eigen::Vector3f average_image_color;
 };
 
+
 // Analyze a single RGB-D frame.
 // Camera is always at the origin.
 class SceneAnalyzer {
@@ -47,6 +48,8 @@ public:
 	cv::Mat getRGBImage();
 	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
+
+	// TODO: Define a new box class and use it.
 	Json::Value getObjects();
 protected:
 	static pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);

@@ -178,6 +178,7 @@ Response ReconServer::handlePlanes(const ColorCloud::ConstPtr& cloud) {
 
 	Json::Value plane_s;
 	plane_s["y"] = std::get<1>(plane);
+	plane_s["tex"] = dataURLFromImage(std::get<0>(plane));
 
 	Json::Value result;
 	result["planes"] = plane_s;
