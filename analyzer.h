@@ -52,10 +52,11 @@ public:
 	// TODO: Define a new box class and use it.
 	Json::Value getObjects();
 protected:
-	static pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
+	Eigen::Matrix3f camera_loc_to_world;
 private:
 	const float voxel_size;
 };

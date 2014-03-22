@@ -124,6 +124,8 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 		// TODO: adjust Z-rotation
 	}
 
+	camera_loc_to_world = rotation;
+
 	// apply rotation.
 	ColorCloud::Ptr cloud_aligned(new ColorCloud());
 	for(auto pt : cloud->points) {
@@ -232,7 +234,31 @@ std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
 
 	const float y_floor = voxel_size * (iy_floor + 1);
 
+	const Eigen::Vector3f camera_pos(0, 0, 0);
+
+	const Eigen::Vector2f center(320, 240);
+	const float f = 585;
+
+	const Eigen::Matrix3f world_to_camera_loc = camera_loc_to_world.inverse();
+	cv::Mat coords(256, 256, CV_32FC2);
+	for(int y : boost::irange(0, 256)) {
+		for(int x : boost::irange(0, 256)) {
+			const Eigen::Vector3f pos_world(
+				10.0 * (x - 128.0) / 256.0,
+				y_floor,
+				10.0 * (-y + 128.0) / 256.0);
+
+			const auto loc = world_to_camera_loc * (pos_world - camera_pos);
+			const auto screen = (loc.head(2) / loc.z()) * f + center;
+
+			coords.at<cv::Vec2f>(y, x) = cv::Vec2f(
+				screen.x(), screen.y());
+		}
+	}
+
 	cv::Mat texture(256, 256, CV_8UC3);
+	cv::remap(getRGBImage(), texture, coords, cv::Mat(), cv::INTER_LINEAR);
+
 	return std::make_pair(texture, y_floor);
 }
 
