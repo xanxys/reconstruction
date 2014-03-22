@@ -4,6 +4,11 @@ var DebugFE = function() {
 	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
 	this.for_figure = false;
 	this.layers = {};
+	this.layer_descs = [
+		{label:'Voxels', endpoint:'voxels', generator:function(d){return _this.showVoxels(d);}},
+		{label:'Objects', endpoint:'objects', generator:function(d){return _this.showObjects(d);}},
+		{label:'Points', endpoint:'points', generator:function(d){return _this.showPoints(d);}},
+	];
 
 	var _this = this;
 	$('#ui_update').click(function() {
@@ -62,6 +67,16 @@ var DebugFE = function() {
 		});
 	});
 
+
+	// Setup layer selector
+	_.each(_this.layer_descs, function(layer_desc) {
+		var layer = $('<a/>').attr('src', '#')
+			.addClass('list-group-item').addClass('active')
+			.text(layer_desc.label);
+
+		$('#ui_layers').append(layer);
+	});
+
 	$('#ui_layers a').click(function(event) {
 		$(event.target).toggleClass('active');
 		var layer_name = $(event.target).text();
@@ -101,43 +116,18 @@ DebugFE.prototype.updateSceneList = function() {
 DebugFE.prototype.updateViews = function() {
 	var _this = this;
 
-	$.ajax('/at/' + this.current_id + '/points').done(function(data) {
-		var points = _this.showPoints(data);
+	_.each(_this.layer_descs, function(layer_desc) {
+		$.ajax('/at/' + _this.current_id + '/' + layer_desc.endpoint).done(function(data) {
+			var object = layer_desc.generator(data);
 
-		if(_this.layers['points'] !== undefined) {
-			_this.scene.remove(_this.layers['points']);
-		}
-		_this.layers['points'] = points;
-
-		if($('#ui_layers a:contains(Points)').hasClass('active')) {
-			_this.scene.add(points);
-		}
-	});
-
-	$.ajax('/at/' + this.current_id + '/voxels').done(function(data) {
-		var voxels = _this.showVoxels(data);
-
-		if(_this.layers['voxels'] !== undefined) {
-			_this.scene.remove(_this.layers['voxels']);
-		}
-		_this.layers['voxels'] = voxels;
-
-		if($('#ui_layers a:contains(Voxels)').hasClass('active')) {
-			_this.scene.add(voxels);
-		}
-	});
-
-	$.ajax('/at/' + this.current_id + '/objects').done(function(data) {
-		var objects = _this.showObjects(data);
-
-		if(_this.layers['objects'] !== undefined) {
-			_this.scene.remove(_this.layers['objects']);
-		}
-		_this.layers['objects'] = objects;
-
-		if($('#ui_layers a:contains(Objects)').hasClass('active')) {
-			_this.scene.add(objects);
-		}
+			if(_this.layers[layer_desc.endpoint] !== undefined) {
+				_this.scene.remove(_this.layers[layer_desc.endpoint]);
+			}
+			_this.layers[layer_desc.endpoint] = object;
+			if($('#ui_layers a:contains(' + layer_desc.label + ')').hasClass('active')) {
+				_this.scene.add(object);
+			}
+		});
 	});
 
 	var img = new Image();
