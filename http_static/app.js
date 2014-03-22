@@ -6,6 +6,7 @@ var DebugFE = function() {
 	this.layers = {};
 	this.layer_descs = [
 		{label:'Voxels', endpoint:'voxels', generator:function(d){return _this.showVoxels(d);}},
+		{label:'EmptyVoxels', endpoint:'voxels_empty', generator:function(d){return _this.showVoxels(d);}},
 		{label:'Objects', endpoint:'objects', generator:function(d){return _this.showObjects(d);}},
 		{label:'Points', endpoint:'points', generator:function(d){return _this.showPoints(d);}},
 	];
@@ -74,18 +75,17 @@ var DebugFE = function() {
 			.addClass('list-group-item').addClass('active')
 			.text(layer_desc.label);
 
+		layer.click(function() {
+			layer.toggleClass('active');
+			
+			if(layer.hasClass('active')) {
+				_this.scene.add(_this.layers[layer_desc.endpoint]);
+			} else {
+				_this.scene.remove(_this.layers[layer_desc.endpoint]);
+			}
+		});
+
 		$('#ui_layers').append(layer);
-	});
-
-	$('#ui_layers a').click(function(event) {
-		$(event.target).toggleClass('active');
-		var layer_name = $(event.target).text();
-
-		if($(event.target).hasClass('active')) {
-			_this.scene.add(_this.layers[layer_name.toLowerCase()]);
-		} else {
-			_this.scene.remove(_this.layers[layer_name.toLowerCase()]);
-		}
 	});
 
 	_this.updateSceneList();

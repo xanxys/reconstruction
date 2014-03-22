@@ -40,7 +40,9 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		if(uri[2] == "points") {
 			return handlePoints(cloud);
 		} else if(uri[2] == "voxels") {
-			return handleVoxels(cloud);
+			return handleVoxels(cloud, false);
+		} else if(uri[2] == "voxels_empty") {
+			return handleVoxels(cloud, true);
 		} else if(uri[2] == "rgb") {
 			return handleRGB(cloud);
 		} else if(uri[2] == "grabcut" && method == "POST") {
@@ -84,13 +86,19 @@ Response ReconServer::handlePoints(const ColorCloud::ConstPtr& cloud) {
 	return Response(vs);
 }
 
-Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud) {
+Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud, bool extract_empty) {
 	SceneAnalyzer analyzer(cloud);
 
 	Json::Value root;
 	for(const auto& pair : analyzer.getVoxels()) {
-		if(pair.second != VoxelState::OCCUPIED) {
-			continue;
+		if(extract_empty) {
+			if(pair.second != VoxelState::EMPTY) {
+				continue;
+			}
+		} else {
+			if(pair.second != VoxelState::OCCUPIED) {
+				continue;
+			}
 		}
 		
 		Json::Value vx;
