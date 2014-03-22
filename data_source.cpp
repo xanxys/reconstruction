@@ -182,7 +182,7 @@ ColorCloud::ConstPtr DataSource::loadFromMSDataset(std::string path) {
 		for(int x : boost::irange(0, 640)) {
 			pcl::PointXYZRGBA pt;
 			const uint16_t depth = depth_mm.at<uint16_t>(y, x);
-			if(depth == 0xffff) {
+			if(depth == 0xffff || depth < 10) {
 				pt.x = std::nan("");
 				pt.y = std::nan("");
 				pt.z = std::nan("");
