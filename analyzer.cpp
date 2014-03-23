@@ -239,14 +239,16 @@ std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
 	const Eigen::Vector2f center(320, 240);
 	const float f = 585;
 
+	const float tile_size = 10;
+	const int tex_size = 1024;
 	const Eigen::Matrix3f world_to_camera_loc = camera_loc_to_world.inverse();
-	cv::Mat coords(256, 256, CV_32FC2);
-	for(int y : boost::irange(0, 256)) {
-		for(int x : boost::irange(0, 256)) {
+	cv::Mat coords(tex_size, tex_size, CV_32FC2);
+	for(int y : boost::irange(0, tex_size)) {
+		for(int x : boost::irange(0, tex_size)) {
 			const Eigen::Vector3f pos_world(
-				10.0 * (x - 128.0) / 256.0,
+				tile_size * (x - tex_size * 0.5) / tex_size,
 				y_floor,
-				10.0 * (-y + 128.0) / 256.0);
+				tile_size * (-y + tex_size * 0.5) / tex_size);
 
 			const auto loc = world_to_camera_loc * (pos_world - camera_pos);
 			const auto screen = (loc.head(2) / loc.z()) * f + center;
@@ -256,8 +258,40 @@ std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
 		}
 	}
 
-	cv::Mat texture(256, 256, CV_8UC3);
+	cv::Mat mask(tex_size, tex_size, CV_8U);  // 0:invalid 255:valid
+	mask = cv::Scalar(0);
+
+	for(const auto& pair : getVoxelsDetailed()) {
+		if(pair.second.state == VoxelState::OCCUPIED &&
+			std::abs(std::get<1>(pair.first) - iy_floor) <= 1) {
+			const auto voxel_center = Eigen::Vector3f(
+				0.5 + std::get<0>(pair.first),
+				0.5 + std::get<1>(pair.first),
+				0.5 + std::get<2>(pair.first)) * voxel_size;
+
+			const int cx = tex_size * (0.5 + voxel_center.x() / tile_size);
+			const int cy = tex_size - tex_size * (0.5 + voxel_center.z() / tile_size);
+
+			cv::rectangle(mask,
+				cv::Point(cx - 5, cy - 5),
+				cv::Point(cx + 5, cy + 5),
+				cv::Scalar(255),
+				CV_FILLED);
+		}
+	}
+
+	cv::Mat texture(tex_size, tex_size, CV_8UC3);
 	cv::remap(getRGBImage(), texture, coords, cv::Mat(), cv::INTER_LINEAR);
+
+	// Compose
+	for(int y : boost::irange(0, tex_size)) {
+		for(int x : boost::irange(0, tex_size)) {
+			if(mask.at<uint8_t>(y, x) == 0) {
+				texture.at<cv::Vec3b>(y, x) =
+					(texture.at<cv::Vec3b>(y, x) + cv::Vec3b(0, 0, 255)) / 2;
+			}
+		}
+	}
 
 	return std::make_pair(texture, y_floor);
 }
