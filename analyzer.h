@@ -54,6 +54,7 @@ public:
 protected:
 	// Synthesize complete texture from RGB image and unreliable mask.
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
+	static cv::Mat growTexture(const cv::Mat core, int width, int height);
 
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);

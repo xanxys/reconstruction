@@ -322,30 +322,90 @@ cv::Mat SceneAnalyzer::synthesizeTexture(const cv::Mat image, const cv::Mat mask
 	}
 
 	// Fill spaces with avg color.
-	cv::Vec3f accum(0, 0, 0);
-	int count = 0;
-	for(int y : boost::irange(0, image.rows)) {
-		for(int x : boost::irange(0, image.cols)) {
-			if(mask.at<uint8_t>(y, x)) {
-				accum += image.at<cv::Vec3b>(y, x);
-				count += 1;
+	if(false) {
+		cv::Vec3f accum(0, 0, 0);
+		int count = 0;
+		for(int y : boost::irange(0, image.rows)) {
+			for(int x : boost::irange(0, image.cols)) {
+				if(mask.at<uint8_t>(y, x)) {
+					accum += image.at<cv::Vec3b>(y, x);
+					count += 1;
+				}
+			}
+		}
+
+		const cv::Vec3b avg_color = accum / count;
+		for(int y : boost::irange(0, image.rows)) {
+			for(int x : boost::irange(0, image.cols)) {
+				if(mask.at<uint8_t>(y, x) == 0) {
+					texture.at<cv::Vec3b>(y, x) = avg_color;
+					
+				} else {
+					texture.at<cv::Vec3b>(y, x) = image.at<cv::Vec3b>(y, x);
+				}
 			}
 		}
 	}
 
-	const cv::Vec3b avg_color = accum / count;
-	for(int y : boost::irange(0, image.rows)) {
-		for(int x : boost::irange(0, image.cols)) {
-			if(mask.at<uint8_t>(y, x) == 0) {
-				texture.at<cv::Vec3b>(y, x) = avg_color;
-					
-			} else {
-				texture.at<cv::Vec3b>(y, x) = image.at<cv::Vec3b>(y, x);
+	if(true) {
+		// Select core square image.
+		std::mt19937 gen;
+
+		cv::Mat core;
+		bool found = false;
+		for(int size : boost::irange(100, 10, -10)) {
+			for(int i : boost::irange(0, 1000)) {
+				const int x0 = std::uniform_int_distribution<int>(0, image.rows - size)(gen);
+				const int y0 = std::uniform_int_distribution<int>(0, image.cols - size)(gen);
+
+				bool ok = true;
+				for(int iy : boost::irange(y0, y0 + size)) {
+					for(int ix : boost::irange(x0, x0 + size)) {
+						if(!mask.at<uint8_t>(iy, ix)) {
+							ok = false;
+							break;
+						}
+					}
+				}
+
+				if(ok) {
+					core = image(cv::Range(y0, y0 + size), cv::Range(x0, x0 + size));
+					found = true;
+					break;
+				}
 			}
+
+			if(found) {
+				break;
+			}
+		}
+
+		if(found) {
+			// grow it.
+			texture = growTexture(core, image.cols, image.rows);
 		}
 	}
 
 	return texture;
+}
+
+// ref http://graphics.cs.cmu.edu/people/efros/research/NPS/alg.html
+cv::Mat SceneAnalyzer::growTexture(const cv::Mat core, int width, int height) {
+	assert(core.type() == CV_8UC3);
+	const int window_size = 10;
+
+	cv::Mat image(height, width, CV_8UC3);
+
+	// Tiling
+	for(int iy : boost::irange(0, (int)std::floor(height / core.rows))) {
+		for(int ix : boost::irange(0, (int)std::floor(width / core.cols))) {
+			core.copyTo(image(
+				cv::Range(iy * core.rows, (iy + 1) * core.rows),
+				cv::Range(ix * core.cols, (ix + 1) * core.cols)));
+		}
+	}
+
+	return image;
 }
 
 Json::Value SceneAnalyzer::getObjects() {
