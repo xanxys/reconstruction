@@ -109,7 +109,47 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 			-std::asin(axis.norm()),
 			axis.normalized());
 
-		// TODO: adjust Y-rotation
+		// Extract remaining cloud.
+		ColorCloud::Ptr cloud_remaining(new ColorCloud());
+
+		pcl::ExtractIndices<pcl::PointXYZRGBA> extract_remaining;
+		extract_remaining.setIndices(inliers);
+		extract_remaining.setNegative(true);
+
+		extract_remaining.setInputCloud(cloud);
+		extract_remaining.filter(*cloud_remaining);
+
+		// Adjust Y-rotation
+		seg.setInputCloud(cloud_remaining);
+		seg.segment(*inliers, *coefficients);
+
+		auto new_normal = Eigen::Vector3f(
+			coefficients->values[0],
+			coefficients->values[1],
+			coefficients->values[2]).normalized();
+		if(new_normal.z() > 0) {
+			new_normal *= -1;
+		}
+
+		const Eigen::Vector3f backward(0, 0, -1);
+//		std::cout << new_normal << std::endl;
+
+
+		if(new_normal.dot(backward) >= std::cos(pi / 4)) {
+			std::cout << "Correcting w/ wall further" << std::endl;
+
+			// Make orthogonal basis
+			Eigen::Vector3f backward_real = new_normal;
+			Eigen::Vector3f up_real = normal;
+
+			backward_real -= backward_real.dot(up_real) * up_real;
+			backward_real.normalize();
+			const auto right_real = up_real.cross(backward_real);
+
+			rotation.row(0) = right_real;
+			rotation.row(1) = -up_real;
+			rotation.row(2) = -backward_real;
+		}
 	} else {
 		// the plane is likely to be wall
 		std::cout << "Correcting w/ wall" << std::endl;
