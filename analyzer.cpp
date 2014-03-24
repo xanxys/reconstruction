@@ -283,17 +283,28 @@ std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
 	cv::Mat texture(tex_size, tex_size, CV_8UC3);
 	cv::remap(getRGBImage(), texture, coords, cv::Mat(), cv::INTER_LINEAR);
 
+
+	return std::make_pair(synthesizeTexture(texture, mask), y_floor);
+}
+
+cv::Mat SceneAnalyzer::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {
+	assert(image.type() == CV_8UC3);
+	assert(mask.type() == CV_8U);
+	assert(image.size() == mask.size());
+
+	cv::Mat texture(image.rows, image.cols, CV_8UC3);
+
 	// Compose
-	for(int y : boost::irange(0, tex_size)) {
-		for(int x : boost::irange(0, tex_size)) {
+	for(int y : boost::irange(0, image.rows)) {
+		for(int x : boost::irange(0, image.cols)) {
 			if(mask.at<uint8_t>(y, x) == 0) {
 				texture.at<cv::Vec3b>(y, x) =
-					(texture.at<cv::Vec3b>(y, x) + cv::Vec3b(0, 0, 255)) / 2;
+					(image.at<cv::Vec3b>(y, x) + cv::Vec3b(0, 0, 255)) / 2;
 			}
 		}
 	}
 
-	return std::make_pair(texture, y_floor);
+	return texture;
 }
 
 Json::Value SceneAnalyzer::getObjects() {

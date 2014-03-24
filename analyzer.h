@@ -52,6 +52,9 @@ public:
 	// TODO: Define a new box class and use it.
 	Json::Value getObjects();
 protected:
+	// Synthesize complete texture from RGB image and unreliable mask.
+	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
+
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
