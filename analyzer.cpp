@@ -283,6 +283,20 @@ std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
 	cv::Mat texture(tex_size, tex_size, CV_8UC3);
 	cv::remap(getRGBImage(), texture, coords, cv::Mat(), cv::INTER_LINEAR);
 
+	// Near-border pixels will be "tainted" by black.
+	cv::Mat texture_mask_org(480, 640, CV_8U);
+	texture_mask_org = cv::Scalar(255);
+	cv::Mat texture_mask(tex_size, tex_size, CV_8U);
+	cv::remap(texture_mask_org, texture_mask, coords, cv::Mat(), cv::INTER_LINEAR);
+
+	// Reject pixels affected by border color.
+	for(int y : boost::irange(0, tex_size)) {
+		for(int x : boost::irange(0, tex_size)) {
+			if(texture_mask.at<uint8_t>(y, x) != 255) {
+				mask.at<uint8_t>(y, x) = 0;
+			}
+		}
+	}
 
 	return std::make_pair(synthesizeTexture(texture, mask), y_floor);
 }
@@ -294,12 +308,39 @@ cv::Mat SceneAnalyzer::synthesizeTexture(const cv::Mat image, const cv::Mat mask
 
 	cv::Mat texture(image.rows, image.cols, CV_8UC3);
 
-	// Compose
+	// Visualizat image & mask w/o synthesis.
+	if(false) {
+		for(int y : boost::irange(0, image.rows)) {
+			for(int x : boost::irange(0, image.cols)) {
+				if(mask.at<uint8_t>(y, x) == 0) {
+					texture.at<cv::Vec3b>(y, x) =
+					(image.at<cv::Vec3b>(y, x) + cv::Vec3b(0, 0, 255)) / 2;
+				}
+
+			}
+		}	
+	}
+
+	// Fill spaces with avg color.
+	cv::Vec3f accum(0, 0, 0);
+	int count = 0;
+	for(int y : boost::irange(0, image.rows)) {
+		for(int x : boost::irange(0, image.cols)) {
+			if(mask.at<uint8_t>(y, x)) {
+				accum += image.at<cv::Vec3b>(y, x);
+				count += 1;
+			}
+		}
+	}
+
+	const cv::Vec3b avg_color = accum / count;
 	for(int y : boost::irange(0, image.rows)) {
 		for(int x : boost::irange(0, image.cols)) {
 			if(mask.at<uint8_t>(y, x) == 0) {
-				texture.at<cv::Vec3b>(y, x) =
-					(image.at<cv::Vec3b>(y, x) + cv::Vec3b(0, 0, 255)) / 2;
+				texture.at<cv::Vec3b>(y, x) = avg_color;
+					
+			} else {
+				texture.at<cv::Vec3b>(y, x) = image.at<cv::Vec3b>(y, x);
 			}
 		}
 	}
