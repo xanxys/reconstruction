@@ -11,7 +11,6 @@
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
 
-#include "analyzer.h"
 #include "base64.h"
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
@@ -36,21 +35,22 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 	} else if(uri.size() >= 3 && uri[0] == "at") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
+		SceneAnalyzer analyzer(cloud);
 
 		if(uri[2] == "points") {
-			return handlePoints(cloud);
+			return handlePoints(analyzer);
 		} else if(uri[2] == "voxels") {
-			return handleVoxels(cloud, false);
+			return handleVoxels(analyzer, false);
 		} else if(uri[2] == "voxels_empty") {
-			return handleVoxels(cloud, true);
+			return handleVoxels(analyzer, true);
 		} else if(uri[2] == "rgb") {
-			return handleRGB(cloud);
+			return handleRGB(analyzer);
 		} else if(uri[2] == "grabcut" && method == "POST") {
-			return handleGrabcut(cloud, data);
+			return handleGrabcut(analyzer, data);
 		} else if(uri[2] == "objects") {
-			return handleObjects(cloud);
+			return handleObjects(analyzer);
 		} else if(uri[2] == "planes") {
-			return handlePlanes(cloud);
+			return handlePlanes(analyzer);
 		}
 
 		return Response::notFound();
@@ -67,9 +67,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 	return Response::notFound();
 }
 
-Response ReconServer::handlePoints(const ColorCloud::ConstPtr& cloud) {
-	SceneAnalyzer analyzer(cloud);
-
+Response ReconServer::handlePoints(SceneAnalyzer& analyzer) {
 	Json::Value vs;
 	for(const auto& pt : analyzer.getCloud()->points) {
 		if(!std::isfinite(pt.x)) {
@@ -88,9 +86,7 @@ Response ReconServer::handlePoints(const ColorCloud::ConstPtr& cloud) {
 	return Response(vs);
 }
 
-Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud, bool extract_empty) {
-	SceneAnalyzer analyzer(cloud);
-
+Response ReconServer::handleVoxels(SceneAnalyzer& analyzer, bool extract_empty) {
 	Json::Value root;
 	for(const auto& pair : analyzer.getVoxels()) {
 		if(extract_empty) {
@@ -112,18 +108,18 @@ Response ReconServer::handleVoxels(const ColorCloud::ConstPtr& cloud, bool extra
 	return Response(root);
 }
 
-Response ReconServer::handleRGB(const ColorCloud::ConstPtr& cloud) {
-	return sendImage(SceneAnalyzer(cloud).getRGBImage());
+Response ReconServer::handleRGB(SceneAnalyzer& analyzer) {
+	return sendImage(analyzer.getRGBImage());
 }
 
-Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std::string& data) {
+Response ReconServer::handleGrabcut(SceneAnalyzer& analyzer, const std::string& data) {
 	Json::Value root;
 	Json::Reader().parse(data, root);
 	const cv::Mat mask = imageFromDataURL(root["image"].asString());
 	if(!mask.data) {
 		return Response(400, "Invalid image", "text/plain");
 	}
-	const cv::Mat image = SceneAnalyzer(cloud).getRGBImage();
+	const cv::Mat image = analyzer.getRGBImage();
 
 	if(mask.size() != image.size()) {
 		return Response(400, "Invalid image size", "text/plain");
@@ -166,14 +162,12 @@ Response ReconServer::handleGrabcut(const ColorCloud::ConstPtr& cloud, const std
 	return Response(result);
 }
 
-Response ReconServer::handleObjects(const ColorCloud::ConstPtr& cloud) {
-	SceneAnalyzer analyzer(cloud);
+Response ReconServer::handleObjects(SceneAnalyzer& analyzer) {
 	Json::Value result = analyzer.getObjects();
 	return Response(result);
 }
 
-Response ReconServer::handlePlanes(const ColorCloud::ConstPtr& cloud) {
-	SceneAnalyzer analyzer(cloud);
+Response ReconServer::handlePlanes(SceneAnalyzer& analyzer) {
 	const auto plane = analyzer.getPlanes();
 
 	Json::Value plane_s;

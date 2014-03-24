@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -7,6 +8,7 @@
 #include <pcl/point_types.h>
 
 #include "data_source.h"
+#include "analyzer.h"
 #include "web_server.h"
 
 // A controller. Two models are OpenNI grabber and SceneAnalyzer.
@@ -16,13 +18,14 @@ public:
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
 private:
-	Response handlePoints(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	Response handleVoxels(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud, bool extract_empty);
-	Response handleRGB(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	Response handleGrabcut(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud, const std::string& data);
-	Response handleObjects(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	Response handlePlanes(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	
+	Response handlePoints(SceneAnalyzer& analyzer);
+	Response handleVoxels(SceneAnalyzer& analyzer, bool extract_empty);
+	Response handleRGB(SceneAnalyzer& analyzer);
+	Response handleGrabcut(SceneAnalyzer& analyzer, const std::string& data);
+	Response handleObjects(SceneAnalyzer& analyzer);
+	Response handlePlanes(SceneAnalyzer& analyzer);
+
+	// Data conversion utils.
 	static cv::Mat imageFromDataURL(const std::string& url);
 	static std::string dataURLFromImage(const cv::Mat& image);
 	static Response sendImage(cv::Mat image);
