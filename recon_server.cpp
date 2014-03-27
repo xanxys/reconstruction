@@ -171,11 +171,11 @@ Json::Value ReconServer::serializeObjects(SceneAnalyzer& analyzer) {
 }
 
 Json::Value ReconServer::serializePlanes(SceneAnalyzer& analyzer) {
-	const auto plane = analyzer.getPlanes();
+	const auto plane = analyzer.getPlanes()[0];
 
 	Json::Value plane_s;
-	plane_s["y"] = std::get<1>(plane);
-	plane_s["tex"] = dataURLFromImage(std::get<0>(plane));
+	plane_s["y"] = plane.y_offset;
+	plane_s["tex"] = dataURLFromImage(plane.texture);
 
 	Json::Value result;
 	result["planes"] = plane_s;

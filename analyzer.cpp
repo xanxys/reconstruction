@@ -70,7 +70,11 @@ std::tuple<int, int, int> VoxelTraversal::next() {
 
 
 VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
+}
 
+
+TexturedPlane::TexturedPlane(float size, cv::Mat texture, float y_offset) :
+	size(size), texture(texture), y_offset(y_offset) {
 }
 
 
@@ -184,6 +188,8 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 cv::Mat SceneAnalyzer::renderRGBImage() {
 	cv::Mat image(480, 640, CV_8UC3);
 
+
+
 	
 	return image;
 }
@@ -271,7 +277,7 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDe
 	return voxel_merged;
 }
 
-std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
+std::vector<TexturedPlane> SceneAnalyzer::getPlanes() {
 	int iy_floor = 0;
 	for(const auto& pair : getVoxelsDetailed()) {
 		if(pair.second.state == VoxelState::OCCUPIED) {
@@ -345,7 +351,9 @@ std::pair<cv::Mat, float> SceneAnalyzer::getPlanes() {
 		}
 	}
 
-	return std::make_pair(synthesizeTexture(texture, mask), y_floor);
+	std::vector<TexturedPlane> planes;
+	planes.emplace_back(tile_size, synthesizeTexture(texture, mask), y_floor);
+	return planes;
 }
 
 cv::Mat SceneAnalyzer::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {

@@ -31,6 +31,19 @@ public:
 	Eigen::Vector3f average_image_color;
 };
 
+// Finite plane (quad) with texture.
+// x: [-size/2,size/2]
+// y: y_offset
+// z: [-size/2,size/2]
+class TexturedPlane {
+public:
+	TexturedPlane(float size, cv::Mat texture, float y_offset);
+public:
+	cv::Mat texture;
+	float y_offset;
+	const float size;
+};
+
 
 // Analyze a single RGB-D frame.
 // Camera is always at the origin.
@@ -38,7 +51,7 @@ class SceneAnalyzer {
 public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
-	std::pair<cv::Mat, float> getPlanes();
+	std::vector<TexturedPlane> getPlanes();
 	
 	// Return aligned cloud.
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud();
