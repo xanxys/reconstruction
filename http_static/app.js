@@ -4,6 +4,60 @@ var Scene = Backbone.Model.extend({
 	urlRoot: '/at'
 });
 
+var GrabcutView = Backbone.View.extend({
+	initialize: function(options) {
+		var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
+		ctx.fillStyle = 'blue';
+		var drawing = false;
+		$('#ui_grabcut_drawing').mousedown(function(event) {
+			drawing = true;
+		});
+		$('#ui_grabcut_drawing').mousemove(function(event) {
+			if(!drawing) {
+				return;
+			}
+
+			ctx.beginPath();
+			ctx.arc(event.offsetX, event.offsetY, 5, 0, 2 * Math.PI);
+			ctx.fill();
+		});
+		$('#ui_grabcut_drawing').mouseup(function(event) {
+			drawing = false;
+		});
+
+		$('#ui_draw_fg').click(function() {
+			ctx.fillStyle = 'blue';
+		});
+
+		$('#ui_draw_bg').click(function() {
+			ctx.fillStyle = 'red';
+		});
+
+		$('#ui_clear').click(function() {
+			ctx.clearRect(0, 0, 640, 480);
+		});
+
+		$('#ui_do_grabcut').click(function() {
+			$.ajax({
+				type: 'POST',
+				url: '/at/' + _this.current_id + '/grabcut',
+				data: JSON.stringify({
+					image: $('#ui_grabcut_drawing')[0].toDataURL()
+				}),
+				contentType: 'application/json'
+			}).done(function(data) {
+				$('#ui_modal_result').empty();
+				var img = new Image();
+				img.src = data['image'];
+				$('#ui_modal_result').append(img);
+				$('#myModal').modal();
+			});
+		});
+
+
+	},
+});
+
 var PeelingView = Backbone.View.extend({
 	el: '#peeling',
 
@@ -41,56 +95,7 @@ var DebugFE = function() {
 		});
 	});
 
-
-
-	var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
-	ctx.fillStyle = 'blue';
-	var drawing = false;
-	$('#ui_grabcut_drawing').mousedown(function(event) {
-		drawing = true;
-	});
-	$('#ui_grabcut_drawing').mousemove(function(event) {
-		if(!drawing) {
-			return;
-		}
-
-		ctx.beginPath();
-		ctx.arc(event.offsetX, event.offsetY, 5, 0, 2 * Math.PI);
-		ctx.fill();
-	});
-	$('#ui_grabcut_drawing').mouseup(function(event) {
-		drawing = false;
-	});
-
-	$('#ui_draw_fg').click(function() {
-		ctx.fillStyle = 'blue';
-	});
-
-	$('#ui_draw_bg').click(function() {
-		ctx.fillStyle = 'red';
-	});
-
-	$('#ui_clear').click(function() {
-		ctx.clearRect(0, 0, 640, 480);
-	});
-
-	$('#ui_do_grabcut').click(function() {
-		$.ajax({
-			type: 'POST',
-			url: '/at/' + _this.current_id + '/grabcut',
-			data: JSON.stringify({
-				image: $('#ui_grabcut_drawing')[0].toDataURL()
-			}),
-			contentType: 'application/json'
-		}).done(function(data) {
-			$('#ui_modal_result').empty();
-			var img = new Image();
-			img.src = data['image'];
-			$('#ui_modal_result').append(img);
-			$('#myModal').modal();
-		});
-	});
-
+	this.grabcut_view = new GrabcutView();
 
 	// Setup layer selector
 	_.each(_this.layer_descs, function(layer_desc) {
@@ -144,30 +149,31 @@ DebugFE.prototype.updateViews = function() {
 
 	var peeling_view = new PeelingView({model: scene});
 
-	scene.fetch();
+	scene.fetch({
+		success: function(data) {
+			var data_all = data.attributes;
 
+			_.each(_this.layer_descs, function(layer_desc) {
+				var data = data_all[layer_desc.endpoint];
+				var object = layer_desc.generator(data);
 
-	$.ajax('/at/' + _this.current_id).done(function(data_all) {
-		_.each(_this.layer_descs, function(layer_desc) {
-			var data = data_all[layer_desc.endpoint];
-			var object = layer_desc.generator(data);
+				if(_this.layers[layer_desc.endpoint] !== undefined) {
+					_this.scene.remove(_this.layers[layer_desc.endpoint]);
+				}
+				_this.layers[layer_desc.endpoint] = object;
+				if($('#ui_layers a:contains(' + layer_desc.label + ')').hasClass('active')) {
+					_this.scene.add(object);
+				}
+			});
 
-			if(_this.layers[layer_desc.endpoint] !== undefined) {
-				_this.scene.remove(_this.layers[layer_desc.endpoint]);
-			}
-			_this.layers[layer_desc.endpoint] = object;
-			if($('#ui_layers a:contains(' + layer_desc.label + ')').hasClass('active')) {
-				_this.scene.add(object);
-			}
-		});
-
-
-		var img = new Image();
-		img.onload = function() {
-			var ctx = $('#ui_grabcut')[0].getContext('2d');
-			ctx.drawImage(img, 0, 0);
-		};
-		img.src = data_all['rgb'];
+			// TODO: connect grabcut_view
+			var img = new Image();
+			img.onload = function() {
+				var ctx = $('#ui_grabcut')[0].getContext('2d');
+				ctx.drawImage(img, 0, 0);
+			};
+			img.src = data_all['rgb'];
+		}
 	});
 
 };
