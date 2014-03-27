@@ -21,8 +21,7 @@ public:
 	cv::Mat render(std::shared_ptr<Geometry> geom);
 
 	// Blocking call to run event loop.
-	[[deprecated]]
-	void run();
+	void run() [[deprecated]];
 protected:
 	enum DisplayMode {
 		WINDOW,

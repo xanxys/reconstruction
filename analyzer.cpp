@@ -195,8 +195,24 @@ cv::Mat SceneAnalyzer::renderRGBImage() {
 	scene.camera = camera;
 
 	for(const auto& plane : getPlanes()) {
+		const Eigen::Vector3f trans(0, plane.y_offset, 0);
+
 		Triangle tri;
 
+		tri.pos[0] = Eigen::Vector3f(-plane.size / 2, 0, -plane.size / 2) + trans;
+		tri.pos[1] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
+		tri.pos[2] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
+		tri.uv[0] = Eigen::Vector2f(0, 0);
+		tri.uv[1] = Eigen::Vector2f(1, 0);
+		tri.uv[2] = Eigen::Vector2f(0, 1);
+		scene.triangles.push_back(tri);
+
+		tri.pos[0] = Eigen::Vector3f( plane.size / 2, 0,  plane.size / 2) + trans;
+		tri.pos[1] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
+		tri.pos[2] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
+		tri.uv[0] = Eigen::Vector2f(1, 1);
+		tri.uv[1] = Eigen::Vector2f(0, 1);
+		tri.uv[2] = Eigen::Vector2f(1, 0);
 		scene.triangles.push_back(tri);
 	}
 

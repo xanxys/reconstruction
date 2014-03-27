@@ -20,6 +20,13 @@ Core::Core(bool windowed) :
 	t_last_update(0) {
 
 	init(DisplayMode::WINDOW);
+
+	/*
+	glfwPollEvents();
+	glfwPollEvents();
+	glfwPollEvents();
+	glfwPollEvents();
+	*/
 }
 
 void Core::enableExtensions() {
@@ -94,9 +101,9 @@ void Core::init(DisplayMode mode) {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, pre_buffer->unsafeGetId(), 0);
 
 	//
-	warp_shader = Shader::create("gpu/warp.vs", "gpu/warp.fs");
-	standard_shader = Shader::create("gpu/base.vs", "gpu/base.fs");
-	texture_shader = Shader::create("gpu/tex.vs", "gpu/tex.fs");
+	warp_shader = Shader::create("renderer/warp.vs", "renderer/warp.fs");
+	standard_shader = Shader::create("renderer/base.vs", "renderer/base.fs");
+	texture_shader = Shader::create("renderer/tex.vs", "renderer/tex.fs");
 }
 
 cv::Mat Core::render(std::shared_ptr<Geometry> geom) {
@@ -111,8 +118,26 @@ cv::Mat Core::render(std::shared_ptr<Geometry> geom) {
 	const int width = screen_width;
 	const int height = screen_height;
 
-	glViewport(0, 0, width / 2, height);
-	Eigen::Matrix4f projection;
+	const float near = 0.05;
+	const float far = 50;
+	const float r = 1;
+	const float t = 3.0 / 4.0;
+
+	glViewport(0, 0, width, height);
+	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> projection(Eigen::Matrix4f::Zero());
+	projection(0, 0) = near / r;
+	projection(1, 1) = near / t;
+	projection(2, 2) = - (far + near) / (far - near);
+	projection(2, 3) = - 2 * far * near / (far - near);
+	projection(3, 2) = -1;
+
+
+	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> trans(Eigen::Matrix4f::Identity());
+	texture_shader->use();
+	texture_shader->setUniform("texture", 0);
+	texture_shader->setUniform("luminance", 1.0f);
+	texture_shader->setUniformMat4("world_to_screen", projection.data());
+	texture_shader->setUniformMat4("local_to_world", trans.data());
 	geom->render();
 
 

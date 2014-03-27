@@ -6,6 +6,7 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
+#include <stdexcept>
 
 namespace construct {
 
@@ -52,6 +53,10 @@ std::string Shader::readFile(std::string path) {
 	std::ifstream ifs(path);
 	std::stringstream buffer;
 	buffer << ifs.rdbuf();
+
+	if(buffer.str().size() == 0) {
+		throw std::runtime_error("File " + path + " not found or emtpy");
+	}
 	return buffer.str();
 }
 
@@ -68,7 +73,7 @@ std::string Shader::getLogFor(GLint id) {
 GLint Shader::getVariable(const std::string& variable) {
 	const GLint shader_variable = glGetUniformLocation(program, variable.c_str());
 	if(shader_variable < 0) {
-		throw "Variable in shader \"" + variable + "\" not found or removed due to lack of use";
+		throw std::runtime_error("Variable in shader \"" + variable + "\" not found or removed due to lack of use");
 	}
 	return shader_variable;
 }
