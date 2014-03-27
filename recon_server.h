@@ -18,14 +18,15 @@ public:
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
 private:
-	Response handlePoints(SceneAnalyzer& analyzer);
-	Response handleVoxels(SceneAnalyzer& analyzer, bool extract_empty);
-	Response handleRGB(SceneAnalyzer& analyzer);
+	Response handleScene(SceneAnalyzer& analyzer);
 	Response handleGrabcut(SceneAnalyzer& analyzer, const std::string& data);
-	Response handleObjects(SceneAnalyzer& analyzer);
-	Response handlePlanes(SceneAnalyzer& analyzer);
 
-	Response handlePeeling(SceneAnalyzer& analyzer);
+	Json::Value serializePoints(SceneAnalyzer& analyzer);
+	Json::Value serializeVoxels(SceneAnalyzer& analyzer, bool extract_empty);
+	Json::Value serializeRGB(SceneAnalyzer& analyzer);
+	Json::Value serializeObjects(SceneAnalyzer& analyzer);
+	Json::Value serializePlanes(SceneAnalyzer& analyzer);
+	Json::Value serializePeeling(SceneAnalyzer& analyzer);
 
 	// Data conversion utils.
 	static cv::Mat imageFromDataURL(const std::string& url);

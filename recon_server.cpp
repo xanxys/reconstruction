@@ -32,27 +32,19 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		Json::Value v;
 		v["id"] = data_source.takeSnapshot();
 		return v;
+	} else if(uri.size() == 2 && uri[0] == "at") {
+		const std::string id = uri[1];
+		const auto& cloud = data_source.getScene(id);
+		SceneAnalyzer analyzer(cloud);
+
+		return handleScene(analyzer);
 	} else if(uri.size() >= 3 && uri[0] == "at") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 
-		if(uri[2] == "points") {
-			return handlePoints(analyzer);
-		} else if(uri[2] == "voxels") {
-			return handleVoxels(analyzer, false);
-		} else if(uri[2] == "voxels_empty") {
-			return handleVoxels(analyzer, true);
-		} else if(uri[2] == "rgb") {
-			return handleRGB(analyzer);
-		} else if(uri[2] == "grabcut" && method == "POST") {
+		if(uri[2] == "grabcut" && method == "POST") {
 			return handleGrabcut(analyzer, data);
-		} else if(uri[2] == "objects") {
-			return handleObjects(analyzer);
-		} else if(uri[2] == "planes") {
-			return handlePlanes(analyzer);
-		} else if(uri[2] == "peeling") {
-			return handlePeeling(analyzer);
 		}
 
 		return Response::notFound();
@@ -69,7 +61,20 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 	return Response::notFound();
 }
 
-Response ReconServer::handlePoints(SceneAnalyzer& analyzer) {
+Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
+	Json::Value scene;
+	scene["points"] = serializePoints(analyzer);
+	scene["voxels"] = serializeVoxels(analyzer, false);
+	scene["voxels_empty"] = serializeVoxels(analyzer, true);
+	scene["rgb"] = dataURLFromImage(analyzer.getRGBImage());
+	scene["objects"] = serializeObjects(analyzer);
+	scene["planes"] = serializePlanes(analyzer);
+	scene["peeling"] = serializePeeling(analyzer);
+
+	return Response(scene);
+}
+
+Json::Value ReconServer::serializePoints(SceneAnalyzer& analyzer) {
 	Json::Value vs;
 	for(const auto& pt : analyzer.getCloud()->points) {
 		if(!std::isfinite(pt.x)) {
@@ -85,10 +90,10 @@ Response ReconServer::handlePoints(SceneAnalyzer& analyzer) {
 		p["b"] = pt.b / 255.0;
 		vs.append(p);
 	}
-	return Response(vs);
+	return vs;
 }
 
-Response ReconServer::handleVoxels(SceneAnalyzer& analyzer, bool extract_empty) {
+Json::Value ReconServer::serializeVoxels(SceneAnalyzer& analyzer, bool extract_empty) {
 	Json::Value root;
 	for(const auto& pair : analyzer.getVoxels()) {
 		if(extract_empty) {
@@ -107,11 +112,7 @@ Response ReconServer::handleVoxels(SceneAnalyzer& analyzer, bool extract_empty) 
 		vx["z"] = std::get<2>(pair.first);
 		root.append(vx);
 	}
-	return Response(root);
-}
-
-Response ReconServer::handleRGB(SceneAnalyzer& analyzer) {
-	return sendImage(analyzer.getRGBImage());
+	return root;
 }
 
 Response ReconServer::handleGrabcut(SceneAnalyzer& analyzer, const std::string& data) {
@@ -164,12 +165,12 @@ Response ReconServer::handleGrabcut(SceneAnalyzer& analyzer, const std::string& 
 	return Response(result);
 }
 
-Response ReconServer::handleObjects(SceneAnalyzer& analyzer) {
+Json::Value ReconServer::serializeObjects(SceneAnalyzer& analyzer) {
 	Json::Value result = analyzer.getObjects();
-	return Response(result);
+	return result;
 }
 
-Response ReconServer::handlePlanes(SceneAnalyzer& analyzer) {
+Json::Value ReconServer::serializePlanes(SceneAnalyzer& analyzer) {
 	const auto plane = analyzer.getPlanes();
 
 	Json::Value plane_s;
@@ -178,16 +179,16 @@ Response ReconServer::handlePlanes(SceneAnalyzer& analyzer) {
 
 	Json::Value result;
 	result["planes"] = plane_s;
-	return Response(result);
+	return result;
 }
 
-Response ReconServer::handlePeeling(SceneAnalyzer& analyzer) {
+Json::Value ReconServer::serializePeeling(SceneAnalyzer& analyzer) {
 	Json::Value peeling;
 
 	peeling["target"] = dataURLFromImage(analyzer.getRGBImage());
 	peeling["render"] = dataURLFromImage(analyzer.renderRGBImage());
 
-	return Response(peeling);
+	return peeling;
 }
 
 Response ReconServer::sendImage(cv::Mat image) {

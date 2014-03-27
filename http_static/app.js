@@ -1,5 +1,10 @@
 "use strict";
 
+var Scene = Backbone.Model.extend({
+	urlRoot: '/at'
+});
+
+
 var DebugFE = function() {
 	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
 	this.for_figure = false;
@@ -20,6 +25,8 @@ var DebugFE = function() {
 			_this.updateSceneList();
 		});
 	});
+
+
 
 	var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
 	ctx.fillStyle = 'blue';
@@ -117,8 +124,11 @@ DebugFE.prototype.updateSceneList = function() {
 DebugFE.prototype.updateViews = function() {
 	var _this = this;
 
-	_.each(_this.layer_descs, function(layer_desc) {
-		$.ajax('/at/' + _this.current_id + '/' + layer_desc.endpoint).done(function(data) {
+	// console.log(Model({id: this.current_id}).fetch());
+
+	$.ajax('/at/' + _this.current_id).done(function(data_all) {
+		_.each(_this.layer_descs, function(layer_desc) {
+			var data = data_all[layer_desc.endpoint];
 			var object = layer_desc.generator(data);
 
 			if(_this.layers[layer_desc.endpoint] !== undefined) {
@@ -129,21 +139,20 @@ DebugFE.prototype.updateViews = function() {
 				_this.scene.add(object);
 			}
 		});
+
+
+		var img = new Image();
+		img.onload = function() {
+			var ctx = $('#ui_grabcut')[0].getContext('2d');
+			ctx.drawImage(img, 0, 0);
+		};
+		img.src = data_all['rgb'];
+
+		$('#peeling').empty();
+		$('#peeling').append($('<img/>').attr('src', data_all['peeling']['target']));
+		$('#peeling').append($('<img/>').attr('src', data_all['peeling']['render']));
 	});
 
-	var img = new Image();
-	img.onload = function() {
-		var ctx = $('#ui_grabcut')[0].getContext('2d');
-		ctx.drawImage(img, 0, 0);
-	};
-	img.src = '/at/' + this.current_id + '/rgb';
-
-
-	$('#peeling').empty();
-	$.ajax('/at/' + _this.current_id + '/peeling').done(function(data) {
-		$('#peeling').append($('<img/>').attr('src', data['target']));
-		$('#peeling').append($('<img/>').attr('src', data['render']));
-	});
 };
 
 DebugFE.prototype.showPoints = function(data) {
