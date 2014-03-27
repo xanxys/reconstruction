@@ -137,6 +137,13 @@ DebugFE.prototype.updateViews = function() {
 		ctx.drawImage(img, 0, 0);
 	};
 	img.src = '/at/' + this.current_id + '/rgb';
+
+
+	$('#peeling').empty();
+	$.ajax('/at/' + _this.current_id + '/peeling').done(function(data) {
+		$('#peeling').append($('<img/>').attr('src', data['target']));
+		$('#peeling').append($('<img/>').attr('src', data['render']));
+	});
 };
 
 DebugFE.prototype.showPoints = function(data) {

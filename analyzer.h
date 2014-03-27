@@ -46,6 +46,7 @@ public:
 	float getFloor();
 
 	cv::Mat getRGBImage();
+	cv::Mat renderRGBImage();
 	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
 

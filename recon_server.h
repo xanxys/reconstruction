@@ -25,6 +25,8 @@ private:
 	Response handleObjects(SceneAnalyzer& analyzer);
 	Response handlePlanes(SceneAnalyzer& analyzer);
 
+	Response handlePeeling(SceneAnalyzer& analyzer);
+
 	// Data conversion utils.
 	static cv::Mat imageFromDataURL(const std::string& url);
 	static std::string dataURLFromImage(const cv::Mat& image);

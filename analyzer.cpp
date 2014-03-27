@@ -181,6 +181,13 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 	return extractImageFromPointCloud(cloud);
 }
 
+cv::Mat SceneAnalyzer::renderRGBImage() {
+	cv::Mat image(480, 640, CV_8UC3);
+
+	
+	return image;
+}
+
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {
 	assert(cloud);
 	return cloud;

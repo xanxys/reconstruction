@@ -51,6 +51,8 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			return handleObjects(analyzer);
 		} else if(uri[2] == "planes") {
 			return handlePlanes(analyzer);
+		} else if(uri[2] == "peeling") {
+			return handlePeeling(analyzer);
 		}
 
 		return Response::notFound();
@@ -177,6 +179,15 @@ Response ReconServer::handlePlanes(SceneAnalyzer& analyzer) {
 	Json::Value result;
 	result["planes"] = plane_s;
 	return Response(result);
+}
+
+Response ReconServer::handlePeeling(SceneAnalyzer& analyzer) {
+	Json::Value peeling;
+
+	peeling["target"] = dataURLFromImage(analyzer.getRGBImage());
+	peeling["render"] = dataURLFromImage(analyzer.renderRGBImage());
+
+	return Response(peeling);
 }
 
 Response ReconServer::sendImage(cv::Mat image) {
