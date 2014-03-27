@@ -21,6 +21,8 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+#include "renderer/renderer.h"
+
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
@@ -188,10 +190,17 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 cv::Mat SceneAnalyzer::renderRGBImage() {
 	cv::Mat image(480, 640, CV_8UC3);
 
+	Scene scene;
+	Camera camera;
+	scene.camera = camera;
 
+	for(const auto& plane : getPlanes()) {
+		Triangle tri;
 
-	
-	return image;
+		scene.triangles.push_back(tri);
+	}
+
+	return Renderer::getInstance().render(scene);
 }
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {

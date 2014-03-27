@@ -2,3 +2,4 @@ recon
 recon_test
 *.o
 .sconsign.dblite
+data/

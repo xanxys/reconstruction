@@ -6,8 +6,10 @@ env = Environment(
 	CCFLAGS = ['-O3', '-g'],
 	CPPPATH = [
 	'/usr/include/eigen3',
-	'/usr/include/pcl-1.6',
+	'/usr/include/GL',
 	'/usr/include/ni',
+	'/usr/include/pcl-1.6',
+	'/usr/include/jsoncpp',
 	],
 	LIBPATH = [
 	])
@@ -18,6 +20,9 @@ LIBS = [
 	'libboost_system-mt',
 	'libboost_thread-mt',
 	'libdl',
+	'libGL',
+	'libGLEW',
+	'libglfw',
 	'libjsoncpp',
 	'libopencv_core',
 	'libopencv_highgui',
@@ -35,12 +40,18 @@ LIBS = [
 
 env.Program(
 	'recon',
-	source = [env.Object(f) for f in env.Glob('*.cpp') if not f.name.endswith('_test.cpp')] + Glob('*.c'),
+	source =
+		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp')
+			if not f.name.endswith('_test.cpp')] +
+		env.Glob('*.c'),
 	LIBS = LIBS)
 
 program_test = env.Program(
 	'recon_test',
-	source = [env.Object(f) for f in env.Glob('*.cpp') if f.name != 'main.cpp'] + Glob("*.c"),
+	source =
+		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp')
+			if f.name != 'main.cpp'] +
+		env.Glob("*.c"),
 	LIBS = LIBS + ['libgtest', 'libgtest_main'])
 
 env.Command('test', None, './' + program_test[0].path)
