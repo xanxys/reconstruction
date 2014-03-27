@@ -4,6 +4,21 @@ var Scene = Backbone.Model.extend({
 	urlRoot: '/at'
 });
 
+var PeelingView = Backbone.View.extend({
+	el: '#peeling',
+
+	initialize: function(options) {
+		this.listenTo(this.model, 'change', this.render);
+	},
+
+	render: function() {
+		var peeling = this.model.get('peeling');
+
+		$(this.el).empty();
+		$(this.el).append($('<img/>').attr('src', peeling['target']));
+		$(this.el).append($('<img/>').attr('src', peeling['render']));
+	}
+});
 
 var DebugFE = function() {
 	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
@@ -124,7 +139,13 @@ DebugFE.prototype.updateSceneList = function() {
 DebugFE.prototype.updateViews = function() {
 	var _this = this;
 
-	// console.log(Model({id: this.current_id}).fetch());
+	var scene = new Scene({id: this.current_id});
+	
+
+	var peeling_view = new PeelingView({model: scene});
+
+	scene.fetch();
+
 
 	$.ajax('/at/' + _this.current_id).done(function(data_all) {
 		_.each(_this.layer_descs, function(layer_desc) {
@@ -147,10 +168,6 @@ DebugFE.prototype.updateViews = function() {
 			ctx.drawImage(img, 0, 0);
 		};
 		img.src = data_all['rgb'];
-
-		$('#peeling').empty();
-		$('#peeling').append($('<img/>').attr('src', data_all['peeling']['target']));
-		$('#peeling').append($('<img/>').attr('src', data_all['peeling']['render']));
 	});
 
 };
