@@ -188,10 +188,9 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 }
 
 cv::Mat SceneAnalyzer::renderRGBImage() {
-	cv::Mat image(480, 640, CV_8UC3);
-
 	Scene scene;
 	Camera camera;
+	camera.fov_h = 60.0 / 180 * pi;
 	scene.camera = camera;
 
 	for(const auto& plane : getPlanes()) {
@@ -200,12 +199,24 @@ cv::Mat SceneAnalyzer::renderRGBImage() {
 		Triangle tri;
 
 		tri.pos[0] = Eigen::Vector3f(-plane.size / 2, 0, -plane.size / 2) + trans;
+		tri.pos[2] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
+		tri.pos[1] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
+		tri.uv[0] = Eigen::Vector2f(0, 0);
+		tri.uv[1] = Eigen::Vector2f(1, 0);
+		tri.uv[2] = Eigen::Vector2f(0, 1);
+		tri.texture = plane.texture;
+		scene.triangles.push_back(tri);
+
+		/*
+		tri.pos[0] = Eigen::Vector3f(-plane.size / 2, 0, -plane.size / 2) + trans;
 		tri.pos[1] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
 		tri.pos[2] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
 		tri.uv[0] = Eigen::Vector2f(0, 0);
 		tri.uv[1] = Eigen::Vector2f(1, 0);
 		tri.uv[2] = Eigen::Vector2f(0, 1);
+		tri.texture = plane.texture;
 		scene.triangles.push_back(tri);
+		*/
 
 		tri.pos[0] = Eigen::Vector3f( plane.size / 2, 0,  plane.size / 2) + trans;
 		tri.pos[1] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
@@ -213,6 +224,7 @@ cv::Mat SceneAnalyzer::renderRGBImage() {
 		tri.uv[0] = Eigen::Vector2f(1, 1);
 		tri.uv[1] = Eigen::Vector2f(0, 1);
 		tri.uv[2] = Eigen::Vector2f(1, 0);
+		tri.texture = plane.texture;
 		scene.triangles.push_back(tri);
 	}
 

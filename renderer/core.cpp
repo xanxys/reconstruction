@@ -69,8 +69,8 @@ void Core::init(DisplayMode mode) {
 		window = glfwCreateWindow(screen_width, screen_height, "recon-renderer", nullptr, nullptr);
 		glfwHideWindow(window);
 	}
-	buffer_width = screen_width * 2;
-	buffer_height  = screen_height * 2;	
+	buffer_width = 640;
+	buffer_height  = 480;
 	
 	if(!window) {
 		glfwTerminate();
@@ -106,39 +106,47 @@ void Core::init(DisplayMode mode) {
 	texture_shader = Shader::create("renderer/tex.vs", "renderer/tex.fs");
 }
 
-cv::Mat Core::render(std::shared_ptr<Geometry> geom) {
+cv::Mat Core::render(float fov_h,
+	std::shared_ptr<Texture> tex, std::shared_ptr<Geometry> geom) {
+
 	// Erase all
 	usePreBuffer();
 
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 1, 0, 1);
 	glClearDepth(1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 	
 	const int width = screen_width;
 	const int height = screen_height;
 
 	const float near = 0.05;
 	const float far = 50;
-	const float r = 1;
-	const float t = 3.0 / 4.0;
+	const float r = std::tan(fov_h / 2);
+	const float t = static_cast<float>(height) / static_cast<float>(width) * r;
 
 	glViewport(0, 0, width, height);
-	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> projection(Eigen::Matrix4f::Zero());
+	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> projection(Eigen::Matrix4f::Identity());
+
 	projection(0, 0) = near / r;
 	projection(1, 1) = near / t;
 	projection(2, 2) = - (far + near) / (far - near);
 	projection(2, 3) = - 2 * far * near / (far - near);
 	projection(3, 2) = -1;
 
+	glCullFace(GL_FRONT);
+
 
 	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> trans(Eigen::Matrix4f::Identity());
+	tex->useIn(0);
 	texture_shader->use();
 	texture_shader->setUniform("texture", 0);
 	texture_shader->setUniform("luminance", 1.0f);
 	texture_shader->setUniformMat4("world_to_screen", projection.data());
 	texture_shader->setUniformMat4("local_to_world", trans.data());
 	geom->render();
+
+	glFinish();
 
 
 	cv::Mat image(height, width, CV_8UC3);

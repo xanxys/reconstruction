@@ -18,7 +18,9 @@ class Core {
 public:
 	Core(bool windowed = true);
 
-	cv::Mat render(std::shared_ptr<Geometry> geom);
+	cv::Mat render(float fov_h,
+		std::shared_ptr<Texture> tex,
+		std::shared_ptr<Geometry> geom);
 
 	// Blocking call to run event loop.
 	void run() [[deprecated]];

@@ -21,8 +21,8 @@ public:
 class Camera {
 public:
 	Eigen::Transform<float, 3, Eigen::Affine> local_to_world;
-
-	float focal_length_px;
+	float fov_h;
+	
 	int width;
 	int height;
 };
