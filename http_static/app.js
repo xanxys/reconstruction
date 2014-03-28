@@ -229,7 +229,7 @@ VoxelsLayer.prototype.generator = function(data) {
 
 
 var MainView = Backbone.View.extend({
-	el: 'body',
+	el: '#ui_3d',
 
 	initialize: function(options) {
 		this.layers = {};
@@ -258,7 +258,7 @@ var MainView = Backbone.View.extend({
 
 		// start canvas
 		this.renderer = new THREE.WebGLRenderer({
-			canvas: $('#ui_3d')[0]
+			canvas: this.el
 		});
 		this.renderer.setClearColor(this.for_figure ? '#222': '#444');
 
