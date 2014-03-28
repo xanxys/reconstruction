@@ -58,6 +58,7 @@ var GrabcutView = Backbone.View.extend({
 	},
 });
 
+// TODO: decompose layers into views that takes scene.
 var MainView = Backbone.View.extend({
 	el: 'body',
 
@@ -77,7 +78,6 @@ var MainView = Backbone.View.extend({
 	},
 
 	render: function() {
-
 	},
 
 	showPoints: function(data) {
@@ -174,17 +174,12 @@ var MainView = Backbone.View.extend({
 	},
 
 	showPlanes: function(data) {
-		
-
 		var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
 			new THREE.MeshBasicMaterial({
 				color: '#ccc',
 				map: THREE.ImageUtils.loadTexture(data.planes.tex)
 			}));
 		floor.position = new THREE.Vector3(0, data.planes.y, 0);
-
-		
-
 
 		return floor;
 	},
@@ -198,8 +193,8 @@ var MainView = Backbone.View.extend({
 
 		this.scene = new THREE.Scene();
 
-		//this.scene.add(this.generateVoxelGrid());
 		this.scene.add(this.generateCameraCone(0.994837674, 0.750491578));
+		this.scene.add(this.generateAxes(0.3));
 
 		// start canvas
 		this.renderer = new THREE.WebGLRenderer({
@@ -210,8 +205,6 @@ var MainView = Backbone.View.extend({
 		// add mouse control (do this after canvas insertion)
 		this.controls = new THREE.TrackballControls(this.camera, this.renderer.domElement);
 		this.controls.maxDistance = 15;
-
-		var _this = this;
 
 		// start
 		this.animate();
@@ -285,6 +278,38 @@ var MainView = Backbone.View.extend({
 			cone.add(frame);
 		});
 		return cone;
+	},
+
+	generateAxes: function(size) {
+		var descriptions = [
+			{
+				color: 'red',
+				rotation: new THREE.Euler(0, 0, Math.PI / 2, 'XYZ'),
+				position: new THREE.Vector3(size / 2, 0, 0),
+			},
+			{
+				color: 'green',
+				rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
+				position: new THREE.Vector3(0, size / 2, 0),
+			},
+			{
+				color: 'blue',
+				rotation: new THREE.Euler(Math.PI / 2, 0, 0, 'XYZ'),
+				position: new THREE.Vector3(0, 0, size / 2),
+			},
+		];
+		
+		var obj = new THREE.Object3D();
+		_.each(descriptions, function(description) {
+			var geom = new THREE.CylinderGeometry(size / 50, size / 50, size);
+			var mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
+				color: description.color
+			}));
+			mesh.quaternion.setFromEuler(description.rotation);
+			mesh.position = description.position;
+			obj.add(mesh);
+		})
+		return obj;
 	},
 
 	animate: function() {
