@@ -186,8 +186,15 @@ Json::Value ReconServer::serializePlanes(SceneAnalyzer& analyzer) {
 Json::Value ReconServer::serializePeeling(SceneAnalyzer& analyzer) {
 	Json::Value peeling;
 
-	peeling["target"] = dataURLFromImage(analyzer.getRGBImage());
-	peeling["render"] = dataURLFromImage(analyzer.renderRGBImage());
+	const cv::Mat target = analyzer.getRGBImage();
+	const cv::Mat render = analyzer.renderRGBImage();
+
+	cv::Mat delta;
+	cv::absdiff(target, render, delta);
+
+	peeling["target"] = dataURLFromImage(target);
+	peeling["render"] = dataURLFromImage(render);
+	peeling["delta"] = dataURLFromImage(delta);
 
 	return peeling;
 }

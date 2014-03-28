@@ -343,6 +343,7 @@ var PeelingView = Backbone.View.extend({
 		$(this.el).empty();
 		$(this.el).append($('<img/>').attr('src', peeling['target']));
 		$(this.el).append($('<img/>').attr('src', peeling['render']));
+		$(this.el).append($('<img/>').attr('src', peeling['delta']));
 	}
 });
 
