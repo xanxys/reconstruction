@@ -296,6 +296,10 @@ var PeelingView = Backbone.View.extend({
 		$(this.el).append($('<img/>').attr('src', peeling['render']).attr('width', '160px'));
 		$(this.el).append($('<img/>').attr('src', peeling['delta']).attr('width', '160px'));
 
+		$(this.el).append($('<br/>'));
+		$(this.el).append($('<span/>').text(
+			'L1 norm: ' + peeling['l1'] + ' / L1 norm(per px): ' + peeling['l1'] / (640 * 480)));
+
 		$(this.el).append($('<h2/>').text('Original'));
 		$(this.el).append($('<img/>').attr('src', peeling['target']));
 		$(this.el).append($('<img/>').attr('src', peeling['render']));

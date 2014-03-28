@@ -204,9 +204,13 @@ Json::Value ReconServer::serializePeeling(SceneAnalyzer& analyzer) {
 	cv::Mat delta;
 	cv::absdiff(target, render, delta);
 
+	const auto ds = cv::sum(delta);
+	const float norm_l1 = ds[0] + ds[1] + ds[2];
+
 	peeling["target"] = dataURLFromImage(target);
 	peeling["render"] = dataURLFromImage(render);
 	peeling["delta"] = dataURLFromImage(delta);
+	peeling["l1"] = norm_l1;
 
 	return peeling;
 }
