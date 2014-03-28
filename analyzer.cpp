@@ -140,7 +140,7 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 		}
 
 		const Eigen::Vector3f backward(0, 0, -1);
-//		log << new_normal << std::endl;
+		log << new_normal << std::endl;
 
 
 		if(new_normal.dot(backward) >= std::cos(pi / 4)) {

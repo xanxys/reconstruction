@@ -114,7 +114,7 @@ cv::Mat Core::render(float fov_h,
 	glClearColor(0, 1, 0, 1);
 	glClearDepth(1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 	
 	const int width = screen_width;
 	const int height = screen_height;

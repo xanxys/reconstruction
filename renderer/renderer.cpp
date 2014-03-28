@@ -84,7 +84,7 @@ cv::Mat Renderer::renderInternal(construct::Core& core, const Scene& scene) {
 
 
 	tex->useIn();
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_BGR, tex_image.cols, tex_image.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, tex_image.data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_image.cols, tex_image.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, tex_image.data);
 	
 	return core.render(
 		scene.camera.fov_h,
