@@ -16,23 +16,14 @@ namespace construct {
 
 class Core {
 public:
-	Core(bool windowed = true);
+	Core();
 
 	cv::Mat render(float fov_h,
 		std::shared_ptr<Texture> tex,
 		std::shared_ptr<Geometry> geom);
-
-	// Blocking call to run event loop.
-	void run() [[deprecated]];
 protected:
-	enum DisplayMode {
-		WINDOW,
-	};
-
 	void enableExtensions();
-	void init(DisplayMode mode);
-
-	
+	void init();
 
 	void usePreBuffer();
 	void useBackBuffer();

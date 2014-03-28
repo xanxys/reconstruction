@@ -15,11 +15,11 @@
 namespace construct {
 
 
-Core::Core(bool windowed) :
+Core::Core() :
 	max_luminance(150),
 	t_last_update(0) {
 
-	init(DisplayMode::WINDOW);
+	init();
 
 	/*
 	glfwPollEvents();
@@ -54,21 +54,20 @@ void Core::useBackBuffer() {
 	glDrawBuffer(GL_BACK);
 }
 
-void Core::init(DisplayMode mode) {
+void Core::init() {
 	bool use_true_fullscreen = false;
 
 	if(!glfwInit()) {
 		throw "Failed to initialize GLFW";
 	}
 
-	if(mode == DisplayMode::WINDOW) {
-		screen_width = 640;
-		screen_height = 480;
+	screen_width = 640;
+	screen_height = 480;
 
-		glfwWindowHint(GLFW_VISIBLE, false);
-		window = glfwCreateWindow(screen_width, screen_height, "recon-renderer", nullptr, nullptr);
-		glfwHideWindow(window);
-	}
+	glfwWindowHint(GLFW_VISIBLE, false);
+	window = glfwCreateWindow(screen_width, screen_height, "recon-renderer", nullptr, nullptr);
+	glfwHideWindow(window);
+
 	buffer_width = 640;
 	buffer_height  = 480;
 	
@@ -152,40 +151,6 @@ cv::Mat Core::render(float fov_h,
 	cv::Mat image(height, width, CV_8UC3);
 	glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, image.data);
 	return image;
-}
-
-void Core::run() {
-	/*
-	try {
-		while(!glfwWindowShouldClose(window)) {
-			const double step_t0 = glfwGetTime();
-			// step();
-			
-			render();
-			auto error = glGetError();
-			if(error != GL_NO_ERROR) {
-				std::cout << "error: OpenGL error: " << error << std::endl;
-			}
-
-			glfwSwapBuffers(window);
-			const double t = glfwGetTime();
-			
-
-			glfwPollEvents();
-		}
-		
-	} catch(char* exc) {
-		std::cout << "Exception: " << exc << std::endl;
-	} catch(std::string exc) {
-		std::cout << "Exception: " << exc << std::endl;
-	} catch(std::exception& exc) {
-		std::cout << "Exception: " << exc.what() << std::endl;
-	} catch(...) {
-		std::cout << "Unknown exception" << std::endl;
-	}
-	
-	glfwTerminate();
-	*/
 }
 
 }  // namespace

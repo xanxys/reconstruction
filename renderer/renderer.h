@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include <eigen3/Eigen/Dense>
@@ -44,5 +45,7 @@ public:
 private:
 	Renderer();
 private:
+	// Core is not thread-safe.
+	std::mutex core_mutex;
 	construct::Core core;
 };

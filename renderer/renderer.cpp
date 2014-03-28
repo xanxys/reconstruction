@@ -11,6 +11,8 @@ Renderer& Renderer::getInstance() {
 }
 
 cv::Mat Renderer::render(const Scene& scene) {
+	std::lock_guard<std::mutex> lock(core_mutex);
+
 	std::vector<float> data;
 	data.reserve(3 * scene.triangles.size() * 5);
 
