@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #include <Eigen/Dense>
 #include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
@@ -51,6 +53,8 @@ class SceneAnalyzer {
 public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
+	std::string getLog();
+	
 	std::vector<TexturedPlane> getPlanes();
 	
 	// Return aligned cloud.
@@ -73,6 +77,10 @@ protected:
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
+	// Put this before all other members to initialize first,
+	// since logging is used in SceneAnalyzer's initializer's list.
+	std::ostringstream log;
+
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
 	Eigen::Matrix3f camera_loc_to_world;
 private:

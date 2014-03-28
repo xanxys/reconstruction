@@ -166,6 +166,8 @@ DebugFE.prototype.updateViews = function() {
 				}
 			});
 
+			$('#log pre').text(data_all.log);
+
 			// TODO: connect grabcut_view
 			var img = new Image();
 			img.onload = function() {

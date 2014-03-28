@@ -3,8 +3,6 @@
 #include <map>
 #include <cmath>
 #include <exception>
-#include <iostream>
-#include <sstream>
 #include <random>
 
 #include <boost/range/irange.hpp>
@@ -76,13 +74,17 @@ VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 
 
 TexturedPlane::TexturedPlane(float size, cv::Mat texture, float y_offset) :
-	size(size), texture(texture), y_offset(y_offset) {
+	size(size), texture(texture), y_offset(y_offset)  {
 }
 
 
 SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) :
 	cloud(align(raw_cloud)), voxel_size(0.1) {
 	assert(cloud);
+}
+
+std::string SceneAnalyzer::getLog() {
+	return log.str();
 }
 
 ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
@@ -107,7 +109,7 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 	Eigen::Matrix3f rotation(Eigen::Matrix3f::Identity());
 	if(normal.dot(up) >= std::cos(pi / 4)) {
 		// the plane is likely to be floor
-		std::cout << "Correcting w/ floor" << std::endl;
+		log << "Correcting w/ floor" << std::endl;
 
 		const auto axis = up.cross(normal);
 
@@ -138,11 +140,11 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 		}
 
 		const Eigen::Vector3f backward(0, 0, -1);
-//		std::cout << new_normal << std::endl;
+//		log << new_normal << std::endl;
 
 
 		if(new_normal.dot(backward) >= std::cos(pi / 4)) {
-			std::cout << "Correcting w/ wall further" << std::endl;
+			log << "Correcting w/ wall further" << std::endl;
 
 			// Make orthogonal basis
 			Eigen::Vector3f backward_real = new_normal;
@@ -158,7 +160,7 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 		}
 	} else {
 		// the plane is likely to be wall
-		std::cout << "Correcting w/ wall" << std::endl;
+		log << "Correcting w/ wall" << std::endl;
 
 		const Eigen::Vector3f forward(0, 0, 1);
 		const auto axis = forward.cross(normal);

@@ -32,13 +32,22 @@
 			<div class="col-md-10">
 				<ul class="nav nav-tabs">
 					<li class="active"><a href="#main" data-toggle="tab">Main</a></li>
-					<li><a href="#grabcut" data-toggle="tab">Grabcut</a></li>
 					<li><a href="#peeling" data-toggle="tab">Peeling</a></li>
+					<li><a href="#log" data-toggle="tab">Log</a></li>
+					<li><a href="#grabcut" data-toggle="tab">Grabcut</a></li>
 				</ul>
 
 				<div class="tab-content">
 					<div class="tab-pane active" id="main">
 						<canvas id="ui_3d" width="800" height="600"></canvas>
+					</div>
+
+					<div class="tab-pane" id="peeling">
+					</div>
+
+					<div class="tab-pane" id="log">
+						<pre>
+						</pre>
 					</div>
 
 					<div class="tab-pane" id="grabcut">
@@ -52,9 +61,6 @@
 						<button class="btn btn-default" id="ui_draw_bg">BG</button>
 						<button class="btn btn-default" id="ui_clear">Clear</button>
 						<button class="btn btn-primary" id="ui_do_grabcut">Grabcut</button>
-					</div>
-
-					<div class="tab-pane" id="peeling">
 					</div>
 				</div>
 

@@ -70,6 +70,7 @@ Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
 	scene["objects"] = serializeObjects(analyzer);
 	scene["planes"] = serializePlanes(analyzer);
 	scene["peeling"] = serializePeeling(analyzer);
+	scene["log"] = analyzer.getLog();
 
 	return Response(scene);
 }
