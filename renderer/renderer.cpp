@@ -2,16 +2,64 @@
 
 #include <boost/range/irange.hpp>
 
-Renderer::Renderer() {
-}
-
 Renderer& Renderer::getInstance() {
 	static Renderer renderer;
 	return renderer;
 }
 
+Renderer::Renderer() : comm_input(nullptr) {
+	std::thread(&Renderer::rendererWorker, this).detach();
+}
+
 cv::Mat Renderer::render(const Scene& scene) {
-	std::lock_guard<std::mutex> lock(core_mutex);
+	// send command
+	{
+		std::lock_guard<std::mutex> lock(comm_mutex);
+
+		// clear result so this thread don't wake up accidentally
+		comm_result = cv::Mat();
+		comm_input = &scene;
+	}
+	comm_signal.notify_one();
+
+	// wait for result
+	cv::Mat result;
+	{
+		std::unique_lock<std::mutex> lock(comm_mutex);
+		comm_signal.wait(lock, [this]{
+			return comm_result.data != nullptr;
+		});
+
+		result = comm_result;
+	}
+	assert(result.data);
+	return result;
+}
+
+void Renderer::rendererWorker() {
+	construct::Core core;
+
+	while(true) {
+		// Wait until input Scene is available.
+		std::unique_lock<std::mutex> lock(comm_mutex);
+		comm_signal.wait(lock, [this]{
+			return comm_input != nullptr;
+		});
+
+		assert(comm_input);
+		comm_result = renderInternal(core, *comm_input);
+		assert(comm_result.data);
+		comm_input = nullptr;
+
+		// notify result's availability.
+		lock.unlock();
+		comm_signal.notify_one();
+	}
+}
+
+cv::Mat Renderer::renderInternal(construct::Core& core, const Scene& scene) {
+	assert(&core);
+	assert(&scene);
 
 	std::vector<float> data;
 	data.reserve(3 * scene.triangles.size() * 5);

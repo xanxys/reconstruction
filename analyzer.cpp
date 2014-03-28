@@ -487,6 +487,7 @@ cv::Mat SceneAnalyzer::growTexture(const cv::Mat core, int width, int height) {
 	const int window_size = 10;
 
 	cv::Mat image(height, width, CV_8UC3);
+	image = cv::Scalar(0, 0, 0);
 
 	// Tiling
 	for(int iy : boost::irange(0, (int)std::floor(height / core.rows))) {
