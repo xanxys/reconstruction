@@ -100,7 +100,134 @@ CameraLayer.prototype.generateCameraCone = function(fov_h, fov_v) {
 };
 
 
-// TODO: decompose layers into views that takes scene.
+var PointsLayer = function() {
+	this.label = 'Points';
+	this.endpoint = 'points';
+};
+
+PointsLayer.prototype.generator = function(data) {
+	var geom = new THREE.Geometry();
+	geom.vertices = _.map(data, function(p) {
+		return new THREE.Vector3(p.x, p.y, p.z);
+	});
+	geom.colors = _.map(data, function(p) {
+		return new THREE.Color(p.r, p.g, p.b);
+	});
+	var cloud = new THREE.ParticleSystem(geom,
+		new THREE.ParticleSystemMaterial({
+			vertexColors: true,
+			size: 0.005
+		}));
+	return cloud;
+};
+
+
+var PlanesLayer = function() {
+	this.label = 'Planes';
+	this.endpoint = 'planes';
+};
+
+PlanesLayer.prototype.generator = function(data) {
+	var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
+		new THREE.MeshBasicMaterial({
+			color: '#ccc',
+			map: THREE.ImageUtils.loadTexture(data.planes.tex)
+		}));
+	floor.position = new THREE.Vector3(0, data.planes.y, 0);
+
+	return floor;
+};
+
+
+var ObjectsLayer = function() {
+	this.label = 'Objects';
+	this.endpoint = 'objects';
+};
+
+ObjectsLayer.prototype.generator = function(data) {
+	var objects = new THREE.Object3D();
+
+	var voxel_size = 0.1;
+
+	var num_invalid = 0;
+	_.each(data, function(object_desc) {
+		if(!object_desc.valid) {
+			num_invalid += 1;
+			return;
+		}
+
+		var obj = new THREE.Mesh(
+			new THREE.CubeGeometry(
+				object_desc.sx,
+				object_desc.sy,
+				object_desc.sz),
+			new THREE.MeshBasicMaterial({
+				color: object_desc.valid ?
+				new THREE.Color(
+					object_desc.r / 255,
+					object_desc.g / 255,
+					object_desc.b / 255) :
+				'red',
+				opacity: 0.3,
+				transparent: true
+						//wireframe: true
+					}));
+		obj.position = new THREE.Vector3(
+			object_desc.px,
+			object_desc.py,
+			object_desc.pz);
+
+		obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), object_desc.ry);
+		objects.add(obj);
+	});
+	console.log('Invalid Object Proxies ', num_invalid, '/', data.length);
+	return objects;
+};
+
+
+var VoxelsLayer = function(name_attrib, ep) {
+	this.label = 'Voxels (' + name_attrib + ')';
+	this.endpoint = ep;
+};
+
+VoxelsLayer.prototype.generator = function(data) {
+	var voxel_size = 0.1;
+
+	var iy_floor = _.max(_.map(data, function(vx) {
+		return vx.y;
+	}));
+
+	var voxels = new THREE.Object3D();
+	_.each(data, function(vx) {
+		var vx_three = new THREE.Mesh(
+			new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
+			new THREE.MeshBasicMaterial({
+				color: 'orange',
+				opacity: 0.3,
+				transparent: true
+			}));
+		vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(voxel_size);
+		voxels.add(vx_three);
+
+		if(vx.y === iy_floor) {
+			var shadow = new THREE.Mesh(new THREE.CubeGeometry(voxel_size * 2, 0.05, voxel_size * 2),
+				new THREE.MeshBasicMaterial({
+					color: 'black',
+					opacity: 0.1,
+					transparent: true
+				}));
+			shadow.position = new THREE.Vector3(
+				vx.x + 0.5,
+				1 + iy_floor,
+				vx.z + 0.5).multiplyScalar(voxel_size);
+			voxels.add(shadow);
+		}
+	});
+
+	return voxels;
+};
+
+
 var MainView = Backbone.View.extend({
 	el: 'body',
 
@@ -109,122 +236,15 @@ var MainView = Backbone.View.extend({
 
 		var _this = this;
 		this.layer_descs = [
-			{label:'Voxels', endpoint:'voxels', generator:function(d){return _this.showVoxels(d);}},
-			{label:'EmptyVoxels', endpoint:'voxels_empty', generator:function(d){return _this.showVoxels(d);}},
-			{label:'Objects', endpoint:'objects', generator:function(d){return _this.showObjects(d);}},
-			{label:'Points', endpoint:'points', generator:function(d){return _this.showPoints(d);}},
-			{label:'Planes', endpoint:'planes', generator:function(d){return _this.showPlanes(d);}},
+			new VoxelsLayer('filled', 'voxels'),
+			new VoxelsLayer('empty', 'voxels_empty'),
+			new ObjectsLayer(),
+			new PointsLayer(),
+			new PlanesLayer(),
 			new CameraLayer()
 		];
 		
 		this.run();
-	},
-
-	render: function() {
-	},
-
-	showPoints: function(data) {
-		var geom = new THREE.Geometry();
-		geom.vertices = _.map(data, function(p) {
-			return new THREE.Vector3(p.x, p.y, p.z);
-		});
-		geom.colors = _.map(data, function(p) {
-			return new THREE.Color(p.r, p.g, p.b);
-		});
-		var cloud = new THREE.ParticleSystem(geom,
-			new THREE.ParticleSystemMaterial({
-				vertexColors: true,
-				size: 0.005
-			}));
-		return cloud;
-	},
-
-	showObjects: function(data) {
-		var objects = new THREE.Object3D();
-
-		var voxel_size = 0.1;
-
-		var num_invalid = 0;
-		_.each(data, function(object_desc) {
-			if(!object_desc.valid) {
-				num_invalid += 1;
-				return;
-			}
-
-			var obj = new THREE.Mesh(
-				new THREE.CubeGeometry(
-					object_desc.sx,
-					object_desc.sy,
-					object_desc.sz),
-				new THREE.MeshBasicMaterial({
-					color: object_desc.valid ?
-					new THREE.Color(
-						object_desc.r / 255,
-						object_desc.g / 255,
-						object_desc.b / 255) :
-					'red',
-					opacity: 0.3,
-					transparent: true
-							//wireframe: true
-						}));
-			obj.position = new THREE.Vector3(
-				object_desc.px,
-				object_desc.py,
-				object_desc.pz);
-
-			obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), object_desc.ry);
-			objects.add(obj);
-		});
-		console.log('Invalid Object Proxies ', num_invalid, '/', data.length);
-		return objects;
-	},
-
-	showVoxels: function(data) {
-		var voxel_size = 0.1;
-
-		var iy_floor = _.max(_.map(data, function(vx) {
-			return vx.y;
-		}));
-
-		var voxels = new THREE.Object3D();
-		_.each(data, function(vx) {
-			var vx_three = new THREE.Mesh(
-				new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
-				new THREE.MeshBasicMaterial({
-					color: 'orange',
-					opacity: 0.3,
-					transparent: true
-				}));
-			vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(voxel_size);
-			voxels.add(vx_three);
-
-			if(vx.y === iy_floor) {
-				var shadow = new THREE.Mesh(new THREE.CubeGeometry(voxel_size * 2, 0.05, voxel_size * 2),
-					new THREE.MeshBasicMaterial({
-						color: 'black',
-						opacity: 0.1,
-						transparent: true
-					}));
-				shadow.position = new THREE.Vector3(
-					vx.x + 0.5,
-					1 + iy_floor,
-					vx.z + 0.5).multiplyScalar(voxel_size);
-				voxels.add(shadow);
-			}
-		});
-
-		return voxels;
-	},
-
-	showPlanes: function(data) {
-		var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
-			new THREE.MeshBasicMaterial({
-				color: '#ccc',
-				map: THREE.ImageUtils.loadTexture(data.planes.tex)
-			}));
-		floor.position = new THREE.Vector3(0, data.planes.y, 0);
-
-		return floor;
 	},
 
 	run: function() {
@@ -248,57 +268,6 @@ var MainView = Backbone.View.extend({
 
 		// start
 		this.animate();
-	},
-
-	// return :: Object3D
-	generateVoxelGrid: function() {
-		var voxel_size = 0.1;
-		var voxel_n = 30;
-
-		var voxel_geom = new THREE.Geometry();
-		var e0 = new THREE.Vector3(1, 0, 0);
-		var e1 = new THREE.Vector3(0, 1, 0);
-		var e2 = new THREE.Vector3(0, 0, 1);
-		var origin = new THREE.Vector3(
-			-voxel_size * voxel_n / 2,
-			-voxel_size * voxel_n / 2,
-			1);
-
-		var addBundles = function(e0, e1, e2) {
-			_.each(_.range(voxel_n), function(i0) {
-				_.each(_.range(voxel_n), function(i1) {
-					var p0 = origin.clone().add(
-						e0.clone().multiplyScalar(i0 * voxel_size)).add(
-						e1.clone().multiplyScalar(i1 * voxel_size));
-						var p1 = p0.clone().add(e2.clone().multiplyScalar(voxel_n * voxel_size));
-
-						voxel_geom.vertices.push(p0);
-						voxel_geom.vertices.push(p1);
-					});
-			});
-		};
-
-		addBundles(e0, e1, e2);
-		addBundles(e1, e2, e0);
-		addBundles(e2, e0, e1);
-		
-		return new THREE.Line(
-			voxel_geom,
-			new THREE.LineBasicMaterial({
-				color: 'white',
-				opacity: 0.3,
-				transparent: true
-			}),
-			THREE.LinePieces);
-	},
-
-	// obj :: THREE.Object3D
-	// status :: bool
-	setVisible: function(obj, status) {
-		obj.visible = status;
-		_.each(obj.children, function(child) {
-			this.setVisible(child, status);
-		}, this);
 	},
 
 	animate: function() {
