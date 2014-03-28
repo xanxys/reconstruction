@@ -19,6 +19,7 @@ public:
 	Core();
 
 	cv::Mat render(float fov_h,
+		Eigen::Transform<float, 3, Eigen::Affine> loc_to_world,
 		std::shared_ptr<Texture> tex,
 		std::shared_ptr<Geometry> geom);
 protected:

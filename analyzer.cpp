@@ -192,7 +192,8 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 cv::Mat SceneAnalyzer::renderRGBImage() {
 	Scene scene;
 	Camera camera;
-	camera.fov_h = 60.0 / 180 * pi;
+	camera.fov_h = 0.994837674;
+	camera.local_to_world = camera_loc_to_world;
 	scene.camera = camera;
 
 	for(const auto& plane : getPlanes()) {

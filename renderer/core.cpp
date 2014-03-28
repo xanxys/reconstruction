@@ -105,7 +105,8 @@ void Core::init() {
 	texture_shader = Shader::create("renderer/tex.vs", "renderer/tex.fs");
 }
 
-cv::Mat Core::render(float fov_h,
+cv::Mat Core::render(
+	float fov_h, Eigen::Transform<float, 3, Eigen::Affine> loc_to_world,
 	std::shared_ptr<Texture> tex, std::shared_ptr<Geometry> geom) {
 
 	// Erase all
@@ -133,15 +134,17 @@ cv::Mat Core::render(float fov_h,
 	projection(2, 3) = - 2 * far * near / (far - near);
 	projection(3, 2) = -1;
 
-	glCullFace(GL_FRONT);
+	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> proj_view =
+		projection * loc_to_world.inverse().matrix();
 
+	glCullFace(GL_FRONT);
 
 	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> trans(Eigen::Matrix4f::Identity());
 	tex->useIn(0);
 	texture_shader->use();
 	texture_shader->setUniform("texture", 0);
 	texture_shader->setUniform("luminance", 1.0f);
-	texture_shader->setUniformMat4("world_to_screen", projection.data());
+	texture_shader->setUniformMat4("world_to_screen", proj_view.data());
 	texture_shader->setUniformMat4("local_to_world", trans.data());
 	geom->render();
 

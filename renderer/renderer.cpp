@@ -88,6 +88,7 @@ cv::Mat Renderer::renderInternal(construct::Core& core, const Scene& scene) {
 	
 	return core.render(
 		scene.camera.fov_h,
+		scene.camera.local_to_world,
 		tex,
 		construct::Geometry::createPosUV(
 			3 * scene.triangles.size(), data.data()));
