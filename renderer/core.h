@@ -10,6 +10,7 @@
 #include <glfw3.h>
 #include <opencv2/opencv.hpp>
 
+#include "camera.h"
 #include "gl.h"
 
 namespace construct {
@@ -18,8 +19,8 @@ class Core {
 public:
 	Core();
 
-	cv::Mat render(float fov_h,
-		Eigen::Transform<float, 3, Eigen::Affine> loc_to_world,
+	cv::Mat render(
+		const Camera& camera,
 		std::shared_ptr<Texture> tex,
 		std::shared_ptr<Geometry> geom);
 protected:

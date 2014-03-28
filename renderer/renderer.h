@@ -11,6 +11,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/opencv.hpp>
 
+#include "camera.h"
 #include "core.h"
 
 class Triangle {
@@ -21,17 +22,9 @@ public:
 };
 
 
-class Camera {
-public:
-	Eigen::Transform<float, 3, Eigen::Affine> local_to_world;
-	float fov_h;
-	
-	int width;
-	int height;
-};
-
-
 class Scene {
+public:
+	Scene(Camera camera);
 public:
 	Camera camera;
 	std::vector<Triangle> triangles;

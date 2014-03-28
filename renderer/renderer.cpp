@@ -2,6 +2,9 @@
 
 #include <boost/range/irange.hpp>
 
+Scene::Scene(Camera camera) : camera(camera) {
+}
+
 Renderer& Renderer::getInstance() {
 	static Renderer renderer;
 	return renderer;
@@ -79,6 +82,7 @@ cv::Mat Renderer::renderInternal(construct::Core& core, const Scene& scene) {
 		tex_image = tri.texture;
 	}
 	assert(tex_image.data);
+	assert(data.size() == 3 * scene.triangles.size() * 5);
 
 	auto tex = construct::Texture::create(tex_image.cols, tex_image.rows, false);
 
@@ -87,8 +91,7 @@ cv::Mat Renderer::renderInternal(construct::Core& core, const Scene& scene) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_image.cols, tex_image.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, tex_image.data);
 	
 	return core.render(
-		scene.camera.fov_h,
-		scene.camera.local_to_world,
+		scene.camera,
 		tex,
 		construct::Geometry::createPosUV(
 			3 * scene.triangles.size(), data.data()));

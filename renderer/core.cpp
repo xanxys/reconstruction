@@ -20,13 +20,6 @@ Core::Core() :
 	t_last_update(0) {
 
 	init();
-
-	/*
-	glfwPollEvents();
-	glfwPollEvents();
-	glfwPollEvents();
-	glfwPollEvents();
-	*/
 }
 
 void Core::enableExtensions() {
@@ -106,40 +99,31 @@ void Core::init() {
 }
 
 cv::Mat Core::render(
-	float fov_h, Eigen::Transform<float, 3, Eigen::Affine> loc_to_world,
+	const Camera& camera,
 	std::shared_ptr<Texture> tex, std::shared_ptr<Geometry> geom) {
+
+	const int width = camera.getWidth();
+	const int height = camera.getHeight();
+
+	assert(camera.getWidth() == screen_width);
+	assert(camera.getHeight() == screen_height);
 
 	// Erase all
 	usePreBuffer();
 
-	glClearColor(0, 1, 0, 1);
+	glClearColor(0, 0, 0, 1);
 	glClearDepth(1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	
-	const int width = screen_width;
-	const int height = screen_height;
 
-	const float near = 0.05;
-	const float far = 50;
-	const float r = std::tan(fov_h / 2);
-	const float t = static_cast<float>(height) / static_cast<float>(width) * r;
+	glEnable(GL_DEPTH_TEST);
+	glCullFace(GL_FRONT);
+	
 
 	glViewport(0, 0, width, height);
-	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> projection(Eigen::Matrix4f::Identity());
-
-	projection(0, 0) = near / r;
-	projection(1, 1) = near / t;
-	projection(2, 2) = - (far + near) / (far - near);
-	projection(2, 3) = - 2 * far * near / (far - near);
-	projection(3, 2) = -1;
-
-	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> proj_view =
-		projection * loc_to_world.inverse().matrix();
-
-	glCullFace(GL_FRONT);
 
 	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> trans(Eigen::Matrix4f::Identity());
+	Eigen::Matrix<float, 4, 4, Eigen::RowMajor> proj_view = camera.getMatrix();
+
 	tex->useIn(0);
 	texture_shader->use();
 	texture_shader->setUniform("texture", 0);
@@ -150,9 +134,13 @@ cv::Mat Core::render(
 
 	glFinish();
 
-
 	cv::Mat image(height, width, CV_8UC3);
 	glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, image.data);
+
+	// Flip Y axis because:
+	// * OpenGL window coord: down to up
+	// * OpenCV image coord: up to down
+	cv::flip(image, image, 0);
 	return image;
 }
 
