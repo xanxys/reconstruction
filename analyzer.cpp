@@ -185,6 +185,10 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 	return cloud_aligned;
 }
 
+Eigen::Matrix3f SceneAnalyzer::getCameraLocalToWorld() {
+	return camera_loc_to_world;
+}
+
 cv::Mat SceneAnalyzer::getRGBImage() {
 	return extractImageFromPointCloud(cloud);
 }

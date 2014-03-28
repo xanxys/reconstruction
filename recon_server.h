@@ -21,6 +21,7 @@ private:
 	Response handleScene(SceneAnalyzer& analyzer);
 	Response handleGrabcut(SceneAnalyzer& analyzer, const std::string& data);
 
+	Json::Value serializeCamera(SceneAnalyzer& analyzer);
 	Json::Value serializePoints(SceneAnalyzer& analyzer);
 	Json::Value serializeVoxels(SceneAnalyzer& analyzer, bool extract_empty);
 	Json::Value serializeRGB(SceneAnalyzer& analyzer);

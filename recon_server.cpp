@@ -63,6 +63,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 
 Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
 	Json::Value scene;
+	scene["camera"] = serializeCamera(analyzer);
 	scene["points"] = serializePoints(analyzer);
 	scene["voxels"] = serializeVoxels(analyzer, false);
 	scene["voxels_empty"] = serializeVoxels(analyzer, true);
@@ -73,6 +74,17 @@ Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
 	scene["log"] = analyzer.getLog();
 
 	return Response(scene);
+}
+
+Json::Value ReconServer::serializeCamera(SceneAnalyzer& analyzer) {
+	const Eigen::Quaternionf rot(analyzer.getCameraLocalToWorld());
+
+	Json::Value pose;
+	pose["x"] = rot.x();
+	pose["y"] = rot.y();
+	pose["z"] = rot.z();
+	pose["w"] = rot.w();
+	return pose;
 }
 
 Json::Value ReconServer::serializePoints(SceneAnalyzer& analyzer) {

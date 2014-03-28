@@ -60,6 +60,8 @@ public:
 	// Return aligned cloud.
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud();
 
+	Eigen::Matrix3f getCameraLocalToWorld();
+
 	float getFloor();
 
 	cv::Mat getRGBImage();

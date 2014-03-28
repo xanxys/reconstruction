@@ -67,6 +67,39 @@ var GrabcutView = Backbone.View.extend({
 	},
 });
 
+
+var CameraLayer = function() {
+	this.label = 'Camera';
+	this.endpoint = 'camera';
+};
+
+CameraLayer.prototype.generator = function(d) {
+	var camera = new THREE.Object3D();
+	camera.add(this.generateCameraCone(0.994837674, 0.750491578));
+	camera.add(generateAxes(0.3));
+	camera.quaternion = new THREE.Quaternion(d.x, d.y, d.z, d.w);
+	return camera;
+};
+
+CameraLayer.prototype.generateCameraCone = function(fov_h, fov_v) {
+	var cone = new THREE.Object3D();
+	_.each([0.025, 0.05, 0.075], function(dist) {
+		var geom = new THREE.Geometry();
+		geom.vertices.push(new THREE.Vector3(-Math.tan(fov_h / 2) * dist, -Math.tan(fov_v / 2) * dist, 0));
+		geom.vertices.push(new THREE.Vector3( Math.tan(fov_h / 2) * dist, -Math.tan(fov_v / 2) * dist, 0));
+		geom.vertices.push(new THREE.Vector3( Math.tan(fov_h / 2) * dist,  Math.tan(fov_v / 2) * dist, 0));
+		geom.vertices.push(new THREE.Vector3(-Math.tan(fov_h / 2) * dist,  Math.tan(fov_v / 2) * dist, 0));
+		geom.faces.push(new THREE.Face3(0, 1, 2));
+		geom.faces.push(new THREE.Face3(0, 2, 3));
+
+		var frame = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({wireframe: true, color: '#ddd'}));
+		frame.position.z = dist;
+		cone.add(frame);
+	});
+	return cone;
+};
+
+
 // TODO: decompose layers into views that takes scene.
 var MainView = Backbone.View.extend({
 	el: 'body',
@@ -81,6 +114,7 @@ var MainView = Backbone.View.extend({
 			{label:'Objects', endpoint:'objects', generator:function(d){return _this.showObjects(d);}},
 			{label:'Points', endpoint:'points', generator:function(d){return _this.showPoints(d);}},
 			{label:'Planes', endpoint:'planes', generator:function(d){return _this.showPlanes(d);}},
+			new CameraLayer()
 		];
 		
 		this.run();
@@ -202,9 +236,6 @@ var MainView = Backbone.View.extend({
 
 		this.scene = new THREE.Scene();
 
-		this.scene.add(this.generateCameraCone(0.994837674, 0.750491578));
-		this.scene.add(this.generateAxes(0.3));
-
 		// start canvas
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: $('#ui_3d')[0]
@@ -268,57 +299,6 @@ var MainView = Backbone.View.extend({
 		_.each(obj.children, function(child) {
 			this.setVisible(child, status);
 		}, this);
-	},
-
-	// return :: THREE.Object3D
-	generateCameraCone: function(fov_h, fov_v) {
-		var cone = new THREE.Object3D();
-		_.each([0.025, 0.05, 0.075], function(dist) {
-			var geom = new THREE.Geometry();
-			geom.vertices.push(new THREE.Vector3(-Math.tan(fov_h / 2) * dist, -Math.tan(fov_v / 2) * dist, 0));
-			geom.vertices.push(new THREE.Vector3( Math.tan(fov_h / 2) * dist, -Math.tan(fov_v / 2) * dist, 0));
-			geom.vertices.push(new THREE.Vector3( Math.tan(fov_h / 2) * dist,  Math.tan(fov_v / 2) * dist, 0));
-			geom.vertices.push(new THREE.Vector3(-Math.tan(fov_h / 2) * dist,  Math.tan(fov_v / 2) * dist, 0));
-			geom.faces.push(new THREE.Face3(0, 1, 2));
-			geom.faces.push(new THREE.Face3(0, 2, 3));
-
-			var frame = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({wireframe: true, color: '#ddd'}));
-			frame.position.z = dist;
-			cone.add(frame);
-		});
-		return cone;
-	},
-
-	generateAxes: function(size) {
-		var descriptions = [
-			{
-				color: 'red',
-				rotation: new THREE.Euler(0, 0, Math.PI / 2, 'XYZ'),
-				position: new THREE.Vector3(size / 2, 0, 0),
-			},
-			{
-				color: 'green',
-				rotation: new THREE.Euler(0, 0, 0, 'XYZ'),
-				position: new THREE.Vector3(0, size / 2, 0),
-			},
-			{
-				color: 'blue',
-				rotation: new THREE.Euler(Math.PI / 2, 0, 0, 'XYZ'),
-				position: new THREE.Vector3(0, 0, size / 2),
-			},
-		];
-		
-		var obj = new THREE.Object3D();
-		_.each(descriptions, function(description) {
-			var geom = new THREE.CylinderGeometry(size / 50, size / 50, size);
-			var mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
-				color: description.color
-			}));
-			mesh.quaternion.setFromEuler(description.rotation);
-			mesh.position = description.position;
-			obj.add(mesh);
-		})
-		return obj;
 	},
 
 	animate: function() {
