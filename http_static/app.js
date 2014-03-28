@@ -250,8 +250,8 @@ var MainView = Backbone.View.extend({
 	run: function() {
 		// three.js
 		this.camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.001, 50);
-		this.camera.up = new THREE.Vector3(0, 0, 1);
-		this.camera.position = new THREE.Vector3(0, 2, 2);
+		this.camera.up = new THREE.Vector3(0, -1, 0);
+		this.camera.position = new THREE.Vector3(0, -1, -1);
 		this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 		this.scene = new THREE.Scene();
