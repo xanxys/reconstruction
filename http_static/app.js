@@ -4,6 +4,15 @@ var Scene = Backbone.Model.extend({
 	urlRoot: '/at'
 });
 
+var SceneSummary = Backbone.Model.extend({
+});
+
+var SceneSummaryList = Backbone.Collection.extend({
+	url: '/scenes',
+	model: SceneSummary,
+});
+
+
 var GrabcutView = Backbone.View.extend({
 	initialize: function(options) {
 		var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
@@ -337,18 +346,53 @@ var PeelingView = Backbone.View.extend({
 	}
 });
 
+var SceneSummaryListView = Backbone.View.extend({
+	el: '#ui_scenes',
+
+	initialize: function(options) {
+		this.listenTo(this.model, 'add', this.render);
+
+		this.current_id = null;
+		this.updateViews = options.updateViews;
+
+		var _this = this;
+		$('#ui_update').click(function() {
+			$.post('/at').done(function(data) {
+				_this.current_id = data.id;
+				_this.updateViews(data.id);
+				_this.model.fetch();
+			});
+		});
+	},
+
+	render: function() {
+		var _this = this;
+		$(this.el).empty();
+		
+		this.model.each(function(model) {
+			var entry = $('<a/>')
+				.text(model.id).attr('href', '#').addClass('list-group-item');
+			if(model.id === _this.current_id) {
+				entry.addClass('active');
+			}
+
+			entry.click(function() {
+				_this.current_id = model.id;
+				_this.render();
+				_this.updateViews(_this.current_id);
+			});
+			$(_this.el).append(entry);	
+		});
+	}
+});
+
+
 var DebugFE = function() {
 	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
 	this.for_figure = false;
 
 	var _this = this;
-	$('#ui_update').click(function() {
-		$.post('/at').done(function(data) {
-			_this.current_id = data.id;
-			_this.updateViews();
-			_this.updateSceneList();
-		});
-	});
+
 
 	this.main_view = new MainView({
 		layer_descs: this.layer_descs,
@@ -380,35 +424,21 @@ var DebugFE = function() {
 		$('#ui_layers').append(layer);
 	});
 
-	_this.updateSceneList();
-};
-
-DebugFE.prototype.updateSceneList = function() {
-	var _this = this;
-	$('#ui_scenes').empty();
-	$.ajax('/scenes').done(function(scenes) {
-		_.each(scenes, function(scene) {
-			var entry = $('<a/>')
-			.text(scene.id).attr('href', '#').addClass('list-group-item');
-
-			if(scene.id === _this.current_id) {
-				entry.addClass('active');
-			}
-
-			entry.click(function() {
-				_this.current_id = scene.id;
-				_this.updateSceneList();
-				_this.updateViews();
-			});
-			$('#ui_scenes').append(entry);	
-		});
+	this.scene_summary_list = new SceneSummaryList();
+	this.scene_summary_list_view = new SceneSummaryListView({
+		model: this.scene_summary_list,
+		updateViews: function(id) {
+			_this.updateViews(id);
+		}
 	});
+
+	this.scene_summary_list.fetch();
 };
 
-DebugFE.prototype.updateViews = function() {
+DebugFE.prototype.updateViews = function(id) {
 	var _this = this;
 
-	var scene = new Scene({id: this.current_id});
+	var scene = new Scene({id: id});
 	
 
 	var peeling_view = new PeelingView({model: scene});
