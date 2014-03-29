@@ -430,6 +430,11 @@ DebugFE.prototype.updateViews = function(id) {
 				ctx.drawImage(img, 0, 0);
 			};
 			img.src = data_all['rgb'];
+
+			// TODO: connect
+			$('#calibration').empty();
+			$('#calibration').append($('<img/>').attr('src', data_all['rgb']));
+			$('#calibration').append($('<img/>').attr('src', data_all['depth']));
 		}
 	});
 

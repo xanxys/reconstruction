@@ -29,6 +29,9 @@ private:
 	Json::Value serializePlanes(SceneAnalyzer& analyzer);
 	Json::Value serializePeeling(SceneAnalyzer& analyzer);
 
+	// Perceptive data conversion.
+	static cv::Mat depthToRGB(const cv::Mat& depth);
+	
 	// Data conversion utils.
 	static cv::Mat imageFromDataURL(const std::string& url);
 	static std::string dataURLFromImage(const cv::Mat& image);

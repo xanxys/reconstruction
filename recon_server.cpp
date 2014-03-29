@@ -68,6 +68,7 @@ Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
 	scene["voxels"] = serializeVoxels(analyzer, false);
 	scene["voxels_empty"] = serializeVoxels(analyzer, true);
 	scene["rgb"] = dataURLFromImage(analyzer.getRGBImage());
+	scene["depth"] = dataURLFromImage(depthToRGB(analyzer.getDepthImage()));
 	scene["objects"] = serializeObjects(analyzer);
 	scene["planes"] = serializePlanes(analyzer);
 	scene["peeling"] = serializePeeling(analyzer);
@@ -213,6 +214,20 @@ Json::Value ReconServer::serializePeeling(SceneAnalyzer& analyzer) {
 	peeling["l1"] = norm_l1;
 
 	return peeling;
+}
+
+cv::Mat ReconServer::depthToRGB(const cv::Mat& depth) {
+	assert(depth.type() == CV_32F);
+
+	cv::Mat visible(depth.rows, depth.cols, CV_8UC3);
+	for(int y : boost::irange(0, depth.rows)) {
+		for(int x : boost::irange(0, depth.cols)) {
+			const float d = depth.at<float>(y,x);
+			const uint8_t v = std::min(255, static_cast<int>(d / 5.0 * 255.0));
+			visible.at<cv::Vec3b>(y, x) = cv::Vec3b(v, v, v);
+		}
+	}
+	return visible;
 }
 
 Response ReconServer::sendImage(cv::Mat image) {

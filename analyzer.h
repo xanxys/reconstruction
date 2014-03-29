@@ -65,6 +65,9 @@ public:
 	float getFloor();
 
 	cv::Mat getRGBImage();
+	// return meter in f32
+	cv::Mat getDepthImage();
+
 	cv::Mat renderRGBImage();
 	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
@@ -78,6 +81,7 @@ protected:
 
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	static cv::Mat extractDepthImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
 	// Put this before all other members to initialize first,
 	// since logging is used in SceneAnalyzer's initializer's list.

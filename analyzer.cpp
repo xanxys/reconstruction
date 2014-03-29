@@ -193,6 +193,10 @@ cv::Mat SceneAnalyzer::getRGBImage() {
 	return extractImageFromPointCloud(cloud);
 }
 
+cv::Mat SceneAnalyzer::getDepthImage() {
+	return extractDepthImageFromPointCloud(cloud);
+}
+
 cv::Mat SceneAnalyzer::renderRGBImage() {
 	Scene scene(
 		Camera(640, 480,
@@ -669,4 +673,21 @@ cv::Mat SceneAnalyzer::extractImageFromPointCloud(
 		}
 	}
 	return rgb;
+}
+
+cv::Mat SceneAnalyzer::extractDepthImageFromPointCloud(
+	const ColorCloud::ConstPtr& cloud) {
+	if(cloud->points.size() != cloud->width * cloud->height) {
+		throw std::runtime_error("Point cloud is not an image");
+	}
+
+	cv::Mat depth(cloud->height, cloud->width, CV_32F);
+	for(int y : boost::irange(0, (int)cloud->height)) {
+		for(int x : boost::irange(0, (int)cloud->width)) {
+			const pcl::PointXYZRGBA& pt = cloud->points[y * cloud->width + x];
+
+			depth.at<float>(y, x) = pt.z;
+		}
+	}
+	return depth;
 }
