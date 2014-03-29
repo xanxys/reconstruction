@@ -15,6 +15,8 @@ var SceneSummaryList = Backbone.Collection.extend({
 
 var GrabcutView = Backbone.View.extend({
 	initialize: function(options) {
+		var _this = this;
+
 		var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
 		ctx.fillStyle = 'blue';
 		var drawing = false;
@@ -49,7 +51,7 @@ var GrabcutView = Backbone.View.extend({
 		$('#ui_do_grabcut').click(function() {
 			$.ajax({
 				type: 'POST',
-				url: '/at/' + _this.current_id + '/grabcut',
+				url: '/at/' + _this.model.id + '/grabcut',
 				data: JSON.stringify({
 					image: $('#ui_grabcut_drawing')[0].toDataURL()
 				}),
@@ -63,8 +65,17 @@ var GrabcutView = Backbone.View.extend({
 			});
 		});
 
-
+		this.listenTo(this.model, 'change', this.render);
 	},
+
+	render: function() {
+		var img = new Image();
+		img.onload = function() {
+			var ctx = $('#ui_grabcut')[0].getContext('2d');
+			ctx.drawImage(img, 0, 0);
+		};
+		img.src = this.model.get('rgb');
+	}
 });
 
 
@@ -307,6 +318,32 @@ var PeelingView = Backbone.View.extend({
 	}
 });
 
+var CalibrationView = Backbone.View.extend({
+	el: '#calibration',
+
+	initialize: function(options) {
+		this.listenTo(this.model, 'change', this.render);
+	},
+
+	render: function() {
+		$(this.el).empty();
+		$(this.el).append($('<img/>').attr('src', this.model.get('rgb')));
+		$(this.el).append($('<img/>').attr('src', this.model.get('depth')));
+	}
+});
+
+var LogView = Backbone.View.extend({
+	el: '#log',
+
+	initialize: function(options) {
+		this.listenTo(this.model, 'change', this.render);
+	},
+
+	render: function() {
+		this.$('pre').text(this.model.get('log'));
+	}
+});
+
 var SceneSummaryListView = Backbone.View.extend({
 	el: '#ui_scenes',
 
@@ -354,12 +391,10 @@ var DebugFE = function() {
 
 	var _this = this;
 
-
 	this.main_view = new MainView({
 		layer_descs: this.layer_descs,
 		layers: this.layers
 	});
-	this.grabcut_view = new GrabcutView();
 
 	// TODO: remove this dependency
 	this.scene = this.main_view.scene;
@@ -400,9 +435,11 @@ DebugFE.prototype.updateViews = function(id) {
 	var _this = this;
 
 	var scene = new Scene({id: id});
-	
 
 	var peeling_view = new PeelingView({model: scene});
+	var log_view = new LogView({model: scene});
+	var calibration_view = new CalibrationView({model: scene});
+	var grabcut_view = new GrabcutView({model: scene});
 
 	scene.fetch({
 		success: function(data) {
@@ -420,21 +457,6 @@ DebugFE.prototype.updateViews = function(id) {
 					_this.scene.add(object);
 				}
 			});
-
-			$('#log pre').text(data_all.log);
-
-			// TODO: connect grabcut_view
-			var img = new Image();
-			img.onload = function() {
-				var ctx = $('#ui_grabcut')[0].getContext('2d');
-				ctx.drawImage(img, 0, 0);
-			};
-			img.src = data_all['rgb'];
-
-			// TODO: connect
-			$('#calibration').empty();
-			$('#calibration').append($('<img/>').attr('src', data_all['rgb']));
-			$('#calibration').append($('<img/>').attr('src', data_all['depth']));
 		}
 	});
 
