@@ -400,6 +400,7 @@ cv::Mat SceneBelief::synthesizeTexture(const cv::Mat image, const cv::Mat mask) 
 	assert(image.size() == mask.size());
 
 	cv::Mat texture(image.rows, image.cols, CV_8UC3);
+	texture = cv::Scalar(0, 0, 0);
 
 	// Visualizat image & mask w/o synthesis.
 	if(false) {
