@@ -46,12 +46,11 @@ public:
 	const float size;
 };
 
-
-// Analyze a single RGB-D frame.
-// Camera is always at the origin.
-class SceneAnalyzer {
+// A coherent set of belief about the scene, which may or may not be
+// visible. It's a node of search tree.
+class SceneBelief {
 public:
-	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	SceneBelief(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
 	std::string getLog();
 	
@@ -91,4 +90,15 @@ protected:
 	Eigen::Matrix3f camera_loc_to_world;
 private:
 	const float voxel_size;
+};
+
+
+// Analyze a single RGB-D frame.
+// Camera is always at the origin.
+class SceneAnalyzer {
+public:
+	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	SceneBelief& getBestBelief();
+private:
+	SceneBelief belief;
 };

@@ -78,16 +78,16 @@ TexturedPlane::TexturedPlane(float size, cv::Mat texture, float y_offset) :
 }
 
 
-SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) :
+SceneBelief::SceneBelief(const ColorCloud::ConstPtr& raw_cloud) :
 	cloud(align(raw_cloud)), voxel_size(0.1) {
 	assert(cloud);
 }
 
-std::string SceneAnalyzer::getLog() {
+std::string SceneBelief::getLog() {
 	return log.str();
 }
 
-ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
+ColorCloud::ConstPtr SceneBelief::align(const ColorCloud::ConstPtr& cloud) {
 	// Detect the primary plane.
 	pcl::SACSegmentation<pcl::PointXYZRGBA> seg;
 	seg.setOptimizeCoefficients(true);
@@ -185,19 +185,19 @@ ColorCloud::ConstPtr SceneAnalyzer::align(const ColorCloud::ConstPtr& cloud) {
 	return cloud_aligned;
 }
 
-Eigen::Matrix3f SceneAnalyzer::getCameraLocalToWorld() {
+Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {
 	return camera_loc_to_world;
 }
 
-cv::Mat SceneAnalyzer::getRGBImage() {
+cv::Mat SceneBelief::getRGBImage() {
 	return extractImageFromPointCloud(cloud);
 }
 
-cv::Mat SceneAnalyzer::getDepthImage() {
+cv::Mat SceneBelief::getDepthImage() {
 	return extractDepthImageFromPointCloud(cloud);
 }
 
-cv::Mat SceneAnalyzer::renderRGBImage() {
+cv::Mat SceneBelief::renderRGBImage() {
 	Scene scene(
 		Camera(640, 480,
 			0.994837674, Eigen::Transform<float, 3, Eigen::Affine>(camera_loc_to_world)));
@@ -231,12 +231,12 @@ cv::Mat SceneAnalyzer::renderRGBImage() {
 	return Renderer::getInstance().render(scene);
 }
 
-pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneAnalyzer::getCloud() {
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() {
 	assert(cloud);
 	return cloud;
 }
 
-std::map<std::tuple<int, int, int>, VoxelState> SceneAnalyzer::getVoxels() {
+std::map<std::tuple<int, int, int>, VoxelState> SceneBelief::getVoxels() {
 	std::map<std::tuple<int, int, int>, VoxelState> voxels;
 	for(const auto& pair : getVoxelsDetailed()) {
 		voxels[pair.first] = pair.second.state;
@@ -244,7 +244,7 @@ std::map<std::tuple<int, int, int>, VoxelState> SceneAnalyzer::getVoxels() {
 	return voxels;
 }
 
-std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDetailed() {
+std::map<std::tuple<int, int, int>, VoxelDescription> SceneBelief::getVoxelsDetailed() {
 	const float size = voxel_size;
 
 	// known to be filled
@@ -314,7 +314,7 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneAnalyzer::getVoxelsDe
 	return voxel_merged;
 }
 
-std::vector<TexturedPlane> SceneAnalyzer::getPlanes() {
+std::vector<TexturedPlane> SceneBelief::getPlanes() {
 	int iy_floor = 0;
 	for(const auto& pair : getVoxelsDetailed()) {
 		if(pair.second.state == VoxelState::OCCUPIED) {
@@ -393,7 +393,7 @@ std::vector<TexturedPlane> SceneAnalyzer::getPlanes() {
 	return planes;
 }
 
-cv::Mat SceneAnalyzer::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {
+cv::Mat SceneBelief::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {
 	assert(image.type() == CV_8UC3);
 	assert(mask.type() == CV_8U);
 	assert(image.size() == mask.size());
@@ -482,7 +482,7 @@ cv::Mat SceneAnalyzer::synthesizeTexture(const cv::Mat image, const cv::Mat mask
 }
 
 // ref http://graphics.cs.cmu.edu/people/efros/research/NPS/alg.html
-cv::Mat SceneAnalyzer::growTexture(const cv::Mat core, int width, int height) {
+cv::Mat SceneBelief::growTexture(const cv::Mat core, int width, int height) {
 	assert(core.type() == CV_8UC3);
 	const int window_size = 10;
 
@@ -501,7 +501,7 @@ cv::Mat SceneAnalyzer::growTexture(const cv::Mat core, int width, int height) {
 	return image;
 }
 
-Json::Value SceneAnalyzer::getObjects() {
+Json::Value SceneBelief::getObjects() {
 	Json::Value objects;
 
 	const auto voxels = getVoxelsDetailed();
@@ -659,7 +659,7 @@ Json::Value SceneAnalyzer::getObjects() {
 	return objects;
 }
 
-cv::Mat SceneAnalyzer::extractImageFromPointCloud(
+cv::Mat SceneBelief::extractImageFromPointCloud(
 	const ColorCloud::ConstPtr& cloud) {
 	if(cloud->points.size() != cloud->width * cloud->height) {
 		throw std::runtime_error("Point cloud is not an image");
@@ -675,7 +675,7 @@ cv::Mat SceneAnalyzer::extractImageFromPointCloud(
 	return rgb;
 }
 
-cv::Mat SceneAnalyzer::extractDepthImageFromPointCloud(
+cv::Mat SceneBelief::extractDepthImageFromPointCloud(
 	const ColorCloud::ConstPtr& cloud) {
 	if(cloud->points.size() != cloud->width * cloud->height) {
 		throw std::runtime_error("Point cloud is not an image");
@@ -690,4 +690,12 @@ cv::Mat SceneAnalyzer::extractDepthImageFromPointCloud(
 		}
 	}
 	return depth;
+}
+
+
+SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) : belief(raw_cloud) {
+}
+
+SceneBelief& SceneAnalyzer::getBestBelief() {
+	return belief;
 }

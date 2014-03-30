@@ -37,14 +37,14 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 
-		return handleScene(analyzer);
+		return handleScene(analyzer.getBestBelief());
 	} else if(uri.size() >= 3 && uri[0] == "at") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 
 		if(uri[2] == "grabcut" && method == "POST") {
-			return handleGrabcut(analyzer, data);
+			return handleGrabcut(analyzer.getBestBelief(), data);
 		}
 
 		return Response::notFound();
@@ -61,24 +61,24 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 	return Response::notFound();
 }
 
-Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
+Response ReconServer::handleScene(SceneBelief& belief) {
 	Json::Value scene;
-	scene["camera"] = serializeCamera(analyzer);
-	scene["points"] = serializePoints(analyzer);
-	scene["voxels"] = serializeVoxels(analyzer, false);
-	scene["voxels_empty"] = serializeVoxels(analyzer, true);
-	scene["rgb"] = dataURLFromImage(analyzer.getRGBImage());
-	scene["depth"] = dataURLFromImage(depthToRGB(analyzer.getDepthImage()));
-	scene["objects"] = serializeObjects(analyzer);
-	scene["planes"] = serializePlanes(analyzer);
-	scene["peeling"] = serializePeeling(analyzer);
-	scene["log"] = analyzer.getLog();
+	scene["camera"] = serializeCamera(belief);
+	scene["points"] = serializePoints(belief);
+	scene["voxels"] = serializeVoxels(belief, false);
+	scene["voxels_empty"] = serializeVoxels(belief, true);
+	scene["rgb"] = dataURLFromImage(belief.getRGBImage());
+	scene["depth"] = dataURLFromImage(depthToRGB(belief.getDepthImage()));
+	scene["objects"] = serializeObjects(belief);
+	scene["planes"] = serializePlanes(belief);
+	scene["peeling"] = serializePeeling(belief);
+	scene["log"] = belief.getLog();
 
 	return Response(scene);
 }
 
-Json::Value ReconServer::serializeCamera(SceneAnalyzer& analyzer) {
-	const Eigen::Quaternionf rot(analyzer.getCameraLocalToWorld());
+Json::Value ReconServer::serializeCamera(SceneBelief& belief) {
+	const Eigen::Quaternionf rot(belief.getCameraLocalToWorld());
 
 	Json::Value pose;
 	pose["x"] = rot.x();
@@ -88,9 +88,9 @@ Json::Value ReconServer::serializeCamera(SceneAnalyzer& analyzer) {
 	return pose;
 }
 
-Json::Value ReconServer::serializePoints(SceneAnalyzer& analyzer) {
+Json::Value ReconServer::serializePoints(SceneBelief& belief) {
 	Json::Value vs;
-	for(const auto& pt : analyzer.getCloud()->points) {
+	for(const auto& pt : belief.getCloud()->points) {
 		if(!std::isfinite(pt.x)) {
 			continue;
 		}
@@ -107,9 +107,9 @@ Json::Value ReconServer::serializePoints(SceneAnalyzer& analyzer) {
 	return vs;
 }
 
-Json::Value ReconServer::serializeVoxels(SceneAnalyzer& analyzer, bool extract_empty) {
+Json::Value ReconServer::serializeVoxels(SceneBelief& belief, bool extract_empty) {
 	Json::Value root;
-	for(const auto& pair : analyzer.getVoxels()) {
+	for(const auto& pair : belief.getVoxels()) {
 		if(extract_empty) {
 			if(pair.second != VoxelState::EMPTY) {
 				continue;
@@ -129,14 +129,14 @@ Json::Value ReconServer::serializeVoxels(SceneAnalyzer& analyzer, bool extract_e
 	return root;
 }
 
-Response ReconServer::handleGrabcut(SceneAnalyzer& analyzer, const std::string& data) {
+Response ReconServer::handleGrabcut(SceneBelief& belief, const std::string& data) {
 	Json::Value root;
 	Json::Reader().parse(data, root);
 	const cv::Mat mask = imageFromDataURL(root["image"].asString());
 	if(!mask.data) {
 		return Response(400, "Invalid image", "text/plain");
 	}
-	const cv::Mat image = analyzer.getRGBImage();
+	const cv::Mat image = belief.getRGBImage();
 
 	if(mask.size() != image.size()) {
 		return Response(400, "Invalid image size", "text/plain");
@@ -179,13 +179,13 @@ Response ReconServer::handleGrabcut(SceneAnalyzer& analyzer, const std::string& 
 	return Response(result);
 }
 
-Json::Value ReconServer::serializeObjects(SceneAnalyzer& analyzer) {
-	Json::Value result = analyzer.getObjects();
+Json::Value ReconServer::serializeObjects(SceneBelief& belief) {
+	Json::Value result = belief.getObjects();
 	return result;
 }
 
-Json::Value ReconServer::serializePlanes(SceneAnalyzer& analyzer) {
-	const auto plane = analyzer.getPlanes()[0];
+Json::Value ReconServer::serializePlanes(SceneBelief& belief) {
+	const auto plane = belief.getPlanes()[0];
 
 	Json::Value plane_s;
 	plane_s["y"] = plane.y_offset;
@@ -196,11 +196,11 @@ Json::Value ReconServer::serializePlanes(SceneAnalyzer& analyzer) {
 	return result;
 }
 
-Json::Value ReconServer::serializePeeling(SceneAnalyzer& analyzer) {
+Json::Value ReconServer::serializePeeling(SceneBelief& belief) {
 	Json::Value peeling;
 
-	const cv::Mat target = analyzer.getRGBImage();
-	const cv::Mat render = analyzer.renderRGBImage();
+	const cv::Mat target = belief.getRGBImage();
+	const cv::Mat render = belief.renderRGBImage();
 
 	cv::Mat delta;
 	cv::absdiff(target, render, delta);
@@ -223,7 +223,7 @@ cv::Mat ReconServer::depthToRGB(const cv::Mat& depth) {
 	for(int y : boost::irange(0, depth.rows)) {
 		for(int x : boost::irange(0, depth.cols)) {
 			const float d = depth.at<float>(y,x);
-			const uint8_t v = std::min(255, static_cast<int>(d / 5.0 * 255.0));
+			const uint8_t v = std::min(255, static_cast<int>(d / 2.5 * 255.0));
 			visible.at<cv::Vec3b>(y, x) = cv::Vec3b(v, v, v);
 		}
 	}

@@ -11,23 +11,23 @@
 #include "analyzer.h"
 #include "web_server.h"
 
-// A controller. Two models are OpenNI grabber and SceneAnalyzer.
+// A controller. Two models are OpenNI grabber and SceneBelief.
 class ReconServer : public WebServer {
 public:
 	ReconServer();
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
 private:
-	Response handleScene(SceneAnalyzer& analyzer);
-	Response handleGrabcut(SceneAnalyzer& analyzer, const std::string& data);
+	Response handleScene(SceneBelief& belief);
+	Response handleGrabcut(SceneBelief& belief, const std::string& data);
 
-	Json::Value serializeCamera(SceneAnalyzer& analyzer);
-	Json::Value serializePoints(SceneAnalyzer& analyzer);
-	Json::Value serializeVoxels(SceneAnalyzer& analyzer, bool extract_empty);
-	Json::Value serializeRGB(SceneAnalyzer& analyzer);
-	Json::Value serializeObjects(SceneAnalyzer& analyzer);
-	Json::Value serializePlanes(SceneAnalyzer& analyzer);
-	Json::Value serializePeeling(SceneAnalyzer& analyzer);
+	Json::Value serializeCamera(SceneBelief& belief);
+	Json::Value serializePoints(SceneBelief& belief);
+	Json::Value serializeVoxels(SceneBelief& belief, bool extract_empty);
+	Json::Value serializeRGB(SceneBelief& belief);
+	Json::Value serializeObjects(SceneBelief& belief);
+	Json::Value serializePlanes(SceneBelief& belief);
+	Json::Value serializePeeling(SceneBelief& belief);
 
 	// Perceptive data conversion.
 	static cv::Mat depthToRGB(const cv::Mat& depth);
