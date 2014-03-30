@@ -37,14 +37,14 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 
-		return handleScene(analyzer.getBestBelief());
+		return handleScene(*analyzer.getBestBelief());
 	} else if(uri.size() >= 3 && uri[0] == "at") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 
 		if(uri[2] == "grabcut" && method == "POST") {
-			return handleGrabcut(analyzer.getBestBelief(), data);
+			return handleGrabcut(*analyzer.getBestBelief(), data);
 		}
 
 		return Response::notFound();

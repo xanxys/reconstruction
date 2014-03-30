@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <sstream>
 
 #include <Eigen/Dense>
@@ -13,7 +14,7 @@
 class SceneAnalyzer {
 public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	SceneBelief& getBestBelief();
+	std::shared_ptr<SceneBelief> getBestBelief();
 private:
 	SceneBelief belief;
 };

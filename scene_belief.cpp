@@ -68,15 +68,27 @@ float OrientedBox::getRotationY() const {
 
 
 SceneBelief::SceneBelief(const ColorCloud::ConstPtr& raw_cloud) :
-	cloud(align(raw_cloud)), voxel_size(0.1) {
+	cloud(raw_cloud), camera_loc_to_world(Eigen::Matrix3f::Identity()), voxel_size(0.1) {
 	assert(cloud);
+}
+
+SceneBelief::SceneBelief(
+		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
+		Eigen::Matrix3f camera_loc_to_world) :
+	cloud(cloud), camera_loc_to_world(camera_loc_to_world), voxel_size(0.1) {
+}
+
+std::vector<std::shared_ptr<SceneBelief>> SceneBelief::expandByAlignment() {
+	std::vector<std::shared_ptr<SceneBelief>> results;
+	results.push_back(align());
+	return results;
 }
 
 std::string SceneBelief::getLog() {
 	return log.str();
 }
 
-ColorCloud::ConstPtr SceneBelief::align(const ColorCloud::ConstPtr& cloud) {
+std::shared_ptr<SceneBelief> SceneBelief::align() {
 	// Detect the primary plane.
 	pcl::SACSegmentation<pcl::PointXYZRGBA> seg;
 	seg.setOptimizeCoefficients(true);
@@ -161,8 +173,6 @@ ColorCloud::ConstPtr SceneBelief::align(const ColorCloud::ConstPtr& cloud) {
 		// TODO: adjust Z-rotation
 	}
 
-	camera_loc_to_world = rotation;
-
 	// apply rotation.
 	ColorCloud::Ptr cloud_aligned(new ColorCloud());
 	for(auto pt : cloud->points) {
@@ -171,7 +181,9 @@ ColorCloud::ConstPtr SceneBelief::align(const ColorCloud::ConstPtr& cloud) {
 	}
 	cloud_aligned->width = 640;
 	cloud_aligned->height = 480;
-	return cloud_aligned;
+
+	return std::make_shared<SceneBelief>(
+		cloud_aligned, rotation);
 }
 
 Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {

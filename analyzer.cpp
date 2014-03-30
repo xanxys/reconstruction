@@ -26,6 +26,6 @@ using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) : belief(raw_cloud) {
 }
 
-SceneBelief& SceneAnalyzer::getBestBelief() {
-	return belief;
+std::shared_ptr<SceneBelief> SceneAnalyzer::getBestBelief() {
+	return belief.expandByAlignment()[0];
 }

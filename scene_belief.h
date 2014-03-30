@@ -63,16 +63,19 @@ private:
 class SceneBelief {
 public:
 	SceneBelief(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	SceneBelief(
+		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
+		Eigen::Matrix3f camera_loc_to_world);
 
+
+	// tree exploration
+	std::vector<std::shared_ptr<SceneBelief>> expandByAlignment();
+
+	// attribs
 	std::string getLog();
-	
 	std::vector<TexturedPlane> getPlanes();
-	
-	// Return aligned cloud.
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud();
-
 	Eigen::Matrix3f getCameraLocalToWorld();
-
 	float getFloor();
 
 	cv::Mat getRGBImage();
@@ -89,7 +92,8 @@ protected:
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
 	static cv::Mat growTexture(const cv::Mat core, int width, int height);
 
-	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr align(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	std::shared_ptr<SceneBelief> align();
+
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	static cv::Mat extractDepthImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 protected:
@@ -98,7 +102,7 @@ protected:
 	std::ostringstream log;
 
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
-	Eigen::Matrix3f camera_loc_to_world;
+	const Eigen::Matrix3f camera_loc_to_world;
 private:
 	const float voxel_size;
 };
