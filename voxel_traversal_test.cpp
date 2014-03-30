@@ -1,4 +1,4 @@
-#include "analyzer.h"
+#include "voxel_traversal.h"
 
 #include <iostream>
 #include <random>
