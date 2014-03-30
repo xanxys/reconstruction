@@ -37,6 +37,36 @@ TexturedPlane::TexturedPlane(float size, cv::Mat texture, float y_offset) :
 }
 
 
+OrientedBox::OrientedBox(
+	Eigen::Vector3f position,
+	float ry,
+	Eigen::Vector3f size,
+	Eigen::Vector3f color,
+	bool valid) :
+	position(position), ry(ry), size(size), color(color), valid(valid) {
+}
+
+Eigen::Vector3f OrientedBox::getPosition() const {
+	return position;
+}
+
+Eigen::Vector3f OrientedBox::getSize() const {
+	return size;
+}
+
+Eigen::Vector3f OrientedBox::getColor() const {
+	return color;
+}
+
+bool OrientedBox::getValid() const {
+	return valid;
+}
+
+float OrientedBox::getRotationY() const {
+	return ry;
+}
+
+
 SceneBelief::SceneBelief(const ColorCloud::ConstPtr& raw_cloud) :
 	cloud(align(raw_cloud)), voxel_size(0.1) {
 	assert(cloud);
@@ -460,8 +490,8 @@ cv::Mat SceneBelief::growTexture(const cv::Mat core, int width, int height) {
 	return image;
 }
 
-Json::Value SceneBelief::getObjects() {
-	Json::Value objects;
+std::vector<OrientedBox> SceneBelief::getObjects() {
+	std::vector<OrientedBox> objects;
 
 	const auto voxels = getVoxelsDetailed();
 
@@ -494,59 +524,35 @@ Json::Value SceneBelief::getObjects() {
 		ix1 = std::max(ix1, std::get<0>(pair.first));
 	}
 
-	{
-		Json::Value object;
-		object["px"] = (ix0 + 0.5) * voxel_size;
-		object["py"] = 0;
-		object["pz"] = 2;
-		object["ry"] = 0;
-		object["sx"] = 0.03;
-		object["sy"] = 3;
-		object["sz"] = 4;
-		object["valid"] = true;
-		object["r"] = 0;
-		object["g"] = 255;
-		object["b"] = 0;
-		objects.append(object);
-	}
-	{
-		Json::Value object;
-		object["px"] = (ix1 + 0.5) * voxel_size;
-		object["py"] = 0;
-		object["pz"] = 2;
-		object["ry"] = 0;
-		object["sx"] = 0.03;
-		object["sy"] = 3;
-		object["sz"] = 4;
-		object["valid"] = true;
-		object["r"] = 0;
-		object["g"] = 255;
-		object["b"] = 0;
-		objects.append(object);
-	}
+	objects.emplace_back(
+		Eigen::Vector3f((ix0 + 0.5) * voxel_size, 0, 2),
+		0,
+		Eigen::Vector3f(0.03, 3, 4),
+		Eigen::Vector3f(0, 255, 0),
+		true);
+
+	objects.emplace_back(
+		Eigen::Vector3f((ix1 + 0.5) * voxel_size, 0, 2),
+		0,
+		Eigen::Vector3f(0.03, 3, 4),
+		Eigen::Vector3f(0, 255, 0),
+		true);
 
 	//
-	
-
 	for(const auto& wall_tile : projected) {
 		if(wall_tile.second < 5) {
 			continue;
 		}
 
-		Json::Value object;
-		object["px"] = (std::get<0>(wall_tile.first) + 0.5) * voxel_size;
-		object["py"] = 0;
-		object["pz"] = (std::get<1>(wall_tile.first) + 0.5) * voxel_size;
-		object["ry"] = 0;
-		object["sx"] = 0.03;
-		object["sy"] = 3;
-		object["sz"] = 0.03;
-		object["valid"] = true;
-		object["r"] = 0;
-		object["g"] = 0;
-		object["b"] = 255;
-
-		objects.append(object);
+		objects.emplace_back(
+			Eigen::Vector3f(
+				(std::get<0>(wall_tile.first) + 0.5) * voxel_size,
+				0,
+				(std::get<1>(wall_tile.first) + 0.5) * voxel_size),
+			0,
+			Eigen::Vector3f(0.03, 3, 0.03),
+			Eigen::Vector3f(0, 0, 255),
+			true);
 	}
 
 	std::mt19937 gen;
@@ -565,15 +571,6 @@ Json::Value SceneBelief::getObjects() {
 			std::uniform_real_distribution<float>(0.05, 2)(gen),
 			height,
 			std::uniform_real_distribution<float>(0.05, 2)(gen));
-
-		Json::Value object;
-		object["px"] = box_center.x();
-		object["py"] = box_center.y();
-		object["pz"] = box_center.z();
-		object["ry"] = rot_y;
-		object["sx"] = box_size.x();
-		object["sy"] = box_size.y();
-		object["sz"] = box_size.z();
 
 		bool collision_empty = false;
 		bool collision_occupied = false;
@@ -602,17 +599,18 @@ Json::Value SceneBelief::getObjects() {
 				}
 			}
 		}
+		Eigen::Vector3f box_color(0, 0, 0);
 		if(avg_count > 0) {
-			avg_color /= avg_count;
-
-			object["r"] = avg_color.x();
-			object["g"] = avg_color.y();
-			object["b"] = avg_color.z();
+			box_color = avg_color / avg_count;
 		}
+		const bool valid = !collision_empty & collision_occupied;
 
-		object["valid"] = !collision_empty & collision_occupied;
-
-		objects.append(object);
+		objects.emplace_back(
+			box_center,
+			rot_y,
+			box_size,
+			box_color,
+			valid);
 	}
 
 	return objects;

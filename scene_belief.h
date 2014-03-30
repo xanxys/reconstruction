@@ -3,8 +3,6 @@
 #include <sstream>
 
 #include <Eigen/Dense>
-// TODO: SceneBelief shouldn't depend on serialization format.
-#include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
@@ -36,6 +34,30 @@ public:
 };
 
 
+class OrientedBox {
+public:
+	OrientedBox(
+		Eigen::Vector3f position,
+		float ry,
+		Eigen::Vector3f size,
+		Eigen::Vector3f color,
+		bool valid);
+
+	Eigen::Vector3f getPosition() const;
+	Eigen::Vector3f getSize() const;
+	Eigen::Vector3f getColor() const;
+	float getRotationY() const;
+	bool getValid() const;
+private:
+	float ry;
+
+	Eigen::Vector3f position;
+	Eigen::Vector3f size;
+	Eigen::Vector3f color;
+	bool valid;
+};
+
+
 // A coherent set of belief about the scene, which may or may not be
 // visible. It's a node of search tree.
 class SceneBelief {
@@ -61,8 +83,7 @@ public:
 	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
 
-	// TODO: Define a new box class and use it.
-	Json::Value getObjects();
+	std::vector<OrientedBox> getObjects();
 protected:
 	// Synthesize complete texture from RGB image and unreliable mask.
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);

@@ -180,7 +180,22 @@ Response ReconServer::handleGrabcut(SceneBelief& belief, const std::string& data
 }
 
 Json::Value ReconServer::serializeObjects(SceneBelief& belief) {
-	Json::Value result = belief.getObjects();
+	Json::Value result;
+	for(const OrientedBox& box : belief.getObjects()) {
+		Json::Value object;
+		object["px"] = box.getPosition().x();
+		object["py"] = box.getPosition().y();
+		object["pz"] = box.getPosition().z();
+		object["ry"] = box.getRotationY();
+		object["sx"] = box.getSize().x();
+		object["sy"] = box.getSize().y();
+		object["sz"] = box.getSize().z();
+		object["valid"] = box.getValid();
+		object["r"] = box.getColor()(0);
+		object["g"] = box.getColor()(1);
+		object["b"] = box.getColor()(2);
+		result.append(object);
+	}
 	return result;
 }
 

@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include <Eigen/Dense>
-#include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
