@@ -33,7 +33,12 @@ VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 
 
 TexturedPlane::TexturedPlane(float size, cv::Mat texture, float y_offset) :
-	size(size), texture(texture), y_offset(y_offset)  {
+	size(size), texture(texture), normal(Direction::YN)  {
+	if(normal == Direction::YN) {
+		center = Eigen::Vector3f(0, y_offset, 0);
+	} else {
+		assert(false);
+	}
 }
 
 
@@ -68,14 +73,19 @@ float OrientedBox::getRotationY() const {
 
 
 SceneBelief::SceneBelief(const ColorCloud::ConstPtr& raw_cloud) :
-	cloud(raw_cloud), camera_loc_to_world(Eigen::Matrix3f::Identity()), voxel_size(0.1) {
-	assert(cloud);
+	SceneBelief(raw_cloud, Eigen::Matrix3f::Identity()) {
 }
 
 SceneBelief::SceneBelief(
 		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
 		Eigen::Matrix3f camera_loc_to_world) :
-	cloud(cloud), camera_loc_to_world(camera_loc_to_world), voxel_size(0.1) {
+	cloud(cloud),
+	voxel_size(0.1),
+	camera_loc_to_world(camera_loc_to_world),
+	world_to_camera_loc(camera_loc_to_world.inverse()),
+	camera_pos(0, 0, 0),
+	camera_center(320, 240),
+	camera_fl(585) {
 }
 
 std::vector<std::shared_ptr<SceneBelief>> SceneBelief::expandByAlignment() {
@@ -204,29 +214,30 @@ cv::Mat SceneBelief::renderRGBImage() {
 			0.994837674, Eigen::Transform<float, 3, Eigen::Affine>(camera_loc_to_world)));
 
 	for(const auto& plane : getPlanes()) {
-		const Eigen::Vector3f trans(0, plane.y_offset, 0);
+		const Eigen::Vector3f trans = plane.center;
 
-		Triangle tri;
-
-		
-		tri.pos[0] = Eigen::Vector3f(-plane.size / 2, 0, -plane.size / 2) + trans;
-		tri.pos[1] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
-		tri.pos[2] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
-		tri.uv[0] = Eigen::Vector2f(0, 0);
-		tri.uv[1] = Eigen::Vector2f(1, 0);
-		tri.uv[2] = Eigen::Vector2f(0, 1);
-		tri.texture = plane.texture;
-		scene.triangles.push_back(tri);
-		
-		
-		tri.pos[0] = Eigen::Vector3f( plane.size / 2, 0,  plane.size / 2) + trans;
-		tri.pos[1] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
-		tri.pos[2] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
-		tri.uv[0] = Eigen::Vector2f(1, 1);
-		tri.uv[1] = Eigen::Vector2f(0, 1);
-		tri.uv[2] = Eigen::Vector2f(1, 0);
-		tri.texture = plane.texture;
-		scene.triangles.push_back(tri);
+		{
+			Triangle tri;
+			tri.pos[0] = Eigen::Vector3f(-plane.size / 2, 0, -plane.size / 2) + trans;
+			tri.pos[1] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
+			tri.pos[2] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
+			tri.uv[0] = Eigen::Vector2f(0, 0);
+			tri.uv[1] = Eigen::Vector2f(1, 0);
+			tri.uv[2] = Eigen::Vector2f(0, 1);
+			tri.texture = plane.texture;
+			scene.triangles.push_back(tri);
+		}
+		{
+			Triangle tri;
+			tri.pos[0] = Eigen::Vector3f( plane.size / 2, 0,  plane.size / 2) + trans;
+			tri.pos[1] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
+			tri.pos[2] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
+			tri.uv[0] = Eigen::Vector2f(1, 1);
+			tri.uv[1] = Eigen::Vector2f(0, 1);
+			tri.uv[2] = Eigen::Vector2f(1, 0);
+			tri.texture = plane.texture;
+			scene.triangles.push_back(tri);	
+		}
 	}
 
 	return Renderer::getInstance().render(scene);
@@ -333,30 +344,21 @@ std::vector<TexturedPlane> SceneBelief::getPlanes() {
 	return planes;
 }
 
-TexturedPlane SceneBelief::extractPlane(int index, float distance, Direction dir) {
+TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 	assert(dir == Direction::YN);
-	const float y_floor = distance;
-	const int iy_floor = index;
-
-	const Eigen::Vector3f camera_pos(0, 0, 0);
-
-	const Eigen::Vector2f center(320, 240);
-	const float f = 585;
 
 	const float tile_size = 10;
 	const int tex_size = 1024;
-	const Eigen::Matrix3f world_to_camera_loc = camera_loc_to_world.inverse();
+	
 	cv::Mat coords(tex_size, tex_size, CV_32FC2);
 	for(int y : boost::irange(0, tex_size)) {
 		for(int x : boost::irange(0, tex_size)) {
 			const Eigen::Vector3f pos_world(
 				tile_size * (x - tex_size * 0.5) / tex_size,
-				y_floor,
+				coord,
 				tile_size * (-y + tex_size * 0.5) / tex_size);
 
-			const auto loc = world_to_camera_loc * (pos_world - camera_pos);
-			const auto screen = (loc.head(2) / loc.z()) * f + center;
-
+			const auto screen = projectToRGBCameraScreen(pos_world);
 			coords.at<cv::Vec2f>(y, x) = cv::Vec2f(
 				screen.x(), screen.y());
 		}
@@ -367,7 +369,7 @@ TexturedPlane SceneBelief::extractPlane(int index, float distance, Direction dir
 
 	for(const auto& pair : getVoxelsDetailed()) {
 		if(pair.second.state == VoxelState::OCCUPIED &&
-			std::abs(std::get<1>(pair.first) - iy_floor) <= 1) {
+			std::abs(std::get<1>(pair.first) - index) <= 1) {
 			const auto voxel_center = Eigen::Vector3f(
 				0.5 + std::get<0>(pair.first),
 				0.5 + std::get<1>(pair.first),
@@ -403,7 +405,12 @@ TexturedPlane SceneBelief::extractPlane(int index, float distance, Direction dir
 	}
 
 	std::vector<TexturedPlane> planes;
-	return TexturedPlane(tile_size, synthesizeTexture(texture, mask), y_floor);
+	return TexturedPlane(tile_size, synthesizeTexture(texture, mask), coord);
+}
+
+Eigen::Vector2f SceneBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_world) {
+	const auto loc = world_to_camera_loc * (pos_world - camera_pos);
+	return (loc.head(2) / loc.z()) * camera_fl + camera_center;
 }
 
 cv::Mat SceneBelief::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {

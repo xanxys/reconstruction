@@ -203,7 +203,9 @@ Json::Value ReconServer::serializePlanes(SceneBelief& belief) {
 	const auto plane = belief.getPlanes()[0];
 
 	Json::Value plane_s;
-	plane_s["y"] = plane.y_offset;
+	plane_s["x"] = plane.center.x();
+	plane_s["y"] = plane.center.y();
+	plane_s["z"] = plane.center.z();
 	plane_s["tex"] = dataURLFromImage(plane.texture);
 
 	Json::Value result;

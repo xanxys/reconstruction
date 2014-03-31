@@ -6,6 +6,16 @@
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
+
+enum class Direction {
+	XP,
+	XN,
+	YP,
+	YN,
+	ZP,
+	ZN
+};
+
 enum class VoxelState {
 	OCCUPIED,
 	EMPTY
@@ -21,6 +31,9 @@ public:
 };
 
 // Finite plane (quad) with texture.
+// It's an interface between known and unknown regions of the scene.
+// (walls etc.), and NOT part of objects like box.
+//
 // x: [-size/2,size/2]
 // y: y_offset
 // z: [-size/2,size/2]
@@ -28,8 +41,9 @@ class TexturedPlane {
 public:
 	TexturedPlane(float size, cv::Mat texture, float y_offset);
 public:
+	Direction normal;
+	Eigen::Vector3f center;
 	cv::Mat texture;
-	float y_offset;
 	const float size;
 };
 
@@ -57,14 +71,6 @@ private:
 	bool valid;
 };
 
-enum class Direction {
-	XP,
-	XN,
-	YP,
-	YN,
-	ZP,
-	ZN
-};
 
 // A coherent set of belief about the scene, which may or may not be
 // visible. It's a node of search tree.
@@ -95,8 +101,13 @@ public:
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
 
 	std::vector<OrientedBox> getObjects();
+
+	Eigen::Vector2f projectToRGBCameraScreen(Eigen::Vector3f pos_world);
 protected:
-	TexturedPlane extractPlane(int index, float distance, Direction dir);
+	// Extract textured plane from a plane with Manhattan normal.
+	// index, distance means the coordinate of dir.
+	// (e.g. XN,XP -> index, distance is x coord of the plane)
+	TexturedPlane extractPlane(int index, float coord, Direction dir);
 
 	// Synthesize complete texture from RGB image and unreliable mask.
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
@@ -113,6 +124,12 @@ protected:
 
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
 	const Eigen::Matrix3f camera_loc_to_world;
+	const Eigen::Matrix3f world_to_camera_loc;
+
+	// belief about the RGB image.
+	const Eigen::Vector3f camera_pos;
+	const Eigen::Vector2f camera_center;
+	const float camera_fl;
 private:
 	const float voxel_size;
 };
