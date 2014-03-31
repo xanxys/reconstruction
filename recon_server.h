@@ -30,6 +30,7 @@ private:
 	Json::Value serializePeeling(SceneBelief& belief);
 
 	// Common serialization utils.
+	static Json::Value serialize(const Eigen::Vector3f v);
 	static Json::Value serialize(Direction d);
 
 	// Perceptive data conversion.

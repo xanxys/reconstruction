@@ -162,7 +162,7 @@ PlanesLayer.prototype.generator = function(data) {
 				color: '#ccc',
 				map: THREE.ImageUtils.loadTexture(plane_desc.tex)
 		}));
-		plane.position = deserializeVector3(plane_desc);
+		plane.position = deserializeVector3(plane_desc.center);
 		planes.add(plane);
 	});
 	return planes;
@@ -186,11 +186,10 @@ ObjectsLayer.prototype.generator = function(data) {
 			return;
 		}
 
+		var size = deserializeVector3(object_desc.size);
+
 		var obj = new THREE.Mesh(
-			new THREE.CubeGeometry(
-				object_desc.sx,
-				object_desc.sy,
-				object_desc.sz),
+			new THREE.CubeGeometry(size.x, size.y, size.z),
 			new THREE.MeshBasicMaterial({
 				color: object_desc.valid ?
 				new THREE.Color(
@@ -202,10 +201,7 @@ ObjectsLayer.prototype.generator = function(data) {
 				transparent: true
 						//wireframe: true
 					}));
-		obj.position = new THREE.Vector3(
-			object_desc.px,
-			object_desc.py,
-			object_desc.pz);
+		obj.position = deserializeVector3(object_desc.pos);
 
 		obj.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), object_desc.ry);
 		objects.add(obj);

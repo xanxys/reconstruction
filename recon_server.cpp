@@ -183,13 +183,9 @@ Json::Value ReconServer::serializeObjects(SceneBelief& belief) {
 	Json::Value result;
 	for(const OrientedBox& box : belief.getObjects()) {
 		Json::Value object;
-		object["px"] = box.getPosition().x();
-		object["py"] = box.getPosition().y();
-		object["pz"] = box.getPosition().z();
+		object["pos"] = serialize(box.getPosition());
 		object["ry"] = box.getRotationY();
-		object["sx"] = box.getSize().x();
-		object["sy"] = box.getSize().y();
-		object["sz"] = box.getSize().z();
+		object["size"] = serialize(box.getSize());
 		object["valid"] = box.getValid();
 		object["r"] = box.getColor()(0);
 		object["g"] = box.getColor()(1);
@@ -203,9 +199,7 @@ Json::Value ReconServer::serializePlanes(SceneBelief& belief) {
 	Json::Value result;
 	for(const auto& plane : belief.getPlanes()) {
 		Json::Value plane_s;
-		plane_s["x"] = plane.center.x();
-		plane_s["y"] = plane.center.y();
-		plane_s["z"] = plane.center.z();
+		plane_s["center"] = serialize(plane.center);
 		plane_s["size"] = plane.size;
 		plane_s["normal"] = serialize(plane.normal);
 		plane_s["tex"] = dataURLFromImage(plane.texture);
@@ -232,6 +226,14 @@ Json::Value ReconServer::serializePeeling(SceneBelief& belief) {
 	peeling["l1"] = norm_l1;
 
 	return peeling;
+}
+
+Json::Value ReconServer::serialize(const Eigen::Vector3f v) {
+	Json::Value j;
+	j["x"] = v.x();
+	j["y"] = v.y();
+	j["z"] = v.z();
+	return j;
 }
 
 Json::Value ReconServer::serialize(Direction d) {
