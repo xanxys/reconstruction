@@ -215,6 +215,7 @@ cv::Mat SceneBelief::renderRGBImage() {
 
 	for(const auto& plane : getPlanes()) {
 		const Eigen::Vector3f trans = plane.center;
+		assert(plane.normal == Direction::YN);
 
 		{
 			Triangle tri;

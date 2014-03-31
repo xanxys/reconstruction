@@ -200,16 +200,17 @@ Json::Value ReconServer::serializeObjects(SceneBelief& belief) {
 }
 
 Json::Value ReconServer::serializePlanes(SceneBelief& belief) {
-	const auto plane = belief.getPlanes()[0];
-
-	Json::Value plane_s;
-	plane_s["x"] = plane.center.x();
-	plane_s["y"] = plane.center.y();
-	plane_s["z"] = plane.center.z();
-	plane_s["tex"] = dataURLFromImage(plane.texture);
-
 	Json::Value result;
-	result["planes"] = plane_s;
+	for(const auto& plane : belief.getPlanes()) {
+		Json::Value plane_s;
+		plane_s["x"] = plane.center.x();
+		plane_s["y"] = plane.center.y();
+		plane_s["z"] = plane.center.z();
+		plane_s["size"] = plane.size;
+		plane_s["normal"] = serialize(plane.normal);
+		plane_s["tex"] = dataURLFromImage(plane.texture);
+		result.append(plane_s);
+	}
 	return result;
 }
 
@@ -231,6 +232,18 @@ Json::Value ReconServer::serializePeeling(SceneBelief& belief) {
 	peeling["l1"] = norm_l1;
 
 	return peeling;
+}
+
+Json::Value ReconServer::serialize(Direction d) {
+	switch(d) {
+		case Direction::XP: return "x+";
+		case Direction::XN: return "x-";
+		case Direction::YP: return "y+";
+		case Direction::YN: return "y-";
+		case Direction::ZP: return "z+";
+		case Direction::ZN: return "z-";
+		default: assert(false);
+	}
 }
 
 cv::Mat ReconServer::depthToRGB(const cv::Mat& depth) {

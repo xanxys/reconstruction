@@ -1,5 +1,11 @@
 "use strict";
 
+// Common deserializations for primitives.
+var deserializeVector3 = function(d) {
+	return new THREE.Vector3(d.x, d.y, d.z);
+};
+
+
 var Scene = Backbone.Model.extend({
 	urlRoot: '/at'
 });
@@ -139,14 +145,27 @@ var PlanesLayer = function() {
 };
 
 PlanesLayer.prototype.generator = function(data) {
-	var floor = new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10),
-		new THREE.MeshBasicMaterial({
-			color: '#ccc',
-			map: THREE.ImageUtils.loadTexture(data.planes.tex)
+	var planes = new THREE.Object3D();
+	_.each(data, function(plane_desc) {
+		// TODO: proper texturing
+		var geom = null;
+		if(plane_desc.normal[0] === 'x') {
+			geom = new THREE.CubeGeometry(0.01, plane_desc.size, plane_desc.size);
+		} else if(plane_desc.normal[0] === 'y') {
+			geom = new THREE.CubeGeometry(plane_desc.size, 0.01, plane_desc.size);
+		} else {
+			geom = new THREE.CubeGeometry(plane_desc.size, plane_desc.size, 0.01);
+		}
+	
+		var plane = new THREE.Mesh(geom,
+			new THREE.MeshBasicMaterial({
+				color: '#ccc',
+				map: THREE.ImageUtils.loadTexture(plane_desc.tex)
 		}));
-	floor.position = new THREE.Vector3(0, data.planes.y, 0);
-
-	return floor;
+		plane.position = deserializeVector3(plane_desc);
+		planes.add(plane);
+	});
+	return planes;
 };
 
 

@@ -29,6 +29,9 @@ private:
 	Json::Value serializePlanes(SceneBelief& belief);
 	Json::Value serializePeeling(SceneBelief& belief);
 
+	// Common serialization utils.
+	static Json::Value serialize(Direction d);
+
 	// Perceptive data conversion.
 	static cv::Mat depthToRGB(const cv::Mat& depth);
 	
