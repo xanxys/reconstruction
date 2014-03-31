@@ -57,6 +57,14 @@ private:
 	bool valid;
 };
 
+enum class Direction {
+	XP,
+	XN,
+	YP,
+	YN,
+	ZP,
+	ZN
+};
 
 // A coherent set of belief about the scene, which may or may not be
 // visible. It's a node of search tree.
@@ -88,6 +96,8 @@ public:
 
 	std::vector<OrientedBox> getObjects();
 protected:
+	TexturedPlane extractPlane(int index, float distance, Direction dir);
+
 	// Synthesize complete texture from RGB image and unreliable mask.
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
 	static cv::Mat growTexture(const cv::Mat core, int width, int height);

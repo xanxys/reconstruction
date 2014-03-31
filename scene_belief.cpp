@@ -317,13 +317,26 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneBelief::getVoxelsDeta
 
 std::vector<TexturedPlane> SceneBelief::getPlanes() {
 	int iy_floor = 0;
+	int iz_wall = 0;
 	for(const auto& pair : getVoxelsDetailed()) {
 		if(pair.second.state == VoxelState::OCCUPIED) {
 			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
+			iz_wall = std::max(iz_wall, std::get<2>(pair.first));
 		}
 	}
 
 	const float y_floor = voxel_size * (iy_floor + 1);
+	const float z_wall = voxel_size * iz_wall;
+
+	std::vector<TexturedPlane> planes;
+	planes.push_back(extractPlane(iy_floor, y_floor, Direction::YN));
+	return planes;
+}
+
+TexturedPlane SceneBelief::extractPlane(int index, float distance, Direction dir) {
+	assert(dir == Direction::YN);
+	const float y_floor = distance;
+	const int iy_floor = index;
 
 	const Eigen::Vector3f camera_pos(0, 0, 0);
 
@@ -390,8 +403,7 @@ std::vector<TexturedPlane> SceneBelief::getPlanes() {
 	}
 
 	std::vector<TexturedPlane> planes;
-	planes.emplace_back(tile_size, synthesizeTexture(texture, mask), y_floor);
-	return planes;
+	return TexturedPlane(tile_size, synthesizeTexture(texture, mask), y_floor);
 }
 
 cv::Mat SceneBelief::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {
