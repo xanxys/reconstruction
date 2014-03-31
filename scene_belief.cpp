@@ -32,13 +32,59 @@ VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 }
 
 
-TexturedPlane::TexturedPlane(float size, cv::Mat texture, float y_offset) :
-	size(size), texture(texture), normal(Direction::YN)  {
-	if(normal == Direction::YN) {
-		center = Eigen::Vector3f(0, y_offset, 0);
-	} else {
-		assert(false);
+TexturedPlane::TexturedPlane(float size, cv::Mat texture, float offset, Direction normal) :
+	size(size), texture(texture), normal(normal) {
+	switch(normal) {
+		case Direction::XP:
+		case Direction::XN:
+			center = Eigen::Vector3f(offset, 0, 0);
+			break;
+		case Direction::YP:
+		case Direction::YN:
+			center = Eigen::Vector3f(0, offset, 0);
+			break;
+		case Direction::ZP:
+		case Direction::ZN:
+			center = Eigen::Vector3f(0, 0, offset);
+			break;
 	}
+}
+
+Eigen::Matrix3f TexturedPlane::getLocalToWorld() const {
+	Eigen::Matrix3f tr;
+	switch(normal) {
+		case Direction::XP:
+			tr.col(0) = Eigen::Vector3f::UnitZ();
+			tr.col(1) = Eigen::Vector3f::UnitX();
+			tr.col(2) = Eigen::Vector3f::UnitY();
+			break;
+		case Direction::YP:
+			tr.col(0) = Eigen::Vector3f::UnitY();
+			tr.col(1) = Eigen::Vector3f::UnitZ();
+			tr.col(2) = Eigen::Vector3f::UnitX();
+			break;
+		case Direction::ZP:
+			tr.col(0) = Eigen::Vector3f::UnitX();
+			tr.col(1) = Eigen::Vector3f::UnitY();
+			tr.col(2) = Eigen::Vector3f::UnitZ();
+			break;
+		case Direction::XN:
+			tr.col(0) = -Eigen::Vector3f::UnitZ();
+			tr.col(1) = Eigen::Vector3f::UnitY();
+			tr.col(2) = Eigen::Vector3f::UnitX();
+			break;
+		case Direction::YN:
+			tr.col(0) = Eigen::Vector3f::UnitY();
+			tr.col(1) = -Eigen::Vector3f::UnitZ();
+			tr.col(2) = Eigen::Vector3f::UnitX();
+			break;
+		case Direction::ZN:
+			tr.col(0) = Eigen::Vector3f::UnitY();
+			tr.col(1) = Eigen::Vector3f::UnitX();
+			tr.col(2) = -Eigen::Vector3f::UnitZ();
+			break;
+	}
+	return tr;
 }
 
 
@@ -215,24 +261,22 @@ cv::Mat SceneBelief::renderRGBImage() {
 
 	for(const auto& plane : getPlanes()) {
 		const Eigen::Vector3f trans = plane.center;
-		assert(plane.normal == Direction::YN);
 
 		{
 			Triangle tri;
-			tri.pos[0] = Eigen::Vector3f(-plane.size / 2, 0, -plane.size / 2) + trans;
-			tri.pos[1] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
-			tri.pos[2] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
+			tri.pos[0] = plane.getLocalToWorld() * Eigen::Vector3f(-plane.size / 2, -plane.size / 2, 0) + trans;
+			tri.pos[1] = plane.getLocalToWorld() * Eigen::Vector3f( plane.size / 2, -plane.size / 2, 0) + trans;
+			tri.pos[2] = plane.getLocalToWorld() * Eigen::Vector3f(-plane.size / 2,  plane.size / 2, 0) + trans;
 			tri.uv[0] = Eigen::Vector2f(0, 0);
 			tri.uv[1] = Eigen::Vector2f(1, 0);
 			tri.uv[2] = Eigen::Vector2f(0, 1);
 			tri.texture = plane.texture;
 			scene.triangles.push_back(tri);
 		}
-		{
-			Triangle tri;
-			tri.pos[0] = Eigen::Vector3f( plane.size / 2, 0,  plane.size / 2) + trans;
-			tri.pos[1] = Eigen::Vector3f(-plane.size / 2, 0,  plane.size / 2) + trans;
-			tri.pos[2] = Eigen::Vector3f( plane.size / 2, 0, -plane.size / 2) + trans;
+		{	Triangle tri;
+			tri.pos[0] = plane.getLocalToWorld() * Eigen::Vector3f( plane.size / 2,  plane.size / 2, 0) + trans;
+			tri.pos[1] = plane.getLocalToWorld() * Eigen::Vector3f(-plane.size / 2,  plane.size / 2, 0) + trans;
+			tri.pos[2] = plane.getLocalToWorld() * Eigen::Vector3f( plane.size / 2, -plane.size / 2, 0) + trans;
 			tri.uv[0] = Eigen::Vector2f(1, 1);
 			tri.uv[1] = Eigen::Vector2f(0, 1);
 			tri.uv[2] = Eigen::Vector2f(1, 0);
@@ -342,26 +386,26 @@ std::vector<TexturedPlane> SceneBelief::getPlanes() {
 
 	std::vector<TexturedPlane> planes;
 	planes.push_back(extractPlane(iy_floor, y_floor, Direction::YN));
+	planes.push_back(extractPlane(iz_wall, z_wall, Direction::ZN));
 	return planes;
 }
 
 TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
-	assert(dir == Direction::YN);
-
 	const float tile_size = 10;
 	const int tex_size = 1024;
+	TexturedPlane plane(tile_size, cv::Mat(), coord, dir);
 	
 	cv::Mat coords(tex_size, tex_size, CV_32FC2);
 	for(int y : boost::irange(0, tex_size)) {
 		for(int x : boost::irange(0, tex_size)) {
-			const Eigen::Vector3f pos_world(
+			const Eigen::Vector3f pos_local(
+				tile_size * (y - tex_size * 0.5) / tex_size,
 				tile_size * (x - tex_size * 0.5) / tex_size,
-				coord,
-				tile_size * (-y + tex_size * 0.5) / tex_size);
-
+				0);
+			const Eigen::Vector3f pos_world =
+				plane.getLocalToWorld() * pos_local + plane.center;
 			const auto screen = projectToRGBCameraScreen(pos_world);
-			coords.at<cv::Vec2f>(y, x) = cv::Vec2f(
-				screen.x(), screen.y());
+			coords.at<cv::Vec2f>(y, x) = cv::Vec2f(screen.x(), screen.y());
 		}
 	}
 
@@ -369,21 +413,42 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 	mask = cv::Scalar(0);
 
 	for(const auto& pair : getVoxelsDetailed()) {
-		if(pair.second.state == VoxelState::OCCUPIED &&
-			std::abs(std::get<1>(pair.first) - index) <= 1) {
-			const auto voxel_center = Eigen::Vector3f(
-				0.5 + std::get<0>(pair.first),
-				0.5 + std::get<1>(pair.first),
-				0.5 + std::get<2>(pair.first)) * voxel_size;
+		const auto voxel_center = Eigen::Vector3f(
+			0.5 + std::get<0>(pair.first),
+			0.5 + std::get<1>(pair.first),
+			0.5 + std::get<2>(pair.first)) * voxel_size;
 
-			const int cx = tex_size * (0.5 + voxel_center.x() / tile_size);
-			const int cy = tex_size - tex_size * (0.5 + voxel_center.z() / tile_size);
+		if(dir == Direction::YN) {
+			// TODO: remove ranged floor query (<=1) by
+			// spawning multiple SceneBelief.
+			if(pair.second.state == VoxelState::OCCUPIED &&
+				std::abs(std::get<1>(pair.first) - index) <= 1) {
 
-			cv::rectangle(mask,
-				cv::Point(cx - 5, cy - 5),
-				cv::Point(cx + 5, cy + 5),
-				cv::Scalar(255),
-				CV_FILLED);
+				const Eigen::Vector3f voxel_c_local = plane.getLocalToWorld().inverse() * (voxel_center - plane.center);
+
+				const int cx = voxel_c_local.y() / tile_size * tex_size + tex_size * 0.5;
+				const int cy = voxel_c_local.x() / tile_size * tex_size + tex_size * 0.5;
+
+				cv::rectangle(mask,
+					cv::Point(cx - 5, cy - 5),
+					cv::Point(cx + 5, cy + 5),
+					cv::Scalar(255),
+					CV_FILLED);
+			}
+		} else if(dir == Direction::ZN) {
+			if(pair.second.state == VoxelState::OCCUPIED &&
+				std::abs(std::get<2>(pair.first) - index) <= 1) {
+				const int cx = tex_size * (0.5 + voxel_center.y() / tile_size);
+				const int cy = tex_size - tex_size * (0.5 + voxel_center.x() / tile_size);
+
+				cv::rectangle(mask,
+					cv::Point(cx - 5, cy - 5),
+					cv::Point(cx + 5, cy + 5),
+					cv::Scalar(255),
+					CV_FILLED);
+			}
+		} else {
+			assert(false);
 		}
 	}
 
@@ -405,8 +470,8 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 		}
 	}
 
-	std::vector<TexturedPlane> planes;
-	return TexturedPlane(tile_size, synthesizeTexture(texture, mask), coord);
+	plane.texture = synthesizeTexture(texture, mask);
+	return plane;
 }
 
 Eigen::Vector2f SceneBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_world) {

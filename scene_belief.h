@@ -34,12 +34,16 @@ public:
 // It's an interface between known and unknown regions of the scene.
 // (walls etc.), and NOT part of objects like box.
 //
+// Local coords: (z+ is normal)
 // x: [-size/2,size/2]
-// y: y_offset
-// z: [-size/2,size/2]
+// y: [-size/2,size/2]
+// z: 0
 class TexturedPlane {
 public:
-	TexturedPlane(float size, cv::Mat texture, float y_offset);
+	TexturedPlane(float size, cv::Mat texture, float offset, Direction normal);
+
+	Eigen::Matrix3f getLocalToWorld() const;
+
 public:
 	Direction normal;
 	Eigen::Vector3f center;
