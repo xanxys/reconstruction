@@ -135,27 +135,6 @@ std::vector<std::shared_ptr<FloorBelief>> FloorBelief::expand(const ManhattanBel
 	return results;
 }
 
-/*
-SceneBelief::SceneBelief(const ColorCloud::ConstPtr& raw_cloud) :
-	SceneBelief(raw_cloud, Eigen::Matrix3f::Identity()) {
-}
-
-SceneBelief::SceneBelief(
-	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
-	Eigen::Matrix3f camera_loc_to_world) :
-	SceneBelief(cloud, camera_loc_to_world, 0) {
-}
-
-SceneBelief::SceneBelief(
-	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
-	Eigen::Matrix3f camera_loc_to_world,
-	int floor_index) :
-	manhattan(floor.manhattan), frame(floor.manhattan.frame) {
-
-
-	floor.index = floor_index;
-}
-*/
 
 SceneBelief::SceneBelief(FloorBelief& floor) :
 	floor(floor), manhattan(floor.manhattan), frame(floor.manhattan.frame) {

@@ -88,20 +88,6 @@ class ObjectsBelief {
 // * need to care about belief dependencies all the time, which is pain
 class SceneBelief {
 public:
-	/*
-	SceneBelief(
-		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-
-	SceneBelief(
-		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
-		Eigen::Matrix3f camera_loc_to_world);
-
-	SceneBelief(
-		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
-		Eigen::Matrix3f camera_loc_to_world,
-		int floor_index);
-	*/
-
 	SceneBelief(FloorBelief& floor);
 
 	// attribs
