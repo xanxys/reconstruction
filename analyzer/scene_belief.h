@@ -6,29 +6,9 @@
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
+#include "frame_belief.h"
+#include "manhattan_belief.h"
 
-enum class Direction {
-	XP,
-	XN,
-	YP,
-	YN,
-	ZP,
-	ZN
-};
-
-enum class VoxelState {
-	OCCUPIED,
-	EMPTY
-};
-
-
-class VoxelDescription {
-public:
-	VoxelDescription();
-public:
-	VoxelState state;
-	Eigen::Vector3f average_image_color;
-};
 
 // Finite plane (quad) with texture.
 // It's an interface between known and unknown regions of the scene.
@@ -75,52 +55,6 @@ private:
 	bool valid;
 };
 
-
-// Intrinsic parameters of RGB camera.
-class FrameBelief {
-public:
-	FrameBelief(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-
-	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	static cv::Mat extractDepthImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-public:
-	// Put this before all other members to initialize first,
-	// since logging is used in SceneAnalyzer's initializer's list.
-//	mutable std::ostringstream log;
-
-	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
-	Eigen::Vector3f camera_pos;
-	Eigen::Vector2f camera_center;
-	float camera_fl;
-private:
-	
-};
-
-class ManhattanBelief {
-public:
-	static std::vector<std::shared_ptr<ManhattanBelief>> expand(const FrameBelief& frame);
-	
-	ManhattanBelief(const FrameBelief& frame, Eigen::Matrix3f camera_loc_to_world);
-	Eigen::Vector2f projectToRGBCameraScreen(Eigen::Vector3f pos_world);
-
-	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed() const;
-private:
-	static std::shared_ptr<ManhattanBelief> align(const FrameBelief& frame);
-
-public:
-	// Put this before all other members to initialize first,
-	// since logging is used in SceneAnalyzer's initializer's list.
-//	mutable std::ostringstream log;
-
-	FrameBelief frame;
-
-	// aligned cloud
-	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
-
-	Eigen::Matrix3f camera_loc_to_world;
-	Eigen::Matrix3f world_to_camera_loc;
-	float voxel_size;
-};
 
 class FloorBelief {
 public:
