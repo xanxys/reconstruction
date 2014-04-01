@@ -75,9 +75,43 @@ private:
 	bool valid;
 };
 
+// Intrinsic parameters of RGB camera.
+class FrameBelief {
+public:
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
+	Eigen::Vector3f camera_pos;
+	Eigen::Vector2f camera_center;
+	float camera_fl;
+};
+
+class ManhattanBelief {
+public:
+	Eigen::Matrix3f camera_loc_to_world;
+	Eigen::Matrix3f world_to_camera_loc;
+	float voxel_size;
+};
+
+class FloorBelief {
+public:
+	int index;
+};
+
+class WallBelief {
+};
+
+class ObjectsBelief {
+};
 
 // A coherent set of belief about the scene, which may or may not be
 // visible. It's a node of search tree.
+//
+// Belief is onion-like layerd structure.
+// Outer belief is dependent on all inner beliefs.
+//
+// You might think that each belief should be independent (like terms in prolog),
+// and solved by some kind of interpreter, but I didn't choose that design:
+// * not sure we can "solve" such complex system in any kind of systematic way
+// * need to care about belief dependencies all the time, which is pain
 class SceneBelief {
 public:
 	SceneBelief(
@@ -134,17 +168,20 @@ protected:
 	// since logging is used in SceneAnalyzer's initializer's list.
 	std::ostringstream log;
 
-	// Intrinsic parameters of RGB camera.
-	const Eigen::Vector3f camera_pos;
-	const Eigen::Vector2f camera_center;
-	const float camera_fl;
+	// New attribs
+	FrameBelief frame;
+	ManhattanBelief manhattan;
+	FloorBelief floor;
 
-	// Extrinsic parameters of RGBD camera.
-	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
-	const Eigen::Matrix3f camera_loc_to_world;
-	const Eigen::Matrix3f world_to_camera_loc;
-	const float voxel_size;
+	// DEPRECATED Old attribs: use new attribs
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
+	Eigen::Vector3f camera_pos;
+	Eigen::Vector2f camera_center;
+	float camera_fl;
 
-	// Floor.
-	const int floor_index;
+	Eigen::Matrix3f camera_loc_to_world;
+	Eigen::Matrix3f world_to_camera_loc;
+	float voxel_size;
+
+	int floor_index;
 };
