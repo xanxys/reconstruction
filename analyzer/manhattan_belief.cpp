@@ -31,6 +31,10 @@ const double pi = 3.14159265359;
 VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 }
 
+ManhattanBelief::ManhattanBelief(const ManhattanBelief& that) :
+	log(that.log.str()), frame(that.frame), cloud(that.cloud),
+	camera_loc_to_world(that.camera_loc_to_world), world_to_camera_loc(that.world_to_camera_loc) {
+}
 
 std::vector<std::shared_ptr<ManhattanBelief>> ManhattanBelief::expand(const FrameBelief& frame) {
 	std::vector<std::shared_ptr<ManhattanBelief>> results;
@@ -60,7 +64,7 @@ std::shared_ptr<ManhattanBelief> ManhattanBelief::align(const FrameBelief& frame
 	Eigen::Matrix3f rotation(Eigen::Matrix3f::Identity());
 	if(normal.dot(up) >= std::cos(pi / 4)) {
 		// the plane is likely to be floor
-		// frame.log << "Correcting w/ floor" << std::endl;
+		frame.log << "Correcting w/ floor" << std::endl;
 
 		const auto axis = up.cross(normal);
 
@@ -91,11 +95,11 @@ std::shared_ptr<ManhattanBelief> ManhattanBelief::align(const FrameBelief& frame
 		}
 
 		const Eigen::Vector3f backward(0, 0, -1);
-		// frame.log << new_normal << std::endl;
+		frame.log << new_normal << std::endl;
 
 
 		if(new_normal.dot(backward) >= std::cos(pi / 4)) {
-			// frame.log << "Correcting w/ wall further" << std::endl;
+			frame.log << "Correcting w/ wall further" << std::endl;
 
 			// Make orthogonal basis
 			Eigen::Vector3f backward_real = new_normal;
@@ -111,7 +115,7 @@ std::shared_ptr<ManhattanBelief> ManhattanBelief::align(const FrameBelief& frame
 		}
 	} else {
 		// the plane is likely to be wall
-		// frame.log << "Correcting w/ wall" << std::endl;
+		frame.log << "Correcting w/ wall" << std::endl;
 
 		const Eigen::Vector3f forward(0, 0, 1);
 		const auto axis = forward.cross(normal);
@@ -157,7 +161,7 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 	std::map<std::tuple<int, int, int>, bool> voxels;
 	std::map<std::tuple<int, int, int>, Eigen::Vector3f> voxels_accum;
 	std::map<std::tuple<int, int, int>, int> voxels_count;
-	for(const auto& pt : frame.cloud->points) {
+	for(const auto& pt : cloud->points) {
 		if(!std::isfinite(pt.x)) {
 			continue;
 		}

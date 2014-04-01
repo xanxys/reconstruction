@@ -115,6 +115,10 @@ float OrientedBox::getRotationY() const {
 }
 
 
+FloorBelief::FloorBelief(const FloorBelief& that) :
+	log(that.log.str()), manhattan(that.manhattan), index(that.index) {
+}
+
 FloorBelief::FloorBelief(const ManhattanBelief& manhattan, int index) :
 	manhattan(manhattan), index(index) {
 }
@@ -141,7 +145,10 @@ SceneBelief::SceneBelief(FloorBelief& floor) :
 }
 
 std::string SceneBelief::getLog() {
-	return log.str();
+	return
+		"== Frame\n" + frame.log.str() + "\n" +
+		"== Manhattan\n" + manhattan.log.str() + "\n" +
+		"== Floor\n" + floor.log.str() + "\n";
 }
 
 Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {
@@ -193,8 +200,8 @@ cv::Mat SceneBelief::renderRGBImage() {
 }
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() {
-	assert(frame.cloud);
-	return frame.cloud;
+	assert(manhattan.cloud);
+	return manhattan.cloud;
 }
 
 std::map<std::tuple<int, int, int>, VoxelState> SceneBelief::getVoxels() {

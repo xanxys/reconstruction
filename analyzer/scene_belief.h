@@ -58,12 +58,13 @@ private:
 
 class FloorBelief {
 public:
+	FloorBelief(const FloorBelief& that);
 	FloorBelief(const ManhattanBelief& manhattan, int index);
 	static std::vector<std::shared_ptr<FloorBelief>> expand(const ManhattanBelief& manhattan);
 public:
 	// Put this before all other members to initialize first,
 	// since logging is used in SceneAnalyzer's initializer's list.
-//	mutable std::ostringstream log;
+	mutable std::ostringstream log;
 
 	ManhattanBelief manhattan;
 
@@ -116,11 +117,6 @@ protected:
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
 	static cv::Mat growTexture(const cv::Mat core, int width, int height);
 protected:
-	// Put this before all other members to initialize first,
-	// since logging is used in SceneAnalyzer's initializer's list.
-	std::ostringstream log;
-
-	// New attribs
 	FrameBelief frame;
 	ManhattanBelief manhattan;
 	FloorBelief floor;

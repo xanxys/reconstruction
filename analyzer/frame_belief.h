@@ -9,6 +9,7 @@
 // Intrinsic parameters of RGB camera.
 class FrameBelief {
 public:
+	FrameBelief(const FrameBelief& that);
 	FrameBelief(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
 	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
@@ -16,7 +17,7 @@ public:
 public:
 	// Put this before all other members to initialize first,
 	// since logging is used in SceneAnalyzer's initializer's list.
-//	mutable std::ostringstream log;
+	mutable std::ostringstream log;
 
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
 	Eigen::Vector3f camera_pos;

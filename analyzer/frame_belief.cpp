@@ -28,6 +28,11 @@ using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
 const double pi = 3.14159265359;
 
+FrameBelief::FrameBelief(const FrameBelief& that) :
+	log(that.log.str()), cloud(that.cloud),
+	camera_pos(that.camera_pos), camera_center(that.camera_center), camera_fl(that.camera_fl) {
+}
+
 FrameBelief::FrameBelief(
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud) :
 	cloud(cloud), camera_pos(0, 0, 0), camera_center(320, 240), camera_fl(585) {
