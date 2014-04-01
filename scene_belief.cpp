@@ -123,20 +123,44 @@ SceneBelief::SceneBelief(const ColorCloud::ConstPtr& raw_cloud) :
 }
 
 SceneBelief::SceneBelief(
-		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
-		Eigen::Matrix3f camera_loc_to_world) :
+	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
+	Eigen::Matrix3f camera_loc_to_world) :
+	SceneBelief(cloud, camera_loc_to_world, 0) {
+}
+
+SceneBelief::SceneBelief(
+	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
+	Eigen::Matrix3f camera_loc_to_world,
+	int floor_index) :
 	cloud(cloud),
 	voxel_size(0.1),
 	camera_loc_to_world(camera_loc_to_world),
 	world_to_camera_loc(camera_loc_to_world.inverse()),
 	camera_pos(0, 0, 0),
 	camera_center(320, 240),
-	camera_fl(585) {
+	camera_fl(585),
+	floor_index(floor_index) {
 }
 
 std::vector<std::shared_ptr<SceneBelief>> SceneBelief::expandByAlignment() {
 	std::vector<std::shared_ptr<SceneBelief>> results;
 	results.push_back(align());
+	return results;
+}
+
+std::vector<std::shared_ptr<SceneBelief>> SceneBelief::expandByFloor() {
+	std::vector<std::shared_ptr<SceneBelief>> results;
+
+	int iy_floor = 0;
+	for(const auto& pair : getVoxelsDetailed()) {
+		if(pair.second.state == VoxelState::OCCUPIED) {
+			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
+		}
+	}
+
+	results.push_back(std::make_shared<SceneBelief>(
+		cloud, camera_loc_to_world, iy_floor));
+
 	return results;
 }
 

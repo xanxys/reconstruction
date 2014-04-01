@@ -80,14 +80,22 @@ private:
 // visible. It's a node of search tree.
 class SceneBelief {
 public:
-	SceneBelief(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	SceneBelief(
+		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+
 	SceneBelief(
 		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
 		Eigen::Matrix3f camera_loc_to_world);
 
+	SceneBelief(
+		const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
+		Eigen::Matrix3f camera_loc_to_world,
+		int floor_index);
+
 
 	// tree exploration
 	std::vector<std::shared_ptr<SceneBelief>> expandByAlignment();
+	std::vector<std::shared_ptr<SceneBelief>> expandByFloor();
 
 	// attribs
 	std::string getLog();
@@ -126,14 +134,17 @@ protected:
 	// since logging is used in SceneAnalyzer's initializer's list.
 	std::ostringstream log;
 
-	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
-	const Eigen::Matrix3f camera_loc_to_world;
-	const Eigen::Matrix3f world_to_camera_loc;
-
-	// belief about the RGB image.
+	// Intrinsic parameters of RGB camera.
 	const Eigen::Vector3f camera_pos;
 	const Eigen::Vector2f camera_center;
 	const float camera_fl;
-private:
+
+	// Extrinsic parameters of RGBD camera.
+	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
+	const Eigen::Matrix3f camera_loc_to_world;
+	const Eigen::Matrix3f world_to_camera_loc;
 	const float voxel_size;
+
+	// Floor.
+	const int floor_index;
 };

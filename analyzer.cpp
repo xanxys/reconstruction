@@ -27,5 +27,5 @@ SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) : belief(raw
 }
 
 std::shared_ptr<SceneBelief> SceneAnalyzer::getBestBelief() {
-	return belief.expandByAlignment()[0];
+	return belief.expandByAlignment()[0]->expandByFloor()[0];
 }
