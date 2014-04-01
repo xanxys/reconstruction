@@ -41,17 +41,15 @@ LIBS = [
 env.Program(
 	'recon',
 	source =
-		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp')
-			if not f.name.endswith('_test.cpp')] +
-		env.Glob('*.c'),
+		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c")
+			if not f.name.endswith('_test.cpp')],
 	LIBS = LIBS)
 
 program_test = env.Program(
 	'recon_test',
 	source =
-		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp')
-			if f.name != 'main.cpp'] +
-		env.Glob("*.c"),
+		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c")
+			if f.name != 'main.cpp'],
 	LIBS = LIBS + ['libgtest', 'libgtest_main'])
 
 env.Command('test', None, './' + program_test[0].path)
