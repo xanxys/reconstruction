@@ -131,15 +131,18 @@ SceneBelief::SceneBelief(
 SceneBelief::SceneBelief(
 	const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud,
 	Eigen::Matrix3f camera_loc_to_world,
-	int floor_index) :
-	cloud(cloud),
-	voxel_size(0.1),
-	camera_loc_to_world(camera_loc_to_world),
-	world_to_camera_loc(camera_loc_to_world.inverse()),
-	camera_pos(0, 0, 0),
-	camera_center(320, 240),
-	camera_fl(585),
-	floor_index(floor_index) {
+	int floor_index) {
+
+	frame.cloud = cloud;
+	frame.camera_pos = Eigen::Vector3f(0, 0, 0);
+	frame.camera_center = Eigen::Vector2f(320, 240);
+	frame.camera_fl = 585;
+
+	manhattan.camera_loc_to_world = camera_loc_to_world;
+	manhattan.world_to_camera_loc = camera_loc_to_world.inverse();
+	manhattan.voxel_size = 0.1;
+
+	floor.index = floor_index;
 }
 
 std::vector<std::shared_ptr<SceneBelief>> SceneBelief::expandByAlignment() {
@@ -159,7 +162,7 @@ std::vector<std::shared_ptr<SceneBelief>> SceneBelief::expandByFloor() {
 	}
 
 	results.push_back(std::make_shared<SceneBelief>(
-		cloud, camera_loc_to_world, iy_floor));
+		frame.cloud, manhattan.camera_loc_to_world, iy_floor));
 
 	return results;
 }
@@ -178,7 +181,7 @@ std::shared_ptr<SceneBelief> SceneBelief::align() {
 
 	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-	seg.setInputCloud(cloud);
+	seg.setInputCloud(frame.cloud);
 	seg.segment(*inliers, *coefficients);
 
 	const auto normal = Eigen::Vector3f(
@@ -205,7 +208,7 @@ std::shared_ptr<SceneBelief> SceneBelief::align() {
 		extract_remaining.setIndices(inliers);
 		extract_remaining.setNegative(true);
 
-		extract_remaining.setInputCloud(cloud);
+		extract_remaining.setInputCloud(frame.cloud);
 		extract_remaining.filter(*cloud_remaining);
 
 		// Adjust Y-rotation
@@ -255,7 +258,7 @@ std::shared_ptr<SceneBelief> SceneBelief::align() {
 
 	// apply rotation.
 	ColorCloud::Ptr cloud_aligned(new ColorCloud());
-	for(auto pt : cloud->points) {
+	for(auto pt : frame.cloud->points) {
 		pt.getVector3fMap() = rotation * pt.getVector3fMap();
 		cloud_aligned->points.push_back(pt);
 	}
@@ -267,21 +270,21 @@ std::shared_ptr<SceneBelief> SceneBelief::align() {
 }
 
 Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {
-	return camera_loc_to_world;
+	return manhattan.camera_loc_to_world;
 }
 
 cv::Mat SceneBelief::getRGBImage() {
-	return extractImageFromPointCloud(cloud);
+	return extractImageFromPointCloud(frame.cloud);
 }
 
 cv::Mat SceneBelief::getDepthImage() {
-	return extractDepthImageFromPointCloud(cloud);
+	return extractDepthImageFromPointCloud(frame.cloud);
 }
 
 cv::Mat SceneBelief::renderRGBImage() {
 	Scene scene(
 		Camera(640, 480,
-			0.994837674, Eigen::Transform<float, 3, Eigen::Affine>(camera_loc_to_world)));
+			0.994837674, Eigen::Transform<float, 3, Eigen::Affine>(manhattan.camera_loc_to_world)));
 
 	for(const auto& plane : getPlanes()) {
 		const Eigen::Vector3f trans = plane.center;
@@ -313,8 +316,8 @@ cv::Mat SceneBelief::renderRGBImage() {
 }
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() {
-	assert(cloud);
-	return cloud;
+	assert(frame.cloud);
+	return frame.cloud;
 }
 
 std::map<std::tuple<int, int, int>, VoxelState> SceneBelief::getVoxels() {
@@ -326,13 +329,13 @@ std::map<std::tuple<int, int, int>, VoxelState> SceneBelief::getVoxels() {
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> SceneBelief::getVoxelsDetailed() {
-	const float size = voxel_size;
+	const float size = manhattan.voxel_size;
 
 	// known to be filled
 	std::map<std::tuple<int, int, int>, bool> voxels;
 	std::map<std::tuple<int, int, int>, Eigen::Vector3f> voxels_accum;
 	std::map<std::tuple<int, int, int>, int> voxels_count;
-	for(const auto& pt : cloud->points) {
+	for(const auto& pt : frame.cloud->points) {
 		if(!std::isfinite(pt.x)) {
 			continue;
 		}
@@ -405,8 +408,8 @@ std::vector<TexturedPlane> SceneBelief::getPlanes() {
 		}
 	}
 
-	const float y_floor = voxel_size * (iy_floor + 1);
-	const float z_wall = voxel_size * iz_wall;
+	const float y_floor = manhattan.voxel_size * (iy_floor + 1);
+	const float z_wall = manhattan.voxel_size * iz_wall;
 
 	std::vector<TexturedPlane> planes;
 	planes.push_back(extractPlane(iy_floor, y_floor, Direction::YN));
@@ -440,7 +443,7 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 		const auto voxel_center = Eigen::Vector3f(
 			0.5 + std::get<0>(pair.first),
 			0.5 + std::get<1>(pair.first),
-			0.5 + std::get<2>(pair.first)) * voxel_size;
+			0.5 + std::get<2>(pair.first)) * manhattan.voxel_size;
 
 		if(dir == Direction::YN) {
 			// TODO: remove ranged floor query (<=1) by
@@ -499,8 +502,8 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 }
 
 Eigen::Vector2f SceneBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_world) {
-	const auto loc = world_to_camera_loc * (pos_world - camera_pos);
-	return (loc.head(2) / loc.z()) * camera_fl + camera_center;
+	const auto loc = manhattan.world_to_camera_loc * (pos_world - frame.camera_pos);
+	return (loc.head(2) / loc.z()) * frame.camera_fl + frame.camera_center;
 }
 
 cv::Mat SceneBelief::synthesizeTexture(const cv::Mat image, const cv::Mat mask) {
@@ -624,7 +627,7 @@ std::vector<OrientedBox> SceneBelief::getObjects() {
 			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
 		}
 	}
-	const float y_floor = (iy_floor + 1) * voxel_size;
+	const float y_floor = (iy_floor + 1) * manhattan.voxel_size;
 
 	// find walls by 3D -> 2D projection
 	std::map<std::tuple<int, int>, int> projected;
@@ -647,14 +650,14 @@ std::vector<OrientedBox> SceneBelief::getObjects() {
 	}
 
 	objects.emplace_back(
-		Eigen::Vector3f((ix0 + 0.5) * voxel_size, 0, 2),
+		Eigen::Vector3f((ix0 + 0.5) * manhattan.voxel_size, 0, 2),
 		0,
 		Eigen::Vector3f(0.03, 3, 4),
 		Eigen::Vector3f(0, 255, 0),
 		true);
 
 	objects.emplace_back(
-		Eigen::Vector3f((ix1 + 0.5) * voxel_size, 0, 2),
+		Eigen::Vector3f((ix1 + 0.5) * manhattan.voxel_size, 0, 2),
 		0,
 		Eigen::Vector3f(0.03, 3, 4),
 		Eigen::Vector3f(0, 255, 0),
@@ -668,9 +671,9 @@ std::vector<OrientedBox> SceneBelief::getObjects() {
 
 		objects.emplace_back(
 			Eigen::Vector3f(
-				(std::get<0>(wall_tile.first) + 0.5) * voxel_size,
+				(std::get<0>(wall_tile.first) + 0.5) * manhattan.voxel_size,
 				0,
-				(std::get<1>(wall_tile.first) + 0.5) * voxel_size),
+				(std::get<1>(wall_tile.first) + 0.5) * manhattan.voxel_size),
 			0,
 			Eigen::Vector3f(0.03, 3, 0.03),
 			Eigen::Vector3f(0, 0, 255),
@@ -702,7 +705,7 @@ std::vector<OrientedBox> SceneBelief::getObjects() {
 			const auto voxel_center = Eigen::Vector3f(
 				0.5 + std::get<0>(pair.first),
 				0.5 + std::get<1>(pair.first),
-				0.5 + std::get<2>(pair.first)) * voxel_size;
+				0.5 + std::get<2>(pair.first)) * manhattan.voxel_size;
 
 			const auto dp = Eigen::AngleAxisf(-rot_y, Eigen::Vector3f::UnitY()) * (voxel_center - box_center);
 

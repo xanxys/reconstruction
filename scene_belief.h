@@ -172,16 +172,4 @@ protected:
 	FrameBelief frame;
 	ManhattanBelief manhattan;
 	FloorBelief floor;
-
-	// DEPRECATED Old attribs: use new attribs
-	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud;
-	Eigen::Vector3f camera_pos;
-	Eigen::Vector2f camera_center;
-	float camera_fl;
-
-	Eigen::Matrix3f camera_loc_to_world;
-	Eigen::Matrix3f world_to_camera_loc;
-	float voxel_size;
-
-	int floor_index;
 };
