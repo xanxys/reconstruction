@@ -37,6 +37,45 @@ TEST_F(ManhattanBeliefTest, VoxelsAreNotEmpty) {
 	// we're supposed to get some result.
 	ASSERT_GT(manhattans.size(), 0);
 
-	// there should be more than 0 voxels
-	EXPECT_GT(manhattans[0]->getVoxelsDetailed().size(), 0);
+	// there should be 2 or more voxels (empty + filled)
+	const auto voxels = manhattans[0]->getVoxelsDetailed();
+	EXPECT_GE(voxels.size(), 2);
+
+	bool has_empty = false;
+	bool has_filled = false;
+	for(const auto& pair : voxels) {
+		if(pair.second.state == VoxelState::OCCUPIED) {
+			has_filled = true;
+		} else if(pair.second.state == VoxelState::EMPTY) {
+			has_empty = true;
+		}
+	}
+	EXPECT_TRUE(has_empty);
+	EXPECT_TRUE(has_filled);
+}
+
+TEST_F(ManhattanBeliefTest, CloudIsTransformed) {
+	auto manhattans = ManhattanBelief::expand(*frame);
+
+	// we're supposed to get some result.
+	ASSERT_GT(manhattans.size(), 0);
+
+	auto& cloud_m = manhattans[0]->cloud;
+	ASSERT_EQ(cloud->points.size(), cloud_m->points.size());
+
+	for(int i : boost::irange(0, (int)cloud->points.size())) {
+		if(std::isfinite(cloud->points[i].x)) {
+			EXPECT_TRUE(std::isfinite(cloud->points[i].x));
+			EXPECT_TRUE(std::isfinite(cloud->points[i].y));
+			EXPECT_TRUE(std::isfinite(cloud->points[i].z));
+
+			EXPECT_TRUE(std::isfinite(cloud_m->points[i].x));
+			EXPECT_TRUE(std::isfinite(cloud_m->points[i].y));
+			EXPECT_TRUE(std::isfinite(cloud_m->points[i].z));
+
+			EXPECT_GT(
+				(cloud->points[i].getVector3fMap() - cloud_m->points[i].getVector3fMap()).norm(),
+				0);
+		}
+	}
 }

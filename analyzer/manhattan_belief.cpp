@@ -155,8 +155,6 @@ Eigen::Vector2f ManhattanBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_wo
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailed() const {
-	const float size = voxel_size;
-
 	// known to be filled
 	std::map<std::tuple<int, int, int>, bool> voxels;
 	std::map<std::tuple<int, int, int>, Eigen::Vector3f> voxels_accum;
@@ -166,7 +164,7 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 			continue;
 		}
 
-		auto ix = pt.getVector3fMap() / size;
+		auto ix = pt.getVector3fMap() / voxel_size;
 		auto key = std::make_tuple(
 			static_cast<int>(std::floor(ix.x())),
 			static_cast<int>(std::floor(ix.y())),
@@ -182,6 +180,8 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 		}
 	}
 
+	// TODO: remove and use frame.camera_pos (need to consolidate
+	// frame.camera_pos semantics)
 	const auto& camera_origin = Eigen::Vector3f::Zero();
 
 	std::map<std::tuple<int, int, int>, bool> voxels_empty;
@@ -190,12 +190,12 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 		const auto pos = Eigen::Vector3f(
 			std::get<0>(pair_filled.first) + 0.5,
 			std::get<1>(pair_filled.first) + 0.5,
-			std::get<2>(pair_filled.first) + 0.5) * size;
+			std::get<2>(pair_filled.first) + 0.5) * voxel_size;
 
 		const auto dir = (pos - camera_origin).normalized();
 
 		// traverse until hit.
-		VoxelTraversal traversal(size, camera_origin, dir);
+		VoxelTraversal traversal(voxel_size, camera_origin, dir);
 		for(int i : boost::irange(0, 100)) {
 			const auto key = traversal.next();
 
