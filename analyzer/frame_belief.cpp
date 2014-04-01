@@ -38,8 +38,7 @@ FrameBelief::FrameBelief(
 	cloud(cloud), camera_pos(0, 0, 0), camera_center(320, 240), camera_fl(585) {
 }
 
-cv::Mat FrameBelief::extractImageFromPointCloud(
-	const ColorCloud::ConstPtr& cloud) {
+cv::Mat FrameBelief::extractImage() {
 	if(cloud->points.size() != cloud->width * cloud->height) {
 		throw std::runtime_error("Point cloud is not an image");
 	}
@@ -54,8 +53,7 @@ cv::Mat FrameBelief::extractImageFromPointCloud(
 	return rgb;
 }
 
-cv::Mat FrameBelief::extractDepthImageFromPointCloud(
-	const ColorCloud::ConstPtr& cloud) {
+cv::Mat FrameBelief::extractDepthImage() {
 	if(cloud->points.size() != cloud->width * cloud->height) {
 		throw std::runtime_error("Point cloud is not an image");
 	}

@@ -12,8 +12,8 @@ public:
 	FrameBelief(const FrameBelief& that);
 	FrameBelief(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 
-	static cv::Mat extractImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
-	static cv::Mat extractDepthImageFromPointCloud(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
+	cv::Mat extractImage();
+	cv::Mat extractDepthImage();
 public:
 	// Put this before all other members to initialize first,
 	// since logging is used in SceneAnalyzer's initializer's list.

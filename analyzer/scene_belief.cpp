@@ -156,13 +156,11 @@ Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {
 }
 
 cv::Mat SceneBelief::getRGBImage() {
-	// TODO: change to frame.extract
-	return FrameBelief::extractImageFromPointCloud(frame.cloud);
+	return frame.extractImage();
 }
 
 cv::Mat SceneBelief::getDepthImage() {
-	// TODO: change to frame.extract
-	return FrameBelief::extractDepthImageFromPointCloud(frame.cloud);
+	return frame.extractDepthImage();
 }
 
 cv::Mat SceneBelief::renderRGBImage() {
