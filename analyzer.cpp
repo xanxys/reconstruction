@@ -23,9 +23,14 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
-SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) : belief(raw_cloud) {
+SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) :
+	frame(raw_cloud) {
 }
 
 std::shared_ptr<SceneBelief> SceneAnalyzer::getBestBelief() {
-	return belief.expandByAlignment()[0]->expandByFloor()[0];
+	auto manhattans = ManhattanBelief::expand(frame);
+	auto floors = FloorBelief::expand(*manhattans[0]);
+
+	// TODO: (possibly) remove SceneBelief
+	return std::make_shared<SceneBelief>(*floors[0]);
 }

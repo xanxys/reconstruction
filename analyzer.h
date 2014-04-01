@@ -16,5 +16,5 @@ public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	std::shared_ptr<SceneBelief> getBestBelief();
 private:
-	SceneBelief belief;
+	FrameBelief frame;
 };
