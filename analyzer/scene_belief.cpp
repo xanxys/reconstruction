@@ -19,7 +19,7 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
-#include "renderer/renderer.h"
+#include "../renderer/renderer.h"
 #include "voxel_traversal.h"
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;

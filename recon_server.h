@@ -7,8 +7,8 @@
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
+#include "analyzer/analyzer.h"
 #include "data_source.h"
-#include "analyzer.h"
 #include "web_server.h"
 
 // A controller. Two models are OpenNI grabber and SceneBelief.
