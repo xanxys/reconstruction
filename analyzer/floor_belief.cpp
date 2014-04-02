@@ -37,5 +37,8 @@ std::vector<std::shared_ptr<FloorBelief>> FloorBelief::expand(const ManhattanBel
 	results.push_back(std::make_shared<FloorBelief>(
 		manhattan, iy_floor));
 
+	results.push_back(std::make_shared<FloorBelief>(
+		manhattan, iy_floor - 1));
+
 	return results;
 }
