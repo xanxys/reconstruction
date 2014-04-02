@@ -23,58 +23,71 @@ var SceneSummaryList = Backbone.Collection.extend({
 
 
 var GrabcutView = Backbone.View.extend({
+	el: '#grabcut',
+
+	events: {
+		"click #ui_draw_fg": "changeToForeground",
+		"click #ui_draw_bg": "changeToBackground",
+		"click #ui_clear": "clear",
+		"click #ui_do_grabcut": "doGrabcut",
+		"mousedown #ui_grabcut_drawing": "beginDrawing",
+		"mousemove #ui_grabcut_drawing": "moveTool",
+		"mouseup #ui_grabcut_drawing": "endDrawing",
+	},
+
 	initialize: function(options) {
-		var _this = this;
+		this.ctx = this.$('#ui_grabcut_drawing')[0].getContext('2d');
+		this.drawing = false;
 
-		var ctx = $('#ui_grabcut_drawing')[0].getContext('2d');
-		ctx.fillStyle = 'blue';
-		var drawing = false;
-		$('#ui_grabcut_drawing').mousedown(function(event) {
-			drawing = true;
-		});
-		$('#ui_grabcut_drawing').mousemove(function(event) {
-			if(!drawing) {
-				return;
-			}
-
-			ctx.beginPath();
-			ctx.arc(event.offsetX, event.offsetY, 5, 0, 2 * Math.PI);
-			ctx.fill();
-		});
-		$('#ui_grabcut_drawing').mouseup(function(event) {
-			drawing = false;
-		});
-
-		$('#ui_draw_fg').click(function() {
-			ctx.fillStyle = 'blue';
-		});
-
-		$('#ui_draw_bg').click(function() {
-			ctx.fillStyle = 'red';
-		});
-
-		$('#ui_clear').click(function() {
-			ctx.clearRect(0, 0, 640, 480);
-		});
-
-		$('#ui_do_grabcut').click(function() {
-			$.ajax({
-				type: 'POST',
-				url: '/at/' + _this.model.id + '/grabcut',
-				data: JSON.stringify({
-					image: $('#ui_grabcut_drawing')[0].toDataURL()
-				}),
-				contentType: 'application/json'
-			}).done(function(data) {
-				$('#ui_modal_result').empty();
-				var img = new Image();
-				img.src = data['image'];
-				$('#ui_modal_result').append(img);
-				$('#myModal').modal();
-			});
-		});
-
+		this.changeToForeground();
 		this.listenTo(this.model, 'change', this.render);
+	},
+
+	clear: function() {
+		this.ctx.clearRect(0, 0, 640, 480);
+	},
+
+	beginDrawing: function() {
+		this.drawing = true;
+	},
+
+	endDrawing: function() {
+		this.drawing = false;
+	},
+
+	moveTool: function(event) {
+		if(!this.drawing) {
+			return;
+		}
+
+		this.ctx.beginPath();
+		this.ctx.arc(event.offsetX, event.offsetY, 5, 0, 2 * Math.PI);
+		this.ctx.fill();
+	},
+
+	changeToForeground: function() {
+		this.ctx.fillStyle = 'blue';
+	},
+
+	changeToBackground: function() {
+		this.ctx.fillStyle = 'red';
+	},
+
+	doGrabcut: function() {
+		$.ajax({
+			type: 'POST',
+			url: '/at/' + this.model.id + '/grabcut',
+			data: JSON.stringify({
+				image: $('#ui_grabcut_drawing')[0].toDataURL()
+			}),
+			contentType: 'application/json'
+		}).done(function(data) {
+			$('#ui_modal_result').empty();
+			var img = new Image();
+			img.src = data['image'];
+			$('#ui_modal_result').append(img);
+			$('#myModal').modal();
+		});
 	},
 
 	render: function() {
@@ -382,27 +395,31 @@ var LogView = Backbone.View.extend({
 });
 
 var SceneSummaryListView = Backbone.View.extend({
-	el: '#ui_scenes',
+	el: '#scene_list',
+
+	events: {
+		"click #ui_update": "takeSnapshot"
+	},
 
 	initialize: function(options) {
 		this.listenTo(this.model, 'add', this.render);
 
 		this.current_id = null;
 		this.updateViews = options.updateViews;
+	},
 
+	takeSnapshot: function() {
 		var _this = this;
-		$('#ui_update').click(function() {
-			$.post('/at').done(function(data) {
-				_this.current_id = data.id;
-				_this.updateViews(data.id);
-				_this.model.fetch();
-			});
+		$.post('/at').done(function(data) {
+			_this.current_id = data.id;
+			_this.updateViews(data.id);
+			_this.model.fetch();
 		});
 	},
 
 	render: function() {
 		var _this = this;
-		$(this.el).empty();
+		this.$('#ui_scenes').empty();
 		
 		this.model.each(function(model) {
 			var entry = $('<a/>')
@@ -416,7 +433,7 @@ var SceneSummaryListView = Backbone.View.extend({
 				_this.render();
 				_this.updateViews(_this.current_id);
 			});
-			$(_this.el).append(entry);	
+			_this.$('#ui_scenes').append(entry);
 		});
 	}
 });
