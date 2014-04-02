@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <sstream>
+#include <vector>
 
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
@@ -15,6 +15,7 @@ class SceneAnalyzer {
 public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	std::shared_ptr<SceneBelief> getBestBelief();
+	std::vector<std::shared_ptr<SceneBelief>> getAllBelief();
 private:
 	FrameBelief frame;
 };
