@@ -405,14 +405,14 @@ var SceneSummaryListView = Backbone.View.extend({
 		this.listenTo(this.model, 'add', this.render);
 
 		this.current_id = null;
-		this.updateViews = options.updateViews;
+		// this.updateViews = options.updateViews;
 	},
 
 	takeSnapshot: function() {
 		var _this = this;
 		$.post('/at').done(function(data) {
 			_this.current_id = data.id;
-			_this.updateViews(data.id);
+			_this.trigger('select', _this.current_id);
 			_this.model.fetch();
 		});
 	},
@@ -431,7 +431,7 @@ var SceneSummaryListView = Backbone.View.extend({
 			entry.click(function() {
 				_this.current_id = model.id;
 				_this.render();
-				_this.updateViews(_this.current_id);
+				_this.trigger('select', _this.current_id);
 			});
 			_this.$('#ui_scenes').append(entry);
 		});
@@ -477,21 +477,18 @@ var DebugFE = function() {
 	this.scene_summary_list = new SceneSummaryList();
 	this.scene_summary_list_view = new SceneSummaryListView({
 		model: this.scene_summary_list,
-		updateViews: function(id) {
-			_this.updateViews(id);
-		}
+	});
+
+	this.scene_summary_list_view.on('select', function(id) {
+		_this.updateViews(id);
 	});
 
 	this.scene_summary_list.fetch();
 };
 
 DebugFE.prototype.updateViews = function(id) {
-	var _this = this;
-
-
 	var tree = new SceneSearchTree({id: id});
 	var scene_search_view = new SceneSearchView({model: tree});
-
 	tree.fetch({});
 
 	// deprecated endpoint
@@ -501,22 +498,26 @@ DebugFE.prototype.updateViews = function(id) {
 	var calibration_view = new CalibrationView({model: scene});
 	var grabcut_view = new GrabcutView({model: scene});
 
+	var _this = this;
 	scene.fetch({
 		success: function(data) {
-			var data_all = data.attributes;
+			_this.updateLayers(data.attributes);
+		}
+	});
+};
 
-			_.each(_this.layer_descs, function(layer_desc) {
-				var data = data_all[layer_desc.endpoint];
-				var object = layer_desc.generator(data);
+DebugFE.prototype.updateLayers = function(data_all) {
+	var _this = this;
+	_.each(_this.layer_descs, function(layer_desc) {
+		var data = data_all[layer_desc.endpoint];
+		var object = layer_desc.generator(data);
 
-				if(_this.layers[layer_desc.endpoint] !== undefined) {
-					_this.scene.remove(_this.layers[layer_desc.endpoint]);
-				}
-				_this.layers[layer_desc.endpoint] = object;
-				if($('#ui_layers a:contains(' + layer_desc.label + ')').hasClass('active')) {
-					_this.scene.add(object);
-				}
-			});
+		if(_this.layers[layer_desc.endpoint] !== undefined) {
+			_this.scene.remove(_this.layers[layer_desc.endpoint]);
+		}
+		_this.layers[layer_desc.endpoint] = object;
+		if($('#ui_layers a:contains(' + layer_desc.label + ')').hasClass('active')) {
+			_this.scene.add(object);
 		}
 	});
 };
