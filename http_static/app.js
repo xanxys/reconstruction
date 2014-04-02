@@ -5,6 +5,9 @@ var deserializeVector3 = function(d) {
 	return new THREE.Vector3(d.x, d.y, d.z);
 };
 
+var SceneBelief = Backbone.Model.extend({
+	urlRoot: '/belief'
+});
 
 var Scene = Backbone.Model.extend({
 	urlRoot: '/at'
@@ -253,6 +256,14 @@ VoxelsLayer.prototype.generator = function(data) {
 	return voxels;
 };
 
+var SceneSearchView = Backbone.View.extend({
+	el: '#search',
+
+	initialize: function(options) {
+	},
+
+
+});
 
 var MainView = Backbone.View.extend({
 	el: '#ui_3d',
@@ -449,8 +460,13 @@ var DebugFE = function() {
 DebugFE.prototype.updateViews = function(id) {
 	var _this = this;
 
-	var scene = new Scene({id: id});
+	/*
+	var scene = new SceneBelief({id: id});
+	var scene_search_view = new SceneSearchView({model: scene});
+	*/
 
+	// deprecated endpoint
+	var scene = new Scene({id: id});
 	var peeling_view = new PeelingView({model: scene});
 	var log_view = new LogView({model: scene});
 	var calibration_view = new CalibrationView({model: scene});
@@ -474,7 +490,6 @@ DebugFE.prototype.updateViews = function(id) {
 			});
 		}
 	});
-
 };
 
 var debug_fe = new DebugFE();
