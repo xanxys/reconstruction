@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
+#include "floor_belief.h"
 #include "frame_belief.h"
 #include "manhattan_belief.h"
 
@@ -56,23 +57,9 @@ private:
 };
 
 
-class FloorBelief {
-public:
-	FloorBelief(const FloorBelief& that);
-	FloorBelief(const ManhattanBelief& manhattan, int index);
-	static std::vector<std::shared_ptr<FloorBelief>> expand(const ManhattanBelief& manhattan);
-public:
-	// Put this before all other members to initialize first,
-	// since logging is used in SceneAnalyzer's initializer's list.
-	mutable std::ostringstream log;
-
-	ManhattanBelief manhattan;
-
-	int index;
-};
-
 class WallBelief {
 };
+
 
 class ObjectsBelief {
 };
@@ -89,7 +76,7 @@ class ObjectsBelief {
 // * need to care about belief dependencies all the time, which is pain
 class SceneBelief {
 public:
-	SceneBelief(FloorBelief& floor);
+	SceneBelief(const FloorBelief& floor);
 
 	// attribs
 	std::string getLog();
@@ -117,7 +104,10 @@ protected:
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
 	static cv::Mat growTexture(const cv::Mat core, int width, int height);
 protected:
-	FrameBelief frame;
-	ManhattanBelief manhattan;
+	// Order is important. Members are initialized in this order.
+	// So, to initialize references properly, we must copy floor first
+	// and then create references into it. (NOT TO constructor arguments)
 	FloorBelief floor;
+	ManhattanBelief& manhattan;
+	FrameBelief& frame;
 };

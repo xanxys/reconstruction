@@ -31,7 +31,28 @@ const double pi = 3.14159265359;
 VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
 }
 
+
+ManhattanBelief::ManhattanBelief(
+	const FrameBelief& frame, Eigen::Matrix3f camera_loc_to_world) :
+	frame(frame),
+	camera_loc_to_world(camera_loc_to_world),
+	world_to_camera_loc(camera_loc_to_world.inverse()),
+	voxel_size(0.1) {
+
+	// apply rotation.
+	ColorCloud::Ptr cloud_aligned(new ColorCloud());
+	for(auto pt : frame.cloud->points) {
+		pt.getVector3fMap() = camera_loc_to_world * pt.getVector3fMap();
+		cloud_aligned->points.push_back(pt);
+	}
+	cloud_aligned->width = 640;
+	cloud_aligned->height = 480;
+
+	cloud = cloud_aligned;
+}
+
 ManhattanBelief::ManhattanBelief(const ManhattanBelief& that) :
+	voxel_size(that.voxel_size),
 	log(that.log.str()), frame(that.frame), cloud(that.cloud),
 	camera_loc_to_world(that.camera_loc_to_world), world_to_camera_loc(that.world_to_camera_loc) {
 }
@@ -130,31 +151,14 @@ std::shared_ptr<ManhattanBelief> ManhattanBelief::align(const FrameBelief& frame
 	return std::make_shared<ManhattanBelief>(frame, rotation);
 }
 
-ManhattanBelief::ManhattanBelief(
-	const FrameBelief& frame, Eigen::Matrix3f camera_loc_to_world) :
-	frame(frame),
-	camera_loc_to_world(camera_loc_to_world),
-	world_to_camera_loc(camera_loc_to_world.inverse()),
-	voxel_size(0.1) {
-
-	// apply rotation.
-	ColorCloud::Ptr cloud_aligned(new ColorCloud());
-	for(auto pt : frame.cloud->points) {
-		pt.getVector3fMap() = camera_loc_to_world * pt.getVector3fMap();
-		cloud_aligned->points.push_back(pt);
-	}
-	cloud_aligned->width = 640;
-	cloud_aligned->height = 480;
-
-	cloud = cloud_aligned;
-}
-
 Eigen::Vector2f ManhattanBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_world) {
 	const auto loc = world_to_camera_loc * (pos_world - frame.camera_pos);
 	return (loc.head(2) / loc.z()) * frame.camera_fl + frame.camera_center;
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailed() const {
+	assert(cloud);
+	
 	// known to be filled
 	std::map<std::tuple<int, int, int>, bool> voxels;
 	std::map<std::tuple<int, int, int>, Eigen::Vector3f> voxels_accum;

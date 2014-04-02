@@ -115,33 +115,8 @@ float OrientedBox::getRotationY() const {
 }
 
 
-FloorBelief::FloorBelief(const FloorBelief& that) :
-	log(that.log.str()), manhattan(that.manhattan), index(that.index) {
-}
-
-FloorBelief::FloorBelief(const ManhattanBelief& manhattan, int index) :
-	manhattan(manhattan), index(index) {
-}
-
-std::vector<std::shared_ptr<FloorBelief>> FloorBelief::expand(const ManhattanBelief& manhattan) {
-	std::vector<std::shared_ptr<FloorBelief>> results;
-
-	int iy_floor = 0;
-	for(const auto& pair : manhattan.getVoxelsDetailed()) {
-		if(pair.second.state == VoxelState::OCCUPIED) {
-			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
-		}
-	}
-
-	results.push_back(std::make_shared<FloorBelief>(
-		manhattan, iy_floor));
-
-	return results;
-}
-
-
-SceneBelief::SceneBelief(FloorBelief& floor) :
-	floor(floor), manhattan(floor.manhattan), frame(floor.manhattan.frame) {
+SceneBelief::SceneBelief(const FloorBelief& f) :
+	floor(f), manhattan(floor.manhattan), frame(manhattan.frame) {
 }
 
 std::string SceneBelief::getLog() {
