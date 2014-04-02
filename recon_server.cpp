@@ -48,6 +48,16 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		}
 
 		return Response::notFound();
+	} else if(uri.size() == 2 && uri[0] == "scene") {
+		const std::string id = uri[1];
+		const auto& cloud = data_source.getScene(id);
+		SceneAnalyzer analyzer(cloud);
+
+		Json::Value scene;
+		for(int index : boost::irange(0, (int)analyzer.getAllBelief().size())) {
+			scene["candidates"].append(index);
+		}
+		return Response(scene);
 	} else if(uri.size() == 1 && uri[0] == "scenes") {
 		Json::Value scenes;
 		for(const auto& id : data_source.listScenes()) {

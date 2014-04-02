@@ -5,8 +5,8 @@ var deserializeVector3 = function(d) {
 	return new THREE.Vector3(d.x, d.y, d.z);
 };
 
-var SceneBelief = Backbone.Model.extend({
-	urlRoot: '/belief'
+var SceneSearchTree = Backbone.Model.extend({
+	urlRoot: '/scene'
 });
 
 var Scene = Backbone.Model.extend({
@@ -260,9 +260,20 @@ var SceneSearchView = Backbone.View.extend({
 	el: '#search',
 
 	initialize: function(options) {
+		this.listenTo(this.model, 'change', this.render);
 	},
 
+	render: function() {
+		this.$el.empty();
 
+		var _this = this;
+		_.each(this.model.get('candidates'), function(candidate) {
+			var entry = $('<a/>')
+				.text(candidate).attr('href', '#').addClass('list-group-item');
+
+			_this.$el.append(entry);	
+		});
+	}
 });
 
 var MainView = Backbone.View.extend({
@@ -460,10 +471,11 @@ var DebugFE = function() {
 DebugFE.prototype.updateViews = function(id) {
 	var _this = this;
 
-	/*
-	var scene = new SceneBelief({id: id});
-	var scene_search_view = new SceneSearchView({model: scene});
-	*/
+
+	var tree = new SceneSearchTree({id: id});
+	var scene_search_view = new SceneSearchView({model: tree});
+
+	tree.fetch({});
 
 	// deprecated endpoint
 	var scene = new Scene({id: id});
