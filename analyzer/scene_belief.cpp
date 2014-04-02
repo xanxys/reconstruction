@@ -51,14 +51,14 @@ Eigen::Matrix3f TexturedPlane::getLocalToWorld() const {
 	Eigen::Matrix3f tr;
 	switch(normal) {
 		case Direction::XP:
-			tr.col(0) = Eigen::Vector3f::UnitZ();
-			tr.col(1) = Eigen::Vector3f::UnitX();
-			tr.col(2) = Eigen::Vector3f::UnitY();
-			break;
-		case Direction::YP:
 			tr.col(0) = Eigen::Vector3f::UnitY();
 			tr.col(1) = Eigen::Vector3f::UnitZ();
 			tr.col(2) = Eigen::Vector3f::UnitX();
+			break;
+		case Direction::YP:
+			tr.col(0) = Eigen::Vector3f::UnitZ();
+			tr.col(1) = Eigen::Vector3f::UnitX();
+			tr.col(2) = Eigen::Vector3f::UnitY();
 			break;
 		case Direction::ZP:
 			tr.col(0) = Eigen::Vector3f::UnitX();
@@ -66,14 +66,14 @@ Eigen::Matrix3f TexturedPlane::getLocalToWorld() const {
 			tr.col(2) = Eigen::Vector3f::UnitZ();
 			break;
 		case Direction::XN:
-			tr.col(0) = -Eigen::Vector3f::UnitZ();
+			tr.col(0) = Eigen::Vector3f::UnitZ();
 			tr.col(1) = Eigen::Vector3f::UnitY();
-			tr.col(2) = Eigen::Vector3f::UnitX();
+			tr.col(2) = -Eigen::Vector3f::UnitX();
 			break;
 		case Direction::YN:
-			tr.col(0) = Eigen::Vector3f::UnitY();
-			tr.col(1) = -Eigen::Vector3f::UnitZ();
-			tr.col(2) = Eigen::Vector3f::UnitX();
+			tr.col(0) = Eigen::Vector3f::UnitX();
+			tr.col(1) = Eigen::Vector3f::UnitZ();
+			tr.col(2) = -Eigen::Vector3f::UnitY();
 			break;
 		case Direction::ZN:
 			tr.col(0) = Eigen::Vector3f::UnitY();
@@ -190,21 +190,19 @@ std::map<std::tuple<int, int, int>, VoxelDescription> SceneBelief::getVoxelsDeta
 }
 
 std::vector<TexturedPlane> SceneBelief::getPlanes() {
-	int iy_floor = 0;
 	int iz_wall = 0;
 	for(const auto& pair : getVoxelsDetailed()) {
 		if(pair.second.state == VoxelState::OCCUPIED) {
-			iy_floor = std::max(iy_floor, std::get<1>(pair.first));
 			iz_wall = std::max(iz_wall, std::get<2>(pair.first));
 		}
 	}
 
-	const float y_floor = manhattan.voxel_size * (iy_floor + 1);
+	const float y_floor = manhattan.voxel_size * (floor.index + 0.5);
 	const float z_wall = manhattan.voxel_size * iz_wall;
 
 	std::vector<TexturedPlane> planes;
-	planes.push_back(extractPlane(iy_floor, y_floor, Direction::YN));
-	planes.push_back(extractPlane(iz_wall, z_wall, Direction::ZN));
+	planes.push_back(extractPlane(floor.index, y_floor, Direction::YN));
+	// planes.push_back(extractPlane(iz_wall, z_wall, Direction::ZN));
 	return planes;
 }
 
@@ -217,8 +215,8 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 	for(int y : boost::irange(0, tex_size)) {
 		for(int x : boost::irange(0, tex_size)) {
 			const Eigen::Vector3f pos_local(
-				tile_size * (y - tex_size * 0.5) / tex_size,
-				tile_size * (x - tex_size * 0.5) / tex_size,
+				tile_size * (static_cast<float>(x) / tex_size - 0.5),
+				tile_size * (static_cast<float>(tex_size - y) / tex_size - 0.5),
 				0);
 			const Eigen::Vector3f pos_world =
 				plane.getLocalToWorld() * pos_local + plane.center;
@@ -237,15 +235,13 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 			0.5 + std::get<2>(pair.first)) * manhattan.voxel_size;
 
 		if(dir == Direction::YN) {
-			// TODO: remove ranged floor query (<=1) by
-			// spawning multiple SceneBelief.
 			if(pair.second.state == VoxelState::OCCUPIED &&
-				std::abs(std::get<1>(pair.first) - index) <= 1) {
+				std::get<1>(pair.first) == index) {
 
 				const Eigen::Vector3f voxel_c_local = plane.getLocalToWorld().inverse() * (voxel_center - plane.center);
 
-				const int cx = voxel_c_local.y() / tile_size * tex_size + tex_size * 0.5;
-				const int cy = voxel_c_local.x() / tile_size * tex_size + tex_size * 0.5;
+				const int cx = (voxel_c_local.x() / tile_size + 0.5) * tex_size;
+				const int cy = tex_size - (voxel_c_local.y() / tile_size + 0.5) * tex_size;
 
 				cv::rectangle(mask,
 					cv::Point(cx - 5, cy - 5),
@@ -255,7 +251,7 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 			}
 		} else if(dir == Direction::ZN) {
 			if(pair.second.state == VoxelState::OCCUPIED &&
-				std::abs(std::get<2>(pair.first) - index) <= 1) {
+				std::get<2>(pair.first) == index) {
 				const int cx = tex_size * (0.5 + voxel_center.y() / tile_size);
 				const int cy = tex_size - tex_size * (0.5 + voxel_center.x() / tile_size);
 
@@ -270,6 +266,7 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 		}
 	}
 
+	// TODO: getRGBImage relies on raw RGB in FrameBelief!!
 	cv::Mat texture(tex_size, tex_size, CV_8UC3);
 	cv::remap(getRGBImage(), texture, coords, cv::Mat(), cv::INTER_LINEAR);
 
@@ -300,7 +297,7 @@ cv::Mat SceneBelief::synthesizeTexture(const cv::Mat image, const cv::Mat mask) 
 	cv::Mat texture(image.rows, image.cols, CV_8UC3);
 	texture = cv::Scalar(0, 0, 0);
 
-	// Visualizat image & mask w/o synthesis.
+	// Visualize image & mask w/o synthesis.
 	if(false) {
 		for(int y : boost::irange(0, image.rows)) {
 			for(int x : boost::irange(0, image.cols)) {

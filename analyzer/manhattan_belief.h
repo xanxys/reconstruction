@@ -39,6 +39,7 @@ public:
 	
 	ManhattanBelief(const ManhattanBelief& that);
 	ManhattanBelief(const FrameBelief& frame, Eigen::Matrix3f camera_loc_to_world);
+
 	Eigen::Vector2f projectToRGBCameraScreen(Eigen::Vector3f pos_world);
 
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed() const;

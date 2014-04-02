@@ -19,6 +19,11 @@
 // x: [-size/2,size/2]
 // y: [-size/2,size/2]
 // z: 0
+//
+// TODO: wanna hide this detail
+// Texture Coordinates
+// * x: x
+// * y: inverted
 class TexturedPlane {
 public:
 	TexturedPlane(float size, cv::Mat texture, float offset, Direction normal);
