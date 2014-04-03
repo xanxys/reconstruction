@@ -89,7 +89,7 @@ SceneBelief::SceneBelief(const WallBelief& w) :
 	wall(w), floor(wall.floor), manhattan(floor.manhattan), frame(manhattan.frame) {
 }
 
-std::string SceneBelief::getLog() {
+std::string SceneBelief::getLog() const {
 	return
 		"== Frame\n" + frame.log.str() + "\n" +
 		"== Manhattan\n" + manhattan.log.str() + "\n" +
@@ -97,19 +97,19 @@ std::string SceneBelief::getLog() {
 		"== Wall\n" + wall.log.str() + "\n";
 }
 
-Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {
+Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() const {
 	return manhattan.camera_loc_to_world;
 }
 
-cv::Mat SceneBelief::getRGBImage() {
+cv::Mat SceneBelief::getRGBImage() const {
 	return frame.extractImage();
 }
 
-cv::Mat SceneBelief::getDepthImage() {
+cv::Mat SceneBelief::getDepthImage() const {
 	return frame.extractDepthImage();
 }
 
-cv::Mat SceneBelief::renderRGBImage() {
+cv::Mat SceneBelief::renderRGBImage() const {
 	Scene scene(
 		Camera(640, 480,
 			0.994837674, Eigen::Transform<float, 3, Eigen::Affine>(manhattan.camera_loc_to_world)));
@@ -143,12 +143,12 @@ cv::Mat SceneBelief::renderRGBImage() {
 	return Renderer::getInstance().render(scene);
 }
 
-pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() {
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() const {
 	assert(manhattan.cloud);
 	return manhattan.cloud;
 }
 
-std::map<VoxelIndex, VoxelState> SceneBelief::getVoxels() {
+std::map<VoxelIndex, VoxelState> SceneBelief::getVoxels() const {
 	std::map<VoxelIndex, VoxelState> voxels;
 	for(const auto& pair : getVoxelsDetailed()) {
 		voxels[pair.first] = pair.second.state;
@@ -156,11 +156,11 @@ std::map<VoxelIndex, VoxelState> SceneBelief::getVoxels() {
 	return voxels;
 }
 
-std::map<VoxelIndex, VoxelDescription> SceneBelief::getVoxelsDetailed() {
+std::map<VoxelIndex, VoxelDescription> SceneBelief::getVoxelsDetailed() const {
 	return manhattan.getVoxelsDetailed();
 }
 
-std::vector<TexturedPlane> SceneBelief::getPlanes() {
+std::vector<TexturedPlane> SceneBelief::getPlanes() const {
 	int iz_wall = 0;
 	for(const auto& pair : getVoxelsDetailed()) {
 		if(pair.second.state == VoxelState::OCCUPIED) {
@@ -177,7 +177,7 @@ std::vector<TexturedPlane> SceneBelief::getPlanes() {
 	return planes;
 }
 
-TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
+TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) const {
 	const float tile_size = 10;
 	const int tex_size = 1024;
 	TexturedPlane plane(tile_size, cv::Mat(), coord, dir);
@@ -366,7 +366,7 @@ cv::Mat SceneBelief::growTexture(const cv::Mat core, int width, int height) {
 	return image;
 }
 
-std::vector<OrientedBox> SceneBelief::getObjects() {
+std::vector<OrientedBox> SceneBelief::getObjects() const {
 	const auto real_objects = wall.getObjects();
 	const auto fake_objects = sampleObjects();
 	return real_objects;
@@ -377,7 +377,7 @@ std::vector<OrientedBox> SceneBelief::getObjects() {
 	return results;
 }
 
-std::vector<OrientedBox> SceneBelief::sampleObjects() {
+std::vector<OrientedBox> SceneBelief::sampleObjects() const {
 	std::vector<OrientedBox> objects;
 
 	const auto voxels = getVoxelsDetailed();

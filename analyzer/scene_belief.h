@@ -55,28 +55,28 @@ public:
 	SceneBelief(const WallBelief& wall);
 
 	// attribs
-	std::string getLog();
-	std::vector<TexturedPlane> getPlanes();
-	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud();
-	Eigen::Matrix3f getCameraLocalToWorld();
-	float getFloor();
+	std::string getLog() const;
+	std::vector<TexturedPlane> getPlanes() const;
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getCloud() const;
+	Eigen::Matrix3f getCameraLocalToWorld() const;
+	float getFloor() const;
 
-	cv::Mat getRGBImage();
+	cv::Mat getRGBImage() const;
 	// return meter in f32
-	cv::Mat getDepthImage();
+	cv::Mat getDepthImage() const;
 
-	cv::Mat renderRGBImage();
-	std::map<VoxelIndex, VoxelState> getVoxels();
-	std::map<VoxelIndex, VoxelDescription> getVoxelsDetailed();
+	cv::Mat renderRGBImage() const;
+	std::map<VoxelIndex, VoxelState> getVoxels() const;
+	std::map<VoxelIndex, VoxelDescription> getVoxelsDetailed() const;
 
-	std::vector<OrientedBox> getObjects();
+	std::vector<OrientedBox> getObjects() const;
 protected:
-	std::vector<OrientedBox> sampleObjects();
+	std::vector<OrientedBox> sampleObjects() const;
 	
 	// Extract textured plane from a plane with Manhattan normal.
 	// index, distance means the coordinate of dir.
 	// (e.g. XN,XP -> index, distance is x coord of the plane)
-	TexturedPlane extractPlane(int index, float coord, Direction dir);
+	TexturedPlane extractPlane(int index, float coord, Direction dir) const;
 
 	// Synthesize complete texture from RGB image and unreliable mask.
 	static cv::Mat synthesizeTexture(const cv::Mat image, const cv::Mat mask);
