@@ -58,6 +58,18 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			scene["candidates"].append(index);
 		}
 		return Response(scene);
+	} else if(uri.size() == 3 && uri[0] == "scene") {
+		const std::string id = uri[1];
+		const auto& cloud = data_source.getScene(id);
+		SceneAnalyzer analyzer(cloud);
+		auto beliefs = analyzer.getAllBelief();
+
+		const int index = std::stoi(uri[2]);
+		if(index < 0 || index >= beliefs.size()) {
+			return Response::notFound();
+		}
+
+		return handleScene(*beliefs[index]);
 	} else if(uri.size() == 1 && uri[0] == "scenes") {
 		Json::Value scenes;
 		for(const auto& id : data_source.listScenes()) {

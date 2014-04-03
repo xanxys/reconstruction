@@ -9,8 +9,21 @@ var SceneSearchTree = Backbone.Model.extend({
 	urlRoot: '/scene'
 });
 
+// TODO: deprecated
 var Scene = Backbone.Model.extend({
 	urlRoot: '/at'
+});
+
+var NewScene = Backbone.Model.extend({
+	urlRoot: '/scene',
+
+	initialize: function(options) {
+		this.scene_id = options.scene_id;
+	},
+
+	url: function() {
+		return this.urlRoot + '/' + this.scene_id + '/' + this.id;
+	}
 });
 
 var SceneSummary = Backbone.Model.extend({
@@ -74,9 +87,13 @@ var GrabcutView = Backbone.View.extend({
 	},
 
 	doGrabcut: function() {
+		// HACK ALERT
+		// TODO: remove this
+		var id = (this.model.scene_id !== undefined) ? this.model.scene_id : this.model.id;
+
 		$.ajax({
 			type: 'POST',
-			url: '/at/' + this.model.id + '/grabcut',
+			url: '/at/' + id + '/grabcut',
 			data: JSON.stringify({
 				image: $('#ui_grabcut_drawing')[0].toDataURL()
 			}),
@@ -273,6 +290,7 @@ var SceneSearchView = Backbone.View.extend({
 	el: '#search',
 
 	initialize: function(options) {
+		this.selected = null;
 		this.listenTo(this.model, 'change', this.render);
 	},
 
@@ -283,7 +301,14 @@ var SceneSearchView = Backbone.View.extend({
 		_.each(this.model.get('candidates'), function(candidate) {
 			var entry = $('<a/>')
 				.text(candidate).attr('href', '#').addClass('list-group-item');
-
+			if(candidate === _this.selected) {
+				entry.addClass('active');
+			}
+			entry.click(function() {
+				_this.selected = candidate;
+				_this.render();
+				_this.trigger('selectBelief', _this.selected);
+			});
 			_this.$el.append(entry);	
 		});
 	}
@@ -539,7 +564,23 @@ DebugFE.prototype.updateViews = function(id) {
 	var scene_search_view = new SceneSearchView({model: tree});
 	tree.fetch({});
 
-	// deprecated endpoint
+	var _this = this;
+	scene_search_view.on('selectBelief', function(ev) {
+		var scene = new NewScene({
+			scene_id: id,
+			id: ev
+		});
+
+		var peeling_view = new PeelingView({model: scene});
+		var log_view = new LogView({model: scene});
+		var calibration_view = new CalibrationView({model: scene});
+		var grabcut_view = new GrabcutView({model: scene});
+		_this.main_view.model = scene;
+		_this.main_view.listenTo(scene, 'change', _this.main_view.refresh);
+		scene.fetch();
+	});
+
+	// TODO: deprecate Scene
 	var scene = new Scene({id: id});
 	var peeling_view = new PeelingView({model: scene});
 	var log_view = new LogView({model: scene});
