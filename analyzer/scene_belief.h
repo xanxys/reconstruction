@@ -63,11 +63,6 @@ private:
 };
 
 
-
-
-class ObjectsBelief {
-};
-
 // A coherent set of belief about the scene, which may or may not be
 // visible. It's a node of search tree.
 //

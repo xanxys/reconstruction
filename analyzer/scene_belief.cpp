@@ -123,7 +123,8 @@ std::string SceneBelief::getLog() {
 	return
 		"== Frame\n" + frame.log.str() + "\n" +
 		"== Manhattan\n" + manhattan.log.str() + "\n" +
-		"== Floor\n" + floor.log.str() + "\n";
+		"== Floor\n" + floor.log.str() + "\n" +
+		"== Wall\n" + wall.log.str() + "\n";
 }
 
 Eigen::Matrix3f SceneBelief::getCameraLocalToWorld() {
