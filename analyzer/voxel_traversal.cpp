@@ -1,5 +1,13 @@
 #include "voxel_traversal.h"
 
+Eigen::Vector3i indexToVector(VoxelIndex index) {
+	return Eigen::Vector3i(
+		std::get<0>(index),
+		std::get<1>(index),
+		std::get<2>(index));
+}
+
+
 VoxelTraversal::VoxelTraversal(
 	float size, Eigen::Vector3f org, Eigen::Vector3f dir) :
 	org(org / size), dir(dir) {

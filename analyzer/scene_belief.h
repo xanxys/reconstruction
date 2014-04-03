@@ -9,6 +9,7 @@
 #include "floor_belief.h"
 #include "frame_belief.h"
 #include "manhattan_belief.h"
+#include "voxel_traversal.h"
 #include "wall_belief.h"
 
 
@@ -65,8 +66,8 @@ public:
 	cv::Mat getDepthImage();
 
 	cv::Mat renderRGBImage();
-	std::map<std::tuple<int, int, int>, VoxelState> getVoxels();
-	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed();
+	std::map<VoxelIndex, VoxelState> getVoxels();
+	std::map<VoxelIndex, VoxelDescription> getVoxelsDetailed();
 
 	std::vector<OrientedBox> getObjects();
 protected:

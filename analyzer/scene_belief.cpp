@@ -148,15 +148,15 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() {
 	return manhattan.cloud;
 }
 
-std::map<std::tuple<int, int, int>, VoxelState> SceneBelief::getVoxels() {
-	std::map<std::tuple<int, int, int>, VoxelState> voxels;
+std::map<VoxelIndex, VoxelState> SceneBelief::getVoxels() {
+	std::map<VoxelIndex, VoxelState> voxels;
 	for(const auto& pair : getVoxelsDetailed()) {
 		voxels[pair.first] = pair.second.state;
 	}
 	return voxels;
 }
 
-std::map<std::tuple<int, int, int>, VoxelDescription> SceneBelief::getVoxelsDetailed() {
+std::map<VoxelIndex, VoxelDescription> SceneBelief::getVoxelsDetailed() {
 	return manhattan.getVoxelsDetailed();
 }
 
@@ -200,10 +200,7 @@ TexturedPlane SceneBelief::extractPlane(int index, float coord, Direction dir) {
 	mask = cv::Scalar(0);
 
 	for(const auto& pair : getVoxelsDetailed()) {
-		const auto voxel_center = Eigen::Vector3f(
-			0.5 + std::get<0>(pair.first),
-			0.5 + std::get<1>(pair.first),
-			0.5 + std::get<2>(pair.first)) * manhattan.voxel_size;
+		const Eigen::Vector3f voxel_center = (indexToVector(pair.first).cast<float>().array() + 0.5) * manhattan.voxel_size;
 
 		if(dir == Direction::YN) {
 			if(pair.second.state == VoxelState::OCCUPIED &&

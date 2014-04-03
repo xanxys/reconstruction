@@ -6,9 +6,9 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-// #include "../data_source.h"
+#include "voxel_traversal.h"
 
-using VoxelIndex = std::tuple<int, int, int>;
+// #include "../data_source.h"
 
 TEST(WallBeliefTest, SplitCCReturnsNull) {
 	std::vector<VoxelIndex> voxels;

@@ -7,6 +7,7 @@
 #include <pcl/point_types.h>
 
 #include "floor_belief.h"
+#include "voxel_traversal.h"
 
 
 template<typename T> std::set<T> set_difference(std::set<T>& a, std::set<T>& b) {
@@ -52,8 +53,7 @@ public:
 
 	std::vector<OrientedBox> getObjects() const;
 
-	static std::vector<std::vector<std::tuple<int, int, int>>> splitCC(
-		std::vector<std::tuple<int, int, int>> nodes);
+	static std::vector<std::vector<VoxelIndex>> splitCC(std::vector<VoxelIndex> nodes);
 public:
 	mutable std::ostringstream log;
 

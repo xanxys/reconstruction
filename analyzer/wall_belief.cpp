@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <set>
 
-using VoxelIndex = std::tuple<int, int, int>;
-
 
 OrientedBox::OrientedBox(
 	Eigen::Vector3f position,
