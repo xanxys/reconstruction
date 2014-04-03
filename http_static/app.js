@@ -289,13 +289,8 @@ var SceneSearchView = Backbone.View.extend({
 	}
 });
 
-var MainView = Backbone.View.extend({
-	el: '#ui_3d',
-
+var LayersConfig = Backbone.Model.extend({
 	initialize: function(options) {
-		this.layers = {};
-
-		var _this = this;
 		this.layer_descs = [
 			new VoxelsLayer('filled', 'voxels'),
 			new VoxelsLayer('empty', 'voxels_empty'),
@@ -304,7 +299,52 @@ var MainView = Backbone.View.extend({
 			new PlanesLayer(),
 			new CameraLayer()
 		];
-		
+
+		this.visible = _.map(this.layer_descs, function() {
+			return true;
+		});
+	}
+});
+
+var LayersView = Backbone.View.extend({
+	el: '#ui_layers',
+
+	initialize: function(options) {
+		this.listenTo(this.model, 'change', this.render);
+	},
+
+	render: function() {
+		this.$el.empty();
+
+		var _this = this;
+		_.each(this.model.layer_descs, function(layer_desc, ix) {
+			var layer = $('<a/>').attr('src', '#')
+				.addClass('list-group-item')
+				.text(layer_desc.label);
+
+			if(_this.model.visible[ix]) {
+				layer.addClass('active');
+			}
+
+			layer.click(function() {
+				_this.model.visible[ix] = !_this.model.visible[ix];
+				_this.model.trigger('change');
+				_this.trigger('setVisible', {
+					layer: layer_desc,
+					visible: _this.model.visible[ix]
+				});
+			});
+			_this.$el.append(layer);
+		});
+	}
+});
+
+
+var MainView = Backbone.View.extend({
+	el: '#ui_3d',
+
+	initialize: function(options) {
+		this.layer_cache = {};
 		this.run();
 	},
 
@@ -402,10 +442,9 @@ var SceneSummaryListView = Backbone.View.extend({
 	},
 
 	initialize: function(options) {
-		this.listenTo(this.model, 'add', this.render);
-
 		this.current_id = null;
-		// this.updateViews = options.updateViews;
+
+		this.listenTo(this.model, 'add', this.render);
 	},
 
 	takeSnapshot: function() {
@@ -445,34 +484,23 @@ var DebugFE = function() {
 
 	var _this = this;
 
-	this.main_view = new MainView({
-		layer_descs: this.layer_descs,
-		layers: this.layers
-	});
+	this.layers_config = new LayersConfig();
+
+	this.main_view = new MainView({});
 
 	// TODO: remove this dependency
 	this.scene = this.main_view.scene;
-	this.layers = this.main_view.layers;
-	this.layer_descs = this.main_view.layer_descs;
+	this.layer_cache = this.main_view.layer_cache;
 
-	// Setup layer selector
-	_.each(_this.layer_descs, function(layer_desc) {
-		var layer = $('<a/>').attr('src', '#')
-			.addClass('list-group-item').addClass('active')
-			.text(layer_desc.label);
-
-		layer.click(function() {
-			layer.toggleClass('active');
-			
-			if(layer.hasClass('active')) {
-				_this.scene.add(_this.layers[layer_desc.endpoint]);
-			} else {
-				_this.scene.remove(_this.layers[layer_desc.endpoint]);
-			}
-		});
-
-		$('#ui_layers').append(layer);
+	var config_view = new LayersView({model: this.layers_config});
+	config_view.on('setVisible', function(ev) {
+		if(ev.visible) {
+			_this.scene.add(_this.layer_cache[ev.layer.endpoint]);
+		} else {
+			_this.scene.remove(_this.layer_cache[ev.layer.endpoint]);
+		}
 	});
+	this.layers_config.trigger('change');
 
 	this.scene_summary_list = new SceneSummaryList();
 	this.scene_summary_list_view = new SceneSummaryListView({
@@ -508,15 +536,18 @@ DebugFE.prototype.updateViews = function(id) {
 
 DebugFE.prototype.updateLayers = function(data_all) {
 	var _this = this;
-	_.each(_this.layer_descs, function(layer_desc) {
+	_.each(_this.layers_config.layer_descs, function(layer_desc, ix) {
+		var visible = _this.layers_config.visible[ix];
+
 		var data = data_all[layer_desc.endpoint];
 		var object = layer_desc.generator(data);
 
-		if(_this.layers[layer_desc.endpoint] !== undefined) {
-			_this.scene.remove(_this.layers[layer_desc.endpoint]);
+		if(_this.layer_cache[layer_desc.endpoint] !== undefined) {
+			_this.scene.remove(_this.layer_cache[layer_desc.endpoint]);
 		}
-		_this.layers[layer_desc.endpoint] = object;
-		if($('#ui_layers a:contains(' + layer_desc.label + ')').hasClass('active')) {
+		_this.layer_cache[layer_desc.endpoint] = object;
+
+		if(visible) {
 			_this.scene.add(object);
 		}
 	});
