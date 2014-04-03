@@ -43,6 +43,7 @@ public:
 	Eigen::Vector2f projectToRGBCameraScreen(Eigen::Vector3f pos_world);
 
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed() const;
+	float getVoxelSize() const;
 private:
 	static std::shared_ptr<ManhattanBelief> align(const FrameBelief& frame);
 

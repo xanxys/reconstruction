@@ -5,8 +5,39 @@
 
 using VoxelIndex = std::tuple<int, int, int>;
 
+
+OrientedBox::OrientedBox(
+	Eigen::Vector3f position,
+	float ry,
+	Eigen::Vector3f size,
+	Eigen::Vector3f color,
+	bool valid) :
+	position(position), ry(ry), size(size), color(color), valid(valid) {
+}
+
+Eigen::Vector3f OrientedBox::getPosition() const {
+	return position;
+}
+
+Eigen::Vector3f OrientedBox::getSize() const {
+	return size;
+}
+
+Eigen::Vector3f OrientedBox::getColor() const {
+	return color;
+}
+
+bool OrientedBox::getValid() const {
+	return valid;
+}
+
+float OrientedBox::getRotationY() const {
+	return ry;
+}
+
+
 WallBelief::WallBelief(const WallBelief& that) :
-	log(that.log.str()), floor(that.floor) {
+	log(that.log.str()), floor(that.floor), objects(that.objects) {
 }
 
 WallBelief::WallBelief(const FloorBelief& floor, int index) :
@@ -22,6 +53,19 @@ WallBelief::WallBelief(const FloorBelief& floor, int index) :
 	// Split occupied voxels into connected components. (using 6-neighbor)
 	std::vector<std::vector<VoxelIndex>> blobs = splitCC(voxels);
 	log << blobs.size() << " voxel blobs found" << std::endl;
+	for(const auto blob : blobs) {
+		const auto pos = Eigen::Vector3f(
+			std::get<0>(blob[0]),
+			std::get<1>(blob[0]),
+			std::get<2>(blob[0])) * floor.manhattan.getVoxelSize();
+
+		objects.push_back(OrientedBox(
+			pos,
+			0,
+			Eigen::Vector3f(0.5, 0.5, 0.5),
+			Eigen::Vector3f(100, 100, 200),
+			true));
+	}
 }
 
 std::vector<std::vector<VoxelIndex>> WallBelief::splitCC(
@@ -72,4 +116,8 @@ std::vector<std::shared_ptr<WallBelief>> WallBelief::expand(const FloorBelief& f
 	std::vector<std::shared_ptr<WallBelief>> results;
 	results.push_back(std::make_shared<WallBelief>(floor, 0));
 	return results;
+}
+
+std::vector<OrientedBox> WallBelief::getObjects() const {
+	return objects;
 }

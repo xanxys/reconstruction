@@ -85,36 +85,6 @@ Eigen::Matrix3f TexturedPlane::getLocalToWorld() const {
 }
 
 
-OrientedBox::OrientedBox(
-	Eigen::Vector3f position,
-	float ry,
-	Eigen::Vector3f size,
-	Eigen::Vector3f color,
-	bool valid) :
-	position(position), ry(ry), size(size), color(color), valid(valid) {
-}
-
-Eigen::Vector3f OrientedBox::getPosition() const {
-	return position;
-}
-
-Eigen::Vector3f OrientedBox::getSize() const {
-	return size;
-}
-
-Eigen::Vector3f OrientedBox::getColor() const {
-	return color;
-}
-
-bool OrientedBox::getValid() const {
-	return valid;
-}
-
-float OrientedBox::getRotationY() const {
-	return ry;
-}
-
-
 SceneBelief::SceneBelief(const WallBelief& w) :
 	wall(w), floor(wall.floor), manhattan(floor.manhattan), frame(manhattan.frame) {
 }
@@ -400,6 +370,17 @@ cv::Mat SceneBelief::growTexture(const cv::Mat core, int width, int height) {
 }
 
 std::vector<OrientedBox> SceneBelief::getObjects() {
+	const auto real_objects = wall.getObjects();
+	const auto fake_objects = sampleObjects();
+	return real_objects;
+
+	std::vector<OrientedBox> results;
+	results.insert(results.end(), real_objects.begin(), real_objects.end());
+	results.insert(results.end(), fake_objects.begin(), fake_objects.end());
+	return results;
+}
+
+std::vector<OrientedBox> SceneBelief::sampleObjects() {
 	std::vector<OrientedBox> objects;
 
 	const auto voxels = getVoxelsDetailed();

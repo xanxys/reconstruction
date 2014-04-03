@@ -227,3 +227,7 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 	}
 	return voxel_merged;
 }
+
+float ManhattanBelief::getVoxelSize() const {
+	return voxel_size;
+}

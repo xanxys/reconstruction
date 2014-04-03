@@ -39,30 +39,6 @@ public:
 };
 
 
-class OrientedBox {
-public:
-	OrientedBox(
-		Eigen::Vector3f position,
-		float ry,
-		Eigen::Vector3f size,
-		Eigen::Vector3f color,
-		bool valid);
-
-	Eigen::Vector3f getPosition() const;
-	Eigen::Vector3f getSize() const;
-	Eigen::Vector3f getColor() const;
-	float getRotationY() const;
-	bool getValid() const;
-private:
-	float ry;
-
-	Eigen::Vector3f position;
-	Eigen::Vector3f size;
-	Eigen::Vector3f color;
-	bool valid;
-};
-
-
 // A coherent set of belief about the scene, which may or may not be
 // visible. It's a node of search tree.
 //
@@ -94,6 +70,8 @@ public:
 
 	std::vector<OrientedBox> getObjects();
 protected:
+	std::vector<OrientedBox> sampleObjects();
+	
 	// Extract textured plane from a plane with Manhattan normal.
 	// index, distance means the coordinate of dir.
 	// (e.g. XN,XP -> index, distance is x coord of the plane)
