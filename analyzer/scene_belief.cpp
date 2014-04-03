@@ -115,8 +115,8 @@ float OrientedBox::getRotationY() const {
 }
 
 
-SceneBelief::SceneBelief(const FloorBelief& f) :
-	floor(f), manhattan(floor.manhattan), frame(manhattan.frame) {
+SceneBelief::SceneBelief(const WallBelief& w) :
+	wall(w), floor(wall.floor), manhattan(floor.manhattan), frame(manhattan.frame) {
 }
 
 std::string SceneBelief::getLog() {

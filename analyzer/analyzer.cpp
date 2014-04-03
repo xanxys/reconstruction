@@ -20,16 +20,17 @@ SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) :
 std::shared_ptr<SceneBelief> SceneAnalyzer::getBestBelief() {
 	auto manhattans = ManhattanBelief::expand(frame);
 	auto floors = FloorBelief::expand(*manhattans[0]);
-
-	// TODO: (possibly) remove SceneBelief
-	return std::make_shared<SceneBelief>(*floors[0]);
+	auto walls = WallBelief::expand(*floors[0]);
+	return std::make_shared<SceneBelief>(*walls[0]);
 }
 
 std::vector<std::shared_ptr<SceneBelief>> SceneAnalyzer::getAllBelief() {
 	std::vector<std::shared_ptr<SceneBelief>> results;
 	for(auto& manhattan : ManhattanBelief::expand(frame)) {
 		for(auto& floor : FloorBelief::expand(*manhattan)) {
-			results.push_back(std::make_shared<SceneBelief>(*floor));
+			for(auto& wall : WallBelief::expand(*floor)) {
+				results.push_back(std::make_shared<SceneBelief>(*wall));
+			}
 		}
 	}
 	return results;

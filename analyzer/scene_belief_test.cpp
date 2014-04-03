@@ -19,7 +19,8 @@ protected:
 		FrameBelief frame(cloud);
 		auto manhattans = ManhattanBelief::expand(frame);
 		auto floors = FloorBelief::expand(*manhattans[0]);
-		scene.reset(new SceneBelief(*floors[0]));
+		auto walls = WallBelief::expand(*floors[0]);
+		scene.reset(new SceneBelief(*walls[0]));
 	}
 	std::unique_ptr<SceneBelief> scene;
 };

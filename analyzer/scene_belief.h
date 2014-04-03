@@ -9,6 +9,7 @@
 #include "floor_belief.h"
 #include "frame_belief.h"
 #include "manhattan_belief.h"
+#include "wall_belief.h"
 
 
 // Finite plane (quad) with texture.
@@ -62,8 +63,6 @@ private:
 };
 
 
-class WallBelief {
-};
 
 
 class ObjectsBelief {
@@ -81,7 +80,7 @@ class ObjectsBelief {
 // * need to care about belief dependencies all the time, which is pain
 class SceneBelief {
 public:
-	SceneBelief(const FloorBelief& floor);
+	SceneBelief(const WallBelief& wall);
 
 	// attribs
 	std::string getLog();
@@ -112,7 +111,8 @@ protected:
 	// Order is important. Members are initialized in this order.
 	// So, to initialize references properly, we must copy floor first
 	// and then create references into it. (NOT TO constructor arguments)
-	FloorBelief floor;
+	WallBelief wall;
+	FloorBelief& floor;
 	ManhattanBelief& manhattan;
 	FrameBelief& frame;
 };
