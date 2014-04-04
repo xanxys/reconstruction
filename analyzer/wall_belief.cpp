@@ -52,18 +52,31 @@ WallBelief::WallBelief(const FloorBelief& floor, int index) :
 	std::vector<std::vector<VoxelIndex>> blobs = splitCC(voxels);
 	log << blobs.size() << " voxel blobs found" << std::endl;
 	for(const auto blob : blobs) {
-		const auto pos = Eigen::Vector3f(
-			std::get<0>(blob[0]),
-			std::get<1>(blob[0]),
-			std::get<2>(blob[0])) * floor.manhattan.getVoxelSize();
-
-		objects.push_back(OrientedBox(
-			pos,
-			0,
-			Eigen::Vector3f(0.5, 0.5, 0.5),
-			Eigen::Vector3f(100, 100, 200),
-			true));
+		objects.push_back(guessBoxForBlob(floor, blob));
 	}
+}
+
+OrientedBox WallBelief::guessBoxForBlob(const FloorBelief& floor, std::vector<VoxelIndex> blob) {
+	assert(blob.size() > 0);
+
+	Eigen::Vector3f accum(0, 0, 0);
+	for(const VoxelIndex index : blob) {
+		accum += indexToVector(index).cast<float>() * floor.manhattan.getVoxelSize();
+	}
+	const Eigen::Vector3f avg_pos = accum / blob.size();
+
+	Eigen::Vector3f half_size(0, 0, 0);
+	for(const VoxelIndex index : blob) {
+		auto pos = indexToVector(index).cast<float>() * floor.manhattan.getVoxelSize();
+		half_size = half_size.cwiseMax((pos - avg_pos).cwiseAbs());
+	}
+
+	return OrientedBox(
+		avg_pos,
+		0,
+		half_size * 2,
+		Eigen::Vector3f(100, 100, 200),
+		true);
 }
 
 std::vector<std::vector<VoxelIndex>> WallBelief::splitCC(

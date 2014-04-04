@@ -50,6 +50,7 @@ public:
 	WallBelief(const WallBelief& that);
 	WallBelief(const FloorBelief& floor, int index);
 	static std::vector<std::shared_ptr<WallBelief>> expand(const FloorBelief& floor);
+	static OrientedBox guessBoxForBlob(const FloorBelief& floor, std::vector<VoxelIndex> blob);
 
 	std::vector<OrientedBox> getObjects() const;
 
