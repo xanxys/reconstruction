@@ -16,6 +16,10 @@ public:
 	SceneAnalyzer(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 	std::shared_ptr<SceneBelief> getBestBelief();
 	std::vector<std::shared_ptr<SceneBelief>> getAllBelief();
+
+	// Average L1 norm
+	// 0:complete match
+	static float getScore(const SceneBelief& belief);
 private:
 	FrameBelief frame;
 };

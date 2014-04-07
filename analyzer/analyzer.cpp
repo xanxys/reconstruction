@@ -18,10 +18,12 @@ SceneAnalyzer::SceneAnalyzer(const ColorCloud::ConstPtr& raw_cloud) :
 }
 
 std::shared_ptr<SceneBelief> SceneAnalyzer::getBestBelief() {
-	auto manhattans = ManhattanBelief::expand(frame);
-	auto floors = FloorBelief::expand(*manhattans[0]);
-	auto walls = WallBelief::expand(*floors[0]);
-	return std::make_shared<SceneBelief>(*walls[0]);
+	const auto results = getAllBelief();
+	return *std::min_element(results.begin(), results.end(),
+		[](const std::shared_ptr<SceneBelief>& a,
+			const std::shared_ptr<SceneBelief> b) {
+			return getScore(*a) < getScore(*b);
+		});
 }
 
 std::vector<std::shared_ptr<SceneBelief>> SceneAnalyzer::getAllBelief() {
@@ -34,4 +36,17 @@ std::vector<std::shared_ptr<SceneBelief>> SceneAnalyzer::getAllBelief() {
 		}
 	}
 	return results;
+}
+
+float SceneAnalyzer::getScore(const SceneBelief& belief) {
+	const cv::Mat target = belief.getRGBImage();
+	const cv::Mat render = belief.renderRGBImage();
+
+	cv::Mat delta;
+	cv::absdiff(target, render, delta);
+
+	const auto ds = cv::sum(delta);
+	const float norm_l1 = ds[0] + ds[1] + ds[2];
+
+	return norm_l1 / (ds.rows * ds.cols);
 }
