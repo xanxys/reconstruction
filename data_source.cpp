@@ -17,9 +17,99 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
+
+MSDataSource::MSDataSource(std::string dataset_path_prefix) :
+	dataset_path_prefix(dataset_path_prefix) {
+}
+
+std::vector<std::string> MSDataSource::listScenes() {
+	const std::vector<std::string> places = {
+		"chess",
+		"heads",
+		"stairs",
+		"fire",
+		"office",
+		"pumpkin",
+		"redkitchen",
+	};
+
+	std::vector<std::string> list;
+	for(const auto& place : places) {
+		list.push_back(place + "-1");
+		list.push_back(place + "-100");
+		list.push_back(place + "-200");
+		list.push_back(place + "-300");
+	}
+	return list;
+}
+
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr MSDataSource::getScene(std::string name_and_frame) {
+	const int index = name_and_frame.find("-");
+	const std::string name = name_and_frame.substr(0, index);
+	const int frame = std::stoi(name_and_frame.substr(index + 1));
+
+	return loadFromMSDataset(dataset_path_prefix +
+		"/" + name + "-1/" + boost::str(boost::format("frame-%06d") % frame));
+}
+
+// Load http://research.microsoft.com/en-us/projects/7-scenes/
+// Quote:
+// Please note: The RGB and depth camera have not been calibrated
+// and we can't provide calibration parameters at the moment.
+// The recorded frames correspond to the raw, uncalibrated camera images.
+// In the KinectFusion pipeline we used the following default intrinsics
+// for the depth camera: Principle point (320,240), Focal length (585,585).
+ColorCloud::ConstPtr MSDataSource::loadFromMSDataset(std::string path) {
+	cv::Mat rgb = cv::imread(path +".color.png", CV_LOAD_IMAGE_COLOR);
+	cv::Mat depth_mm = cv::imread(path +".depth.png", CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
+
+	if(rgb.size() != cv::Size(640, 480) || depth_mm.size() != cv::Size(640, 480)) {
+		throw std::runtime_error("Invalid format");
+	}
+
+	// Camera parameter
+	const float cx = 320;
+	const float cy = 240;
+	const float fx = 585;
+	const float fy = 585;
+
+	ColorCloud::Ptr cloud(new ColorCloud());
+	cloud->width = 640;
+	cloud->height = 480;
+	for(int y : boost::irange(0, 480)) {
+		for(int x : boost::irange(0, 640)) {
+			pcl::PointXYZRGBA pt;
+			const uint16_t depth = depth_mm.at<uint16_t>(y, x);
+			if(depth == 0xffff || depth < 10) {
+				pt.x = std::nan("");
+				pt.y = std::nan("");
+				pt.z = std::nan("");
+			} else {
+				pt.z = depth / 1000.0;
+
+				pt.x = (x - cx) / fx * pt.z;
+				pt.y = (y - cy) / fy * pt.z;
+			}
+
+			const auto color = rgb.at<cv::Vec3b>(y, x);
+			pt.r = color[0];
+			pt.g = color[1];
+			pt.b = color[2];
+
+			cloud->points.push_back(pt);
+		}
+	}
+	assert(cloud->points.size() == 640 * 480);
+	return cloud;
+}
+
+
 DataSource::DataSource(bool enable_xtion) :
 	new_id(0),
 	dataset_path_prefix("/data-new/research/2014/reconstruction") {
+
+	sources["MS"].reset(new MSDataSource(dataset_path_prefix + "/MS"));
+
 	if(enable_xtion) {
 		pcl::Grabber* source = new pcl::OpenNIGrabber();
 
@@ -34,24 +124,13 @@ DataSource::DataSource(bool enable_xtion) :
 std::vector<std::string> DataSource::listScenes() {
 	std::vector<std::string> list;
 
-	// Add MS source.
-	std::vector<std::string> prefices = {
-		"MS-chess-",
-		"MS-heads-",
-		"MS-stairs-",
-		"MS-fire-",
-		"MS-office-",
-		"MS-pumpkin-",
-		"MS-redkitchen-",
-	};
-
-	for(const auto& prefix : prefices) {
-		list.push_back(prefix + "1");
-		list.push_back(prefix + "100");
-		list.push_back(prefix + "200");
-		list.push_back(prefix + "300");
+	for(const auto& source : sources) {
+		for(const std::string& sub_id : source.second->listScenes()) {
+			list.push_back(source.first + "-" + sub_id);
+		}
 	}
 
+	// TODO: remove these
 	// Add xtion source.
 	for(const auto& cloud : xtion_clouds) {
 		list.push_back(cloud.first);
@@ -64,16 +143,19 @@ std::vector<std::string> DataSource::listScenes() {
 }
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id) {
-	if(id.size() >= 3 && id.substr(0, 3) == "MS-") {
-		const std::string name_and_frame = id.substr(3);
-		
-		int index = name_and_frame.find("-");
-		const std::string name = name_and_frame.substr(0, index);
-		const int frame = std::stoi(name_and_frame.substr(index + 1));
+	const int index = id.find("-");
+	if(index != std::string::npos) {
+		const std::string source_prefix = id.substr(0, index);
+		const std::string source_id = id.substr(index + 1);
 
-		return loadFromMSDataset(dataset_path_prefix + "/MS/" +
-			name + "-1/" + boost::str(boost::format("frame-%06d") % frame));
-	} else if(id == "NYU") {
+		for(const auto& source : sources) {
+			if(source.first == source_prefix) {
+				return source.second->getScene(source_id);
+			}
+		}
+	}
+
+	if(id == "NYU") {
 		return loadFromNYU2("");
 	} else {
 		if(xtion_clouds.find(id) != xtion_clouds.end()) {
@@ -182,57 +264,6 @@ ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
 	return cloud;
 }
 
-// Load http://research.microsoft.com/en-us/projects/7-scenes/
-// Quote:
-// Please note: The RGB and depth camera have not been calibrated
-// and we can't provide calibration parameters at the moment.
-// The recorded frames correspond to the raw, uncalibrated camera images.
-// In the KinectFusion pipeline we used the following default intrinsics
-// for the depth camera: Principle point (320,240), Focal length (585,585).
-ColorCloud::ConstPtr DataSource::loadFromMSDataset(std::string path) {
-	cv::Mat rgb = cv::imread(path +".color.png", CV_LOAD_IMAGE_COLOR);
-	cv::Mat depth_mm = cv::imread(path +".depth.png", CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
-
-	if(rgb.size() != cv::Size(640, 480) || depth_mm.size() != cv::Size(640, 480)) {
-		throw std::runtime_error("Invalid format");
-	}
-
-	// Camera parameter
-	const float cx = 320;
-	const float cy = 240;
-	const float fx = 585;
-	const float fy = 585;
-
-	ColorCloud::Ptr cloud(new ColorCloud());
-	cloud->width = 640;
-	cloud->height = 480;
-	for(int y : boost::irange(0, 480)) {
-		for(int x : boost::irange(0, 640)) {
-			pcl::PointXYZRGBA pt;
-			const uint16_t depth = depth_mm.at<uint16_t>(y, x);
-			if(depth == 0xffff || depth < 10) {
-				pt.x = std::nan("");
-				pt.y = std::nan("");
-				pt.z = std::nan("");
-			} else {
-				pt.z = depth / 1000.0;
-
-				pt.x = (x - cx) / fx * pt.z;
-				pt.y = (y - cy) / fy * pt.z;
-			}
-
-			const auto color = rgb.at<cv::Vec3b>(y, x);
-			pt.r = color[0];
-			pt.g = color[1];
-			pt.b = color[2];
-
-			cloud->points.push_back(pt);
-		}
-	}
-	assert(cloud->points.size() == 640 * 480);
-	return cloud;
-}
-
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::loadFromNYU2(std::string path) {
 	const std::string depth_path = dataset_path_prefix + "/NYU2/basement_0001a/d-1316653600.562170-2521435723.pgm";
 	const std::string rgb_path = dataset_path_prefix + "/NYU2/basement_0001a/r-1316653581.608081-1384510396.ppm";
@@ -265,7 +296,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::loadFromNYU2(std::strin
 			pcl::PointXYZRGBA pt;
 			uint16_t depth_raw = depth_map.at<uint16_t>(y, x);
 			depth_raw = ((depth_raw & 0xff) << 8) + (depth_raw >> 8);  // swap endian
-			
+
 			const float depth = depthParam1 / (depthParam2 - depth_raw);
 			std::cout << depth << std::endl;
 
