@@ -104,69 +104,107 @@ ColorCloud::ConstPtr MSDataSource::loadFromMSDataset(std::string path) {
 }
 
 
-DataSource::DataSource(bool enable_xtion) :
-	new_id(0),
-	dataset_path_prefix("/data-new/research/2014/reconstruction") {
-
-	sources["MS"].reset(new MSDataSource(dataset_path_prefix + "/MS"));
-
-	if(enable_xtion) {
-		pcl::Grabber* source = new pcl::OpenNIGrabber();
-
-		boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
-			boost::bind(&DataSource::cloudCallback, this, _1);
-
-		source->registerCallback(f);
-		source->start();
-	}
+NYU2DataSource::NYU2DataSource(std::string dataset_path_prefix) :
+	dataset_path_prefix(dataset_path_prefix) {
 }
 
-std::vector<std::string> DataSource::listScenes() {
-	std::vector<std::string> list;
-
-	for(const auto& source : sources) {
-		for(const std::string& sub_id : source.second->listScenes()) {
-			list.push_back(source.first + "-" + sub_id);
-		}
-	}
-
-	// TODO: remove these
-	// Add xtion source.
-	for(const auto& cloud : xtion_clouds) {
-		list.push_back(cloud.first);
-	}
-
-	// NYU2 source
-	list.push_back("NYU");
-
+std::vector<std::string> NYU2DataSource::listScenes() {
+	std::vector<std::string> list = {
+		"test"
+	};
 	return list;
 }
 
-pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id) {
-	const int index = id.find("-");
-	if(index != std::string::npos) {
-		const std::string source_prefix = id.substr(0, index);
-		const std::string source_id = id.substr(index + 1);
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr NYU2DataSource::getScene(std::string name_and_frame) {
+	const std::string depth_path = dataset_path_prefix + "/basement_0001a/d-1316653600.562170-2521435723.pgm";
+	const std::string rgb_path = dataset_path_prefix + "/basement_0001a/r-1316653581.608081-1384510396.ppm";
 
-		for(const auto& source : sources) {
-			if(source.first == source_prefix) {
-				return source.second->getScene(source_id);
+	cv::Mat depth_map = cv::imread(depth_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
+	assert(depth_map.type() == CV_16U);
+
+	cv::Mat rgb = cv::imread(rgb_path, CV_LOAD_IMAGE_COLOR);
+	assert(rgb.type() == CV_8UC3);
+
+	// TODO: Use values from NYU2 toolbox matlab code.
+	// Camera parameter
+	// http://cs.nyu.edu/~silberman/code/toolbox_nyu_depth_v2.zip
+
+	// Depth Intrinsic Parameters
+	const float fx_d = 5.8262448167737955e+02;
+	const float fy_d = 5.8269103270988637e+02;
+	const float cx_d = 3.1304475870804731e+02;
+	const float cy_d = 2.3844389626620386e+02;
+
+	// Parameters for making depth absolute.
+	const float depthParam1 = 351.3;
+	const float depthParam2 = 1092.5;
+
+	ColorCloud::Ptr cloud(new ColorCloud());
+	cloud->width = 640;
+	cloud->height = 480;
+	for(int y : boost::irange(0, 480)) {
+		for(int x : boost::irange(0, 640)) {
+			pcl::PointXYZRGBA pt;
+			uint16_t depth_raw = depth_map.at<uint16_t>(y, x);
+			depth_raw = ((depth_raw & 0xff) << 8) + (depth_raw >> 8);  // swap endian
+
+			const float depth = depthParam1 / (depthParam2 - depth_raw);
+			std::cout << depth << std::endl;
+
+			if(depth < 0.1 || depth > 10) {
+				pt.x = std::nan("");
+				pt.y = std::nan("");
+				pt.z = std::nan("");
+			} else {
+				pt.z = depth;
+
+				pt.x = (x - cx_d) / fx_d * pt.z;
+				pt.y = (y - cy_d) / fy_d * pt.z;
 			}
+
+			const auto color = rgb.at<cv::Vec3b>(y, x);
+			pt.r = color[0];
+			pt.g = color[1];
+			pt.b = color[2];
+
+			cloud->points.push_back(pt);
 		}
 	}
-
-	if(id == "NYU") {
-		return loadFromNYU2("");
-	} else {
-		if(xtion_clouds.find(id) != xtion_clouds.end()) {
-			return xtion_clouds[id];
-		}
-	}
-
-	throw std::runtime_error("Specified scene not found");
+	assert(cloud->points.size() == 640 * 480);
+	return cloud;
 }
 
-std::string DataSource::takeSnapshot() {
+
+XtionDataSource::XtionDataSource() : new_id(0) {
+	pcl::Grabber* source = new pcl::OpenNIGrabber();
+
+	boost::function<void(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
+		boost::bind(&XtionDataSource::cloudCallback, this, _1);
+
+	source->registerCallback(f);
+	source->start();
+}
+
+void XtionDataSource::cloudCallback(const ColorCloud::ConstPtr& cloud) {
+	{
+		std::lock_guard<std::mutex> lock(latest_cloud_lock);
+		latest_cloud = cloud;
+	}
+}
+
+std::vector<std::string> XtionDataSource::listScenes() {
+	std::vector<std::string> list;
+	for(const auto& cloud : xtion_clouds) {
+		list.push_back(cloud.first);
+	}
+	return list;
+}
+
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr XtionDataSource::getScene(std::string id) {
+	return xtion_clouds[id];
+}
+
+std::string XtionDataSource::takeSnapshot() {
 	const std::string id = std::to_string(new_id++);
 	{
 		std::lock_guard<std::mutex> lock(latest_cloud_lock);
@@ -176,12 +214,46 @@ std::string DataSource::takeSnapshot() {
 	return id;
 }
 
-void DataSource::cloudCallback(const ColorCloud::ConstPtr& cloud) {
-	{
-		std::lock_guard<std::mutex> lock(latest_cloud_lock);
-		latest_cloud = cloud;
+
+DataSource::DataSource(bool enable_xtion) : xtion_prefix("xtion") {
+	const std::string dataset_path_prefix = "/data-new/research/2014/reconstruction";
+
+	sources["MS"].reset(new MSDataSource(dataset_path_prefix + "/MS"));
+	sources["NYU"].reset(new NYU2DataSource(dataset_path_prefix + "/NYU2"));
+
+	if(enable_xtion) {
+		xtion = new XtionDataSource();
+		sources[xtion_prefix].reset(xtion);
+	} else {
+		xtion = nullptr;
 	}
 }
+
+std::vector<std::string> DataSource::listScenes() {
+	std::vector<std::string> list;
+	for(const auto& source : sources) {
+		for(const std::string& sub_id : source.second->listScenes()) {
+			list.push_back(source.first + "-" + sub_id);
+		}
+	}
+	return list;
+}
+
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id) {
+	const int index = id.find("-");
+	assert(index != std::string::npos);
+
+	const std::string source_prefix = id.substr(0, index);
+	const std::string source_id = id.substr(index + 1);
+
+	return sources[source_prefix]->getScene(source_id);
+}
+
+std::string DataSource::takeSnapshot() {
+	assert(xtion);
+	return xtion_prefix + "-" + xtion->takeSnapshot();
+}
+
 
 float unsafeParseFloat(const uint8_t* ptr) {
 	uint32_t v =
@@ -261,64 +333,5 @@ ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
 		cloud->points.push_back(pt);
 	}
 
-	return cloud;
-}
-
-pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::loadFromNYU2(std::string path) {
-	const std::string depth_path = dataset_path_prefix + "/NYU2/basement_0001a/d-1316653600.562170-2521435723.pgm";
-	const std::string rgb_path = dataset_path_prefix + "/NYU2/basement_0001a/r-1316653581.608081-1384510396.ppm";
-
-	cv::Mat depth_map = cv::imread(depth_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
-	assert(depth_map.type() == CV_16U);
-
-	cv::Mat rgb = cv::imread(rgb_path, CV_LOAD_IMAGE_COLOR);
-	assert(rgb.type() == CV_8UC3);
-
-	// TODO: Use values from NYU2 toolbox matlab code.
-	// Camera parameter
-	// http://cs.nyu.edu/~silberman/code/toolbox_nyu_depth_v2.zip
-
-	// Depth Intrinsic Parameters
-	const float fx_d = 5.8262448167737955e+02;
-	const float fy_d = 5.8269103270988637e+02;
-	const float cx_d = 3.1304475870804731e+02;
-	const float cy_d = 2.3844389626620386e+02;
-
-	// Parameters for making depth absolute.
-	const float depthParam1 = 351.3;
-	const float depthParam2 = 1092.5;
-
-	ColorCloud::Ptr cloud(new ColorCloud());
-	cloud->width = 640;
-	cloud->height = 480;
-	for(int y : boost::irange(0, 480)) {
-		for(int x : boost::irange(0, 640)) {
-			pcl::PointXYZRGBA pt;
-			uint16_t depth_raw = depth_map.at<uint16_t>(y, x);
-			depth_raw = ((depth_raw & 0xff) << 8) + (depth_raw >> 8);  // swap endian
-
-			const float depth = depthParam1 / (depthParam2 - depth_raw);
-			std::cout << depth << std::endl;
-
-			if(depth < 0.1 || depth > 10) {
-				pt.x = std::nan("");
-				pt.y = std::nan("");
-				pt.z = std::nan("");
-			} else {
-				pt.z = depth;
-
-				pt.x = (x - cx_d) / fx_d * pt.z;
-				pt.y = (y - cy_d) / fy_d * pt.z;
-			}
-
-			const auto color = rgb.at<cv::Vec3b>(y, x);
-			pt.r = color[0];
-			pt.g = color[1];
-			pt.b = color[2];
-
-			cloud->points.push_back(pt);
-		}
-	}
-	assert(cloud->points.size() == 640 * 480);
 	return cloud;
 }
