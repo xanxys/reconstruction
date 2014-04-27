@@ -492,7 +492,8 @@ var SceneSummaryListView = Backbone.View.extend({
 	el: '#scene_list',
 
 	events: {
-		"click #ui_update": "takeSnapshot"
+		"click #ui_update": "takeSnapshot",
+		"click .ui_random": "selectRandom"
 	},
 
 	initialize: function(options) {
@@ -508,6 +509,14 @@ var SceneSummaryListView = Backbone.View.extend({
 			_this.trigger('select', _this.current_id);
 			_this.model.fetch();
 		});
+	},
+
+	selectRandom: function() {
+		var model_index = Math.floor(Math.random() * this.model.length);
+
+		this.current_id = this.model.at(model_index).id;
+		this.render();
+		this.trigger('select', this.current_id);
 	},
 
 	render: function() {
@@ -528,6 +537,8 @@ var SceneSummaryListView = Backbone.View.extend({
 			});
 			_this.$('#ui_scenes').append(entry);
 		});
+
+		this.$('.scene_status').text(this.model.length + ' scenes');
 	}
 });
 
