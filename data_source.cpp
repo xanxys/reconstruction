@@ -6,6 +6,7 @@
 #define linux 1
 #define __x86_64__ 1
 
+#include <boost/format.hpp>
 #include <boost/range/irange.hpp>
 #include <opencv2/opencv.hpp>
 #include <pcl/io/openni_grabber.h>
@@ -29,16 +30,25 @@ DataSource::DataSource(bool enable_xtion) : new_id(0) {
 }
 
 std::vector<std::string> DataSource::listScenes() {
-	std::vector<std::string> list = {
-		"MS-chess-1",
-		"MS-heads-1",
-		"MS-stairs-1",
-		"MS-fire-1",
-		"MS-office-1",
-		"MS-pumpkin-1",
-		"MS-redkitchen-1",
+	std::vector<std::string> list;
+
+	// Add MS source.
+	std::vector<std::string> prefices = {
+		"MS-chess-",
+		"MS-heads-",
+		"MS-stairs-",
+		"MS-fire-",
+		"MS-office-",
+		"MS-pumpkin-",
+		"MS-redkitchen-",
 	};
 
+	for(const auto& prefix : prefices) {
+		list.push_back(prefix + "1");
+		list.push_back(prefix + "100");
+	}
+
+	// Add xtion source.
 	for(const auto& cloud : xtion_clouds) {
 		list.push_back(cloud.first);
 	}
@@ -48,7 +58,14 @@ std::vector<std::string> DataSource::listScenes() {
 
 pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id) {
 	if(id.size() >= 3 && id.substr(0, 3) == "MS-") {
-		return loadFromMSDataset("data/MS/" + id.substr(3) + "/frame-000000");
+		const std::string name_and_frame = id.substr(3);
+		
+		int index = name_and_frame.find("-");
+		const std::string name = name_and_frame.substr(0, index);
+		const int frame = std::stoi(name_and_frame.substr(index + 1));
+
+		return loadFromMSDataset("/data-new/research/2014/reconstruction/MS/" +
+			name + "-1/" + boost::str(boost::format("frame-%06d") % frame));
 	} else {
 		if(xtion_clouds.find(id) != xtion_clouds.end()) {
 			return xtion_clouds[id];
