@@ -78,8 +78,7 @@ private:
 	std::map<std::string, std::unique_ptr<DataSourceInterface>> sources;
 
 	const std::string xtion_prefix;
-	
+
 	// optional XtionDataSource (borrowed)
 	XtionDataSource* xtion;
 };
-

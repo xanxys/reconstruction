@@ -149,7 +149,6 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr NYU2DataSource::getScene(std::strin
 			depth_raw = ((depth_raw & 0xff) << 8) + (depth_raw >> 8);  // swap endian
 
 			const float depth = depthParam1 / (depthParam2 - depth_raw);
-			std::cout << depth << std::endl;
 
 			if(depth < 0.1 || depth > 10) {
 				pt.x = std::nan("");
@@ -252,86 +251,4 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id
 std::string DataSource::takeSnapshot() {
 	assert(xtion);
 	return xtion_prefix + "-" + xtion->takeSnapshot();
-}
-
-
-float unsafeParseFloat(const uint8_t* ptr) {
-	uint32_t v =
-	(((uint32_t)ptr[3]) << 24) | (((uint32_t)ptr[2]) << 16) |
-	(((uint32_t)ptr[1]) << 8) | (((uint32_t)ptr[0]));
-
-	return *reinterpret_cast<const float*>(ptr);
-}
-
-float unsafeParseFloatBE(const uint8_t* ptr) {
-	uint32_t v =
-	(((uint32_t)ptr[0]) << 24) | (((uint32_t)ptr[1]) << 16) |
-	(((uint32_t)ptr[2]) << 8) | (((uint32_t)ptr[3]));
-
-	return *reinterpret_cast<const float*>(&v);
-}
-
-// Not working! And cornell data is super meessy! Don't touch it
-// unless you're super bored.
-ColorCloud::ConstPtr loadFromCornellDataset(std::string path) {
-	sensor_msgs::PointCloud2::Ptr cloud_org(new sensor_msgs::PointCloud2());
-	Eigen::Vector4f camera_pos;
-	Eigen::Quaternionf camera_rot;
-	if(pcl::io::loadPCDFile(path, *cloud_org, camera_pos, camera_rot) < 0) {
-		throw std::runtime_error("PCD load failed");
-	}
-
-	// Convert to our format.
-	if(cloud_org->width * cloud_org->height != 640 * 480) {
-		throw std::runtime_error("Unexpected frame size (you need to use single-frame dataset)");
-	}
-
-	std::cout << "IsBigEndian " << static_cast<bool>(cloud_org->is_bigendian) << std::endl;
-	for(const auto& field : cloud_org->fields) {
-		std::cout << "Field " << field.name << " @" << field.offset << " ::" << static_cast<int>(field.datatype) << std::endl;
-	}
-
-	ColorCloud::Ptr cloud(new ColorCloud());
-	//pcl::fromROSMsg(*cloud_org, *cloud);
-	cloud->width = 640;
-	cloud->height = 480;
-	//return cloud;
-	const uint64_t stride = 48;
-	const uint64_t offset_x = 19;
-	const uint64_t offset_y = 15;
-	const uint64_t offset_z = 11;
-	const int offset_r = 16;
-	const int offset_g = 20;
-	const int offset_b = 18;
-
-	if(cloud_org->data.size() != 640 * 480 * stride) {
-		throw std::runtime_error("Unexpected point format (data size=" +
-			std::to_string(cloud_org->data.size()));
-	}
-
-	for(int i : boost::irange(0, 640 * 480)) {
-		pcl::PointXYZRGBA pt;
-		pt.x = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_x));
-		pt.y = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_y));
-		pt.z = unsafeParseFloat(cloud_org->data.data() + (i * stride + offset_z));
-
-		// +3 is good. +2,+1 shows some random pattern. +0 alamost black. (Z)
-		// bigendian float?
-		//pt.r = *(cloud_org->data.data() + (i * stride + offset_z + 3 + 8));
-		//pt.g = *(cloud_org->data.data() + (i * stride + offset_z + 3 + 4));
-		
-
-		float v = 
-		*(cloud_org->data.data() + (i * stride + 8 + 4)) * 255.0 +
-		*(cloud_org->data.data() + (i * stride + 8 + 3));
-
-		pt.b = v / 2;
-
-
-		//std::cout << "LE " << pt.x << std::endl;
-		//std::cout << "BE " << unsafeParseFloatBE(cloud_org->data.data() + (i * stride + offset_x)) << std::endl;
-		cloud->points.push_back(pt);
-	}
-
-	return cloud;
 }
