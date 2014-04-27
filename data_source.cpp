@@ -17,7 +17,9 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
-DataSource::DataSource(bool enable_xtion) : new_id(0) {
+DataSource::DataSource(bool enable_xtion) :
+	new_id(0),
+	dataset_path_prefix("/data-new/research/2014/reconstruction") {
 	if(enable_xtion) {
 		pcl::Grabber* source = new pcl::OpenNIGrabber();
 
@@ -46,12 +48,17 @@ std::vector<std::string> DataSource::listScenes() {
 	for(const auto& prefix : prefices) {
 		list.push_back(prefix + "1");
 		list.push_back(prefix + "100");
+		list.push_back(prefix + "200");
+		list.push_back(prefix + "300");
 	}
 
 	// Add xtion source.
 	for(const auto& cloud : xtion_clouds) {
 		list.push_back(cloud.first);
 	}
+
+	// NYU2 source
+	list.push_back("NYU");
 
 	return list;
 }
@@ -64,8 +71,10 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id
 		const std::string name = name_and_frame.substr(0, index);
 		const int frame = std::stoi(name_and_frame.substr(index + 1));
 
-		return loadFromMSDataset("/data-new/research/2014/reconstruction/MS/" +
+		return loadFromMSDataset(dataset_path_prefix + "/MS/" +
 			name + "-1/" + boost::str(boost::format("frame-%06d") % frame));
+	} else if(id == "NYU") {
+		return loadFromNYU2("");
 	} else {
 		if(xtion_clouds.find(id) != xtion_clouds.end()) {
 			return xtion_clouds[id];
@@ -210,6 +219,65 @@ ColorCloud::ConstPtr DataSource::loadFromMSDataset(std::string path) {
 
 				pt.x = (x - cx) / fx * pt.z;
 				pt.y = (y - cy) / fy * pt.z;
+			}
+
+			const auto color = rgb.at<cv::Vec3b>(y, x);
+			pt.r = color[0];
+			pt.g = color[1];
+			pt.b = color[2];
+
+			cloud->points.push_back(pt);
+		}
+	}
+	assert(cloud->points.size() == 640 * 480);
+	return cloud;
+}
+
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::loadFromNYU2(std::string path) {
+	const std::string depth_path = dataset_path_prefix + "/NYU2/basement_0001a/d-1316653600.562170-2521435723.pgm";
+	const std::string rgb_path = dataset_path_prefix + "/NYU2/basement_0001a/r-1316653581.608081-1384510396.ppm";
+
+	cv::Mat depth_map = cv::imread(depth_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
+	assert(depth_map.type() == CV_16U);
+
+	cv::Mat rgb = cv::imread(rgb_path, CV_LOAD_IMAGE_COLOR);
+	assert(rgb.type() == CV_8UC3);
+
+	// TODO: Use values from NYU2 toolbox matlab code.
+	// Camera parameter
+	// http://cs.nyu.edu/~silberman/code/toolbox_nyu_depth_v2.zip
+
+	// Depth Intrinsic Parameters
+	const float fx_d = 5.8262448167737955e+02;
+	const float fy_d = 5.8269103270988637e+02;
+	const float cx_d = 3.1304475870804731e+02;
+	const float cy_d = 2.3844389626620386e+02;
+
+	// Parameters for making depth absolute.
+	const float depthParam1 = 351.3;
+	const float depthParam2 = 1092.5;
+
+	ColorCloud::Ptr cloud(new ColorCloud());
+	cloud->width = 640;
+	cloud->height = 480;
+	for(int y : boost::irange(0, 480)) {
+		for(int x : boost::irange(0, 640)) {
+			pcl::PointXYZRGBA pt;
+			uint16_t depth_raw = depth_map.at<uint16_t>(y, x);
+			depth_raw = ((depth_raw & 0xff) << 8) + (depth_raw >> 8);  // swap endian
+			
+			const float depth = depthParam1 / (depthParam2 - depth_raw);
+			std::cout << depth << std::endl;
+
+			if(depth < 0.1 || depth > 10) {
+				pt.x = std::nan("");
+				pt.y = std::nan("");
+				pt.z = std::nan("");
+			} else {
+				pt.z = depth;
+
+				pt.x = (x - cx_d) / fx_d * pt.z;
+				pt.y = (y - cy_d) / fy_d * pt.z;
 			}
 
 			const auto color = rgb.at<cv::Vec3b>(y, x);

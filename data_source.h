@@ -23,7 +23,10 @@ public:
 	void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr& cloud);
 private:
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr loadFromMSDataset(std::string path);
+	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr loadFromNYU2(std::string path);
 private:
+	const std::string dataset_path_prefix;
+private:  // xtion things
 	int new_id;
 
 	// Used to pass point cloud from grabber thread to handler thread.
