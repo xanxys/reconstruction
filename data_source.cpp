@@ -6,17 +6,20 @@
 #define linux 1
 #define __x86_64__ 1
 
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
 #include <opencv2/opencv.hpp>
 #include <pcl/io/openni_grabber.h>
 #include <pcl/io/pcd_io.h>
 #include <sensor_msgs/PointCloud2.h>
 
+using boost::filesystem::path;
+
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
-
 
 MSDataSource::MSDataSource(std::string dataset_path_prefix) :
 	dataset_path_prefix(dataset_path_prefix) {
@@ -106,18 +109,22 @@ ColorCloud::ConstPtr MSDataSource::loadFromMSDataset(std::string path) {
 
 NYU2DataSource::NYU2DataSource(std::string dataset_path_prefix) :
 	dataset_path_prefix(dataset_path_prefix) {
+
+	for(const auto& p : boost::make_iterator_range(
+		boost::filesystem::directory_iterator(path(dataset_path_prefix)),
+		boost::filesystem::directory_iterator())) {
+		names.push_back(boost::filesystem::basename(p));
+	}
 }
 
 std::vector<std::string> NYU2DataSource::listScenes() {
-	std::vector<std::string> list = {
-		"test"
-	};
-	return list;
+	return names;
 }
 
-pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr NYU2DataSource::getScene(std::string name_and_frame) {
-	const std::string depth_path = dataset_path_prefix + "/basement_0001a/d-1316653600.562170-2521435723.pgm";
-	const std::string rgb_path = dataset_path_prefix + "/basement_0001a/r-1316653581.608081-1384510396.ppm";
+pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr NYU2DataSource::getScene(std::string name) {
+	const auto pair = getFramePair(name);
+	const std::string rgb_path = pair.first;
+	const std::string depth_path = pair.second;
 
 	cv::Mat depth_map = cv::imread(depth_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_GRAYSCALE);
 	assert(depth_map.type() == CV_16U);
@@ -171,6 +178,34 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr NYU2DataSource::getScene(std::strin
 	}
 	assert(cloud->points.size() == 640 * 480);
 	return cloud;
+}
+
+std::pair<std::string, std::string> NYU2DataSource::getFramePair(std::string name) {
+	// find whatever pair that comes first.
+	// TODO: Find nearest correspondence.
+	boost::optional<path> rgb;
+	boost::optional<path> depth;
+	const path scene_dir(dataset_path_prefix + "/" + name);
+	for(const auto& p : boost::make_iterator_range(
+		boost::filesystem::directory_iterator(scene_dir),
+		boost::filesystem::directory_iterator())) {
+
+		if(boost::filesystem::extension(p) == ".ppm") {
+			rgb = p;
+		} else if(boost::filesystem::extension(p) == ".pgm") {
+			depth = p;
+		}
+
+		if(rgb && depth) {
+			break;
+		}
+	}
+
+	if(!(rgb && depth)) {
+		throw std::runtime_error("Corrupt NYU2 database in " + name);
+	}
+	
+	return std::make_pair(rgb->string(), depth->string());
 }
 
 

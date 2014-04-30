@@ -39,7 +39,11 @@ public:
 	std::vector<std::string> listScenes() override;
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr getScene(std::string id) override;
 private:
+	// Get (RGB frame full path, depth frame full path)
+	std::pair<std::string, std::string> getFramePair(std::string name);
+private:
 	const std::string dataset_path_prefix;
+	std::vector<std::string> names;
 };
 
 
