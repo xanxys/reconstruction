@@ -499,7 +499,7 @@ var SceneSummaryListView = Backbone.View.extend({
 	initialize: function(options) {
 		this.current_id = null;
 
-		this.listenTo(this.model, 'add', this.render);
+		this.listenTo(this.model, 'sync', this.render);
 	},
 
 	takeSnapshot: function() {
@@ -522,7 +522,8 @@ var SceneSummaryListView = Backbone.View.extend({
 	render: function() {
 		var _this = this;
 		this.$('#ui_scenes').empty();
-		
+
+		var list = this.$('#ui_scenes');
 		this.model.each(function(model) {
 			var entry = $('<a/>')
 				.text(model.id).attr('href', '#').addClass('list-group-item');
@@ -535,7 +536,8 @@ var SceneSummaryListView = Backbone.View.extend({
 				_this.render();
 				_this.trigger('select', _this.current_id);
 			});
-			_this.$('#ui_scenes').append(entry);
+
+			list.append(entry);
 		});
 
 		this.$('.scene_status').text(this.model.length + ' scenes');
