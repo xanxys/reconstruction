@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/filesystem.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -41,6 +42,8 @@ public:
 private:
 	// Get (RGB frame full path, depth frame full path)
 	std::pair<std::string, std::string> getFramePair(std::string name);
+
+	static double extractTime(const boost::filesystem::path& path_file);
 private:
 	const std::string dataset_path_prefix;
 	std::vector<std::string> names;

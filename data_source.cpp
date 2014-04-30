@@ -6,7 +6,7 @@
 #define linux 1
 #define __x86_64__ 1
 
-#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
@@ -181,31 +181,74 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr NYU2DataSource::getScene(std::strin
 }
 
 std::pair<std::string, std::string> NYU2DataSource::getFramePair(std::string name) {
-	// find whatever pair that comes first.
-	// TODO: Find nearest correspondence.
-	boost::optional<path> rgb;
-	boost::optional<path> depth;
+	// File name examples:
+	// RGB: r-1316558342.822162-2944600483.ppm
+	// depth: d-1316558366.843700-90569730.pgm
+	// It seems like [rd]-(epoch second)-(unknown parg).(ppm|pgm)
+	//
+	// Try to find a pair that the times won't differ too much.
+	const double time_tolerance = 0.1;
 	const path scene_dir(dataset_path_prefix + "/" + name);
+
+	// Find an arbitrary RGB frame.
+	boost::optional<path> rgb;
 	for(const auto& p : boost::make_iterator_range(
 		boost::filesystem::directory_iterator(scene_dir),
 		boost::filesystem::directory_iterator())) {
 
 		if(boost::filesystem::extension(p) == ".ppm") {
 			rgb = p;
-		} else if(boost::filesystem::extension(p) == ".pgm") {
-			depth = p;
+			break;
+		}
+	}
+	if(!rgb) {
+		throw std::runtime_error("Corrupt NYU2 database in " + name);
+	}
+	const double rgb_time = extractTime(*rgb);
+
+	// Find a depth frame that's close enough to the RGB frame.
+	boost::optional<path> depth;
+	double nearest_distance = 1e3;
+	for(const auto& p : boost::make_iterator_range(
+		boost::filesystem::directory_iterator(scene_dir),
+		boost::filesystem::directory_iterator())) {
+
+		if(boost::filesystem::extension(p) != ".pgm") {
+			continue;
 		}
 
-		if(rgb && depth) {
-			break;
+		// Get narest frame.
+		const double depth_time = extractTime(p);
+		const double distance = std::abs(rgb_time - depth_time);
+		if(distance < nearest_distance) {
+			nearest_distance = distance;
+			depth = p;
 		}
 	}
 
 	if(!(rgb && depth)) {
 		throw std::runtime_error("Corrupt NYU2 database in " + name);
 	}
-	
+
+	// Check if close enough.
+	if(nearest_distance >= time_tolerance) {
+		throw std::runtime_error("Temporally close frame pair not found");
+	}
+
 	return std::make_pair(rgb->string(), depth->string());
+}
+
+double NYU2DataSource::extractTime(const boost::filesystem::path& path_file) {
+	const std::string name = boost::filesystem::basename(path_file);
+	std::vector<std::string> parts;
+	boost::split(parts, name, boost::is_any_of("-"));
+
+	// Parts must be type, second, unknown.
+	if(parts.size() != 3) {
+		throw std::runtime_error("Unknown NYUv2 frame path encourtered");
+	}
+
+	return std::stod(parts[1]);
 }
 
 
