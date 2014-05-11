@@ -66,7 +66,6 @@ public:
 	cv::Mat getDepthImage() const;
 
 	cv::Mat renderRGBImage() const;
-	std::map<VoxelIndex, VoxelState> getVoxels() const;
 	std::map<VoxelIndex, VoxelDescription> getVoxelsDetailed() const;
 
 	std::vector<OrientedBox> getObjects() const;

@@ -5,6 +5,7 @@
 #include <exception>
 #include <random>
 
+#include <boost/format.hpp>
 #include <boost/range/irange.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -157,7 +158,67 @@ Eigen::Vector2f ManhattanBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_wo
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailed() const {
-	return getVoxelsDetailedWithoutGuess();
+	auto voxels = getVoxelsDetailedWithoutGuess();
+
+	// Get AABB.
+	// TODO: refactor!
+	int ix_min = 1000;
+	int iy_min = 1000;
+	int iz_min = 1000;
+	int ix_max = -1000;
+	int iy_max = -1000;
+	int iz_max = -1000;
+	for(const auto pair : voxels) {
+		int ix, iy, iz;
+		std::tie(ix, iy, iz) = pair.first;
+		ix_min = std::min(ix_min, ix);
+		iy_min = std::min(iy_min, iy);
+		iz_min = std::min(iz_min, iz);
+		ix_max = std::max(ix_max, ix);
+		iy_max = std::max(iy_max, iy);
+		iz_max = std::max(iz_max, iz);
+	}
+
+	// Find unknown voxels.
+	std::vector<std::tuple<int, int, int>> unknown_indices;
+	for(int iz : boost::irange(iz_min, iz_max + 1)) {
+		for(int iy : boost::irange(iy_min, iy_max + 1)) {
+			for(int ix : boost::irange(ix_min, ix_max + 1)) {
+				const auto index = std::make_tuple(ix, iy, iz);
+				if(voxels.find(index) == voxels.end()) {
+					unknown_indices.push_back(index);
+				}
+			}
+		}
+	}
+	frame.log << "Unknown cells: " << unknown_indices.size() << std::endl;
+
+	// Guess unknown voxels state (empty or filled)
+	int count_maybe_filled = 0;
+	for(const auto index : unknown_indices) {
+		// Go up and consider filled if there's non-guessed filled cell.
+		// Otherwise consider to be empty.
+		bool maybe_filled = false;
+		const int iy = std::get<1>(index);
+		for(int iy_search : boost::irange(iy, iy - 10, -1)) {
+			const auto index_search = std::make_tuple(std::get<0>(index), iy_search, std::get<2>(index));
+			if(voxels.find(index_search) != voxels.end() &&
+				!voxels[index_search].guess &&
+				voxels[index_search].state == VoxelState::OCCUPIED) {
+				maybe_filled = true;
+				count_maybe_filled++;
+				break;
+			}
+		}
+
+		VoxelDescription desc;
+		desc.guess = true;
+		desc.state = maybe_filled ? VoxelState::OCCUPIED : VoxelState::EMPTY;
+		voxels[index] = desc;
+	}
+	frame.log << "Guessed(OCCUPIED): " << count_maybe_filled << std::endl;
+
+	return voxels;
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailedWithoutGuess() const {

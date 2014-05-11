@@ -148,14 +148,6 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr SceneBelief::getCloud() const {
 	return manhattan.cloud;
 }
 
-std::map<VoxelIndex, VoxelState> SceneBelief::getVoxels() const {
-	std::map<VoxelIndex, VoxelState> voxels;
-	for(const auto& pair : getVoxelsDetailed()) {
-		voxels[pair.first] = pair.second.state;
-	}
-	return voxels;
-}
-
 std::map<VoxelIndex, VoxelDescription> SceneBelief::getVoxelsDetailed() const {
 	return manhattan.getVoxelsDetailed();
 }

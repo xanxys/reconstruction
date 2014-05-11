@@ -48,7 +48,6 @@ public:
 private:
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailedWithoutGuess() const;
 	static std::shared_ptr<ManhattanBelief> align(const FrameBelief& frame);
-
 public:
 	// Put this before all other members to initialize first,
 	// since logging is used in SceneAnalyzer's initializer's list.

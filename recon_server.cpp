@@ -131,13 +131,13 @@ Json::Value ReconServer::serializePoints(SceneBelief& belief) {
 
 Json::Value ReconServer::serializeVoxels(SceneBelief& belief, bool extract_empty) {
 	Json::Value root;
-	for(const auto& pair : belief.getVoxels()) {
+	for(const auto& pair : belief.getVoxelsDetailed()) {
 		if(extract_empty) {
-			if(pair.second != VoxelState::EMPTY) {
+			if(pair.second.state != VoxelState::EMPTY) {
 				continue;
 			}
 		} else {
-			if(pair.second != VoxelState::OCCUPIED) {
+			if(pair.second.state != VoxelState::OCCUPIED) {
 				continue;
 			}
 		}
