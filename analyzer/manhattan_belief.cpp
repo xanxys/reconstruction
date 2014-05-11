@@ -158,6 +158,10 @@ Eigen::Vector2f ManhattanBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_wo
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailed() const {
+	if(cache_voxels_detailed) {
+		return *cache_voxels_detailed;
+	}
+
 	auto voxels = getVoxelsDetailedWithoutGuess();
 
 	// Get AABB.
@@ -218,12 +222,13 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 	}
 	frame.log << "Guessed(OCCUPIED): " << count_maybe_filled << std::endl;
 
-	return voxels;
+	cache_voxels_detailed = voxels;
+	return *cache_voxels_detailed;
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailedWithoutGuess() const {
 	assert(cloud);
-	
+
 	// known to be filled
 	std::map<std::tuple<int, int, int>, bool> voxels;
 	std::map<std::tuple<int, int, int>, Eigen::Vector3f> voxels_accum;

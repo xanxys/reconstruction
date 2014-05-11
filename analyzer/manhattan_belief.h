@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include <boost/optional.hpp>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
@@ -52,6 +53,8 @@ public:
 	// Put this before all other members to initialize first,
 	// since logging is used in SceneAnalyzer's initializer's list.
 	mutable std::ostringstream log;
+
+	mutable boost::optional<std::map<std::tuple<int, int, int>, VoxelDescription>> cache_voxels_detailed;
 
 	FrameBelief frame;
 
