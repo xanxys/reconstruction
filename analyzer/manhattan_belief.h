@@ -28,6 +28,7 @@ class VoxelDescription {
 public:
 	VoxelDescription();
 public:
+	bool guess;
 	VoxelState state;
 	Eigen::Vector3f average_image_color;
 };
@@ -45,6 +46,7 @@ public:
 	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed() const;
 	float getVoxelSize() const;
 private:
+	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailedWithoutGuess() const;
 	static std::shared_ptr<ManhattanBelief> align(const FrameBelief& frame);
 
 public:

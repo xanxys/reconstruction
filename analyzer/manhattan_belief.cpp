@@ -28,7 +28,7 @@ using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
 const double pi = 3.14159265359;
 
-VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0) {
+VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0), guess(false) {
 }
 
 
@@ -157,6 +157,10 @@ Eigen::Vector2f ManhattanBelief::projectToRGBCameraScreen(Eigen::Vector3f pos_wo
 }
 
 std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailed() const {
+	return getVoxelsDetailedWithoutGuess();
+}
+
+std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxelsDetailedWithoutGuess() const {
 	assert(cloud);
 	
 	// known to be filled
