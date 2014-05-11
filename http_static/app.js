@@ -244,8 +244,9 @@ ObjectsLayer.prototype.generator = function(data) {
 };
 
 
-var VoxelsLayer = function(name_attrib, ep) {
+var VoxelsLayer = function(name_attrib, ep, color) {
 	this.label = 'Voxels (' + name_attrib + ')';
+	this.color = color;
 	this.endpoint = ep;
 };
 
@@ -256,12 +257,13 @@ VoxelsLayer.prototype.generator = function(data) {
 		return vx.y;
 	}));
 
+	var _this = this;
 	var voxels = new THREE.Object3D();
 	_.each(data, function(vx) {
 		var vx_three = new THREE.Mesh(
 			new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
 			new THREE.MeshBasicMaterial({
-				color: 'orange',
+				color: _this.color,
 				opacity: 0.3,
 				transparent: true
 			}));
@@ -317,8 +319,8 @@ var SceneSearchView = Backbone.View.extend({
 var LayersConfig = Backbone.Model.extend({
 	initialize: function(options) {
 		this.layer_descs = [
-			new VoxelsLayer('filled', 'voxels'),
-			new VoxelsLayer('empty', 'voxels_empty'),
+			new VoxelsLayer('filled', 'voxels', 'orangered'),
+			new VoxelsLayer('empty', 'voxels_empty', 'orange'),
 			new ObjectsLayer(),
 			new PointsLayer(),
 			new PlanesLayer(),
