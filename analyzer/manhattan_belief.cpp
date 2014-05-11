@@ -198,21 +198,53 @@ std::map<std::tuple<int, int, int>, VoxelDescription> ManhattanBelief::getVoxels
 	frame.log << "Unknown cells: " << unknown_indices.size() << std::endl;
 
 	// Guess unknown voxels state (empty or filled)
+	// Similar to "Beyond Point Clouds: Scene Understanding by Reasoning Geometry and Physics"
 	int count_maybe_filled = 0;
 	for(const auto index : unknown_indices) {
-		// Go up and consider filled if there's non-guessed filled cell.
-		// Otherwise consider to be empty.
-		bool maybe_filled = false;
-		const int iy = std::get<1>(index);
+		// Go 4 axis.
+		int hit_count = 0;
+		int ix, iy, iz;
+		std::tie(ix, iy, iz) = index;
 		for(int iy_search : boost::irange(iy, iy - 10, -1)) {
-			const auto index_search = std::make_tuple(std::get<0>(index), iy_search, std::get<2>(index));
+			const auto index_search = std::make_tuple(ix, iy_search, iz);
 			if(voxels.find(index_search) != voxels.end() &&
 				!voxels[index_search].guess &&
 				voxels[index_search].state == VoxelState::OCCUPIED) {
-				maybe_filled = true;
-				count_maybe_filled++;
+				hit_count++;
 				break;
 			}
+		}
+		for(int iz_search : boost::irange(iz, iz - 10, -1)) {
+			const auto index_search = std::make_tuple(ix, iy, iz_search);
+			if(voxels.find(index_search) != voxels.end() &&
+				!voxels[index_search].guess &&
+				voxels[index_search].state == VoxelState::OCCUPIED) {
+				hit_count++;
+				break;
+			}
+		}
+		for(int ix_search : boost::irange(ix, ix - 10, -1)) {
+			const auto index_search = std::make_tuple(ix_search, iy, iz);
+			if(voxels.find(index_search) != voxels.end() &&
+				!voxels[index_search].guess &&
+				voxels[index_search].state == VoxelState::OCCUPIED) {
+				hit_count++;
+				break;
+			}
+		}
+		for(int ix_search : boost::irange(ix, ix + 10)) {
+			const auto index_search = std::make_tuple(ix_search, iy, iz);
+			if(voxels.find(index_search) != voxels.end() &&
+				!voxels[index_search].guess &&
+				voxels[index_search].state == VoxelState::OCCUPIED) {
+				hit_count++;
+				break;
+			}
+		}
+
+		const bool maybe_filled = hit_count >= 2;
+		if(maybe_filled) {
+			count_maybe_filled++;
 		}
 
 		VoxelDescription desc;
