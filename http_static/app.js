@@ -259,16 +259,13 @@ VoxelsLayer.prototype.generator = function(data) {
 
 	var _this = this;
 	var voxels = new THREE.Object3D();
+	var voxels_geom = new THREE.Geometry();
 	_.each(data, function(vx) {
 		var vx_three = new THREE.Mesh(
 			new THREE.CubeGeometry(voxel_size, voxel_size, voxel_size),
-			new THREE.MeshBasicMaterial({
-				color: _this.color,
-				opacity: 0.3,
-				transparent: true
-			}));
+			new THREE.MeshBasicMaterial());
 		vx_three.position = new THREE.Vector3(vx.x + 0.5, vx.y + 0.5, vx.z + 0.5).multiplyScalar(voxel_size);
-		voxels.add(vx_three);
+		THREE.GeometryUtils.merge(voxels_geom, vx_three);
 
 		if(vx.y === iy_floor) {
 			var shadow = new THREE.Mesh(new THREE.CubeGeometry(voxel_size * 2, 0.05, voxel_size * 2),
@@ -284,6 +281,15 @@ VoxelsLayer.prototype.generator = function(data) {
 			voxels.add(shadow);
 		}
 	});
+
+	voxels.add(new THREE.Mesh(
+		voxels_geom,
+		new THREE.MeshBasicMaterial({
+			color: _this.color,
+				opacity: 0.3,
+				transparent: true
+			})
+		));
 
 	return voxels;
 };
