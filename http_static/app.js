@@ -83,8 +83,9 @@ var JobListView = Backbone.View.extend({
 	addJob: function() {
 		var _this = this;
 		$.post('/job', 'description').done(function(data) {
-			console.log(data);
+			_this.current_id = data.id;
 			_this.model.fetch();
+			window.location = '/#/job/' + _this.current_id;
 		});
 	},
 
@@ -97,6 +98,9 @@ var JobListView = Backbone.View.extend({
 			var entry = $('<a/>')
 				.text(model.id).attr('href', '#/job/' + model.id).addClass('list-group-item');
 
+			if(model.id === _this.current_id) {
+				entry.addClass('active');
+			}
 			entry.click(function() {
 				_this.current_id = model.id;
 				_this.render();
