@@ -81,7 +81,7 @@ var GrabcutView = Backbone.View.extend({
 
 		$.ajax({
 			type: 'POST',
-			url: '/at/' + id + '/grabcut',
+			url: '/scene/' + id + '/grabcut',
 			data: JSON.stringify({
 				image: $('#ui_grabcut_drawing')[0].toDataURL()
 			}),
