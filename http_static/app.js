@@ -4,7 +4,7 @@ var SceneSummary = Backbone.Model.extend({
 });
 
 var SceneSummaryList = Backbone.Collection.extend({
-	url: '/scenes',
+	url: '/scene',
 	model: SceneSummary,
 });
 

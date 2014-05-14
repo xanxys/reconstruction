@@ -11,9 +11,10 @@ var SceneSearchTree = Backbone.Model.extend({
 
 // TODO: deprecated
 var Scene = Backbone.Model.extend({
-	urlRoot: '/at'
+	urlRoot: '/scene'
 });
 
+// TODO: rename properly
 var NewScene = Backbone.Model.extend({
 	urlRoot: '/scene',
 
@@ -22,7 +23,7 @@ var NewScene = Backbone.Model.extend({
 	},
 
 	url: function() {
-		return this.urlRoot + '/' + this.scene_id + '/' + this.id;
+		return this.urlRoot + '/' + this.scene_id + '/belief/' + this.id;
 	}
 });
 

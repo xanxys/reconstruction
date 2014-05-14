@@ -28,27 +28,22 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		return sendStaticFile("/index.html", "text/html");
 	} else if(uri.size() == 2 && uri[0] == "static") {
 		return sendStaticFile(uri[1]);
-	} else if(uri.size() == 1 && uri[0] == "at" && method == "POST") {
+	} else if(uri.size() == 1 && uri[0] == "scene" && method == "POST") {
 		Json::Value v;
 		v["id"] = data_source.takeSnapshot();
 		return v;
-	} else if(uri.size() == 2 && uri[0] == "at") {
+	} else if(uri.size() == 2 && uri[0] == "scene" && method == "GET") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 
 		return handleScene(*analyzer.getBestBelief());
-	} else if(uri.size() >= 3 && uri[0] == "at") {
+	} else if(uri.size() == 3 && uri[0] == "scene" && uri[2] == "grabcut" && method == "POST") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
-
-		if(uri[2] == "grabcut" && method == "POST") {
-			return handleGrabcut(*analyzer.getBestBelief(), data);
-		}
-
-		return Response::notFound();
-	} else if(uri.size() == 2 && uri[0] == "scene") {
+		return handleGrabcut(*analyzer.getBestBelief(), data);
+	} else if(uri.size() == 2 && uri[0] == "scene" && method == "GET") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
@@ -58,19 +53,19 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			scene["candidates"].append(index);
 		}
 		return Response(scene);
-	} else if(uri.size() == 3 && uri[0] == "scene") {
+	} else if(uri.size() == 4 && uri[0] == "scene" && uri[2] == "belief" && method == "GET") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
 		auto beliefs = analyzer.getAllBelief();
 
-		const int index = std::stoi(uri[2]);
+		const int index = std::stoi(uri[3]);
 		if(index < 0 || index >= beliefs.size()) {
 			return Response::notFound();
 		}
 
 		return handleScene(*beliefs[index]);
-	} else if(uri.size() == 1 && uri[0] == "scenes" && method == "GET") {
+	} else if(uri.size() == 1 && uri[0] == "scene" && method == "GET") {
 		Json::Value scenes;
 		for(const auto& id : data_source.listScenes()) {
 			Json::Value entry;
