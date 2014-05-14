@@ -42,4 +42,6 @@ private:
 	static Response sendImage(cv::Mat image);
 private:
 	DataSource data_source;
+	std::vector<std::string> all_jobs;
+	int job_id;
 };

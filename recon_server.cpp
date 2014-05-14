@@ -18,7 +18,7 @@ using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
 
-ReconServer::ReconServer() : data_source(true) {
+ReconServer::ReconServer() : data_source(true), job_id(0) {
 }
 
 Response ReconServer::handleRequest(std::vector<std::string> uri,
@@ -70,7 +70,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		}
 
 		return handleScene(*beliefs[index]);
-	} else if(uri.size() == 1 && uri[0] == "scenes") {
+	} else if(uri.size() == 1 && uri[0] == "scenes" && method == "GET") {
 		Json::Value scenes;
 		for(const auto& id : data_source.listScenes()) {
 			Json::Value entry;
@@ -79,6 +79,24 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			scenes.append(entry);
 		}
 		return scenes;
+	} else if(uri.size() == 1 && uri[0] == "jobs" && method == "GET") {
+		Json::Value jobs;
+		for(const auto& job_id : all_jobs) {
+			Json::Value job;
+			job["id"] = job_id;
+			job["status"] = "complete";
+			job["memo"] = "Calculate L1 norm";
+			job["source"] = "Random 10 scenes";
+			jobs.append(job);
+		}
+		return jobs;
+	} else if(uri.size() == 1 && uri[0] == "job" && method == "POST") {
+		const std::string id = std::to_string(job_id++);
+		all_jobs.push_back(id);
+		
+		Json::Value status;
+		status["id"] = id;
+		return Response(status);
 	}
 	return Response::notFound();
 }

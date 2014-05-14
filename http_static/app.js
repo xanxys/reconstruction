@@ -62,6 +62,52 @@ var SceneSummaryListView = Backbone.View.extend({
 	}
 });
 
+var Job = Backbone.Model.extend({
+});
+
+var JobList = Backbone.Collection.extend({
+	url: '/jobs',
+	model: Job,
+});
+
+var JobListView = Backbone.View.extend({
+	el: '#jobs_summary',
+
+	events: {
+		'click #add_job': 'addJob',
+	},
+
+	initialize: function(options) {
+		this.current_id = null;
+		this.listenTo(this.model, 'sync', this.render);
+	},
+
+	addJob: function() {
+		var _this = this;
+		$.post('/job', 'description').done(function(data) {
+			console.log(data);
+			_this.model.fetch();
+		});
+	},
+
+	render: function() {
+		var _this = this;
+		this.$('#ui_jobs').empty();
+
+		var list = this.$('#ui_jobs');
+		this.model.each(function(model) {
+			var entry = $('<a/>')
+				.text(model.id).attr('href', '#/job/' + model.id).addClass('list-group-item');
+
+			entry.click(function() {
+				_this.current_id = model.id;
+				_this.render();
+			});
+
+			list.append(entry);
+		});
+	}
+});
 
 var ReconRouter = Backbone.Router.extend({
 	routes: {
@@ -91,11 +137,17 @@ var ReconApp = function() {
 	this.router.dashboard();
 	Backbone.history.start();
 
+
+	this.job_list = new JobList();
+	this.job_list_view = new JobListView({
+		model: this.job_list,
+	});
+	this.job_list.fetch();
+
 	this.scene_summary_list = new SceneSummaryList();
 	this.scene_summary_list_view = new SceneSummaryListView({
 		model: this.scene_summary_list,
 	});
-
 	this.scene_summary_list.fetch();
 };
 

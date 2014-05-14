@@ -23,13 +23,11 @@
           <h2><a href="#/dashboard">Dashboard</a></h2>
         </div>
 
-        <div>
+        <div id="jobs_summary">
           <h2>Jobs</h2>
-          <button class="btn btn-primary">Launch Job</button>
-          <h3>Recent</h3>
-          <ul>
-            <li><a href="#/job/1234">Job 1234a (2 core, 80%)</a></li>
-          </ul>
+          <button class="btn btn-primary" id="add_job">Launch Job</button>
+          <div class="list-group" id="ui_jobs" style="overflow: auto; height: 10em">
+          </div>
         </div>
 
         <div id="scene_list">
