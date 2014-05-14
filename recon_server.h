@@ -18,6 +18,9 @@ public:
 	Response handleRequest(std::vector<std::string> uri,
 		std::string method, std::string data) override;
 private:
+	Response handleJobRequest(const std::vector<std::string> sub_uri,
+		const std::string& method, const std::string& data);
+
 	Response handleScene(SceneBelief& belief);
 	Response handleGrabcut(SceneBelief& belief, const std::string& data);
 

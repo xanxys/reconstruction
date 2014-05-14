@@ -79,7 +79,17 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			scenes.append(entry);
 		}
 		return scenes;
-	} else if(uri.size() == 1 && uri[0] == "job" && method == "GET") {
+	} else if(uri[0] == "job") {
+		return handleJobRequest(
+			std::vector<std::string>(uri.begin() + 1, uri.end()), method, data);
+	}
+	return Response::notFound();
+}
+
+Response ReconServer::handleJobRequest(const std::vector<std::string> sub_uri,
+	const std::string& method, const std::string& data) {
+
+	if(sub_uri.size() == 0 && method == "GET") {
 		Json::Value jobs;
 		for(const auto& job_id : all_jobs) {
 			Json::Value job;
@@ -90,16 +100,16 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			jobs.append(job);
 		}
 		return jobs;
-	} else if(uri.size() == 1 && uri[0] == "job" && method == "POST") {
+	} else if(sub_uri.size() == 0 && method == "POST") {
 		const std::string id = std::to_string(job_id++);
 		all_jobs.push_back(id);
 
 		Json::Value status;
 		status["id"] = id;
 		return Response(status);
-	} else if(uri.size() == 2 && uri[0] == "job" && method == "GET") {
+	} else if(sub_uri.size() == 1 && method == "GET") {
 		for(const auto& job_id : all_jobs) {
-			if(job_id == uri[1]) {
+			if(job_id == sub_uri[0]) {
 				Json::Value job;
 				job["id"] = job_id;
 				job["status"] = "complete";
