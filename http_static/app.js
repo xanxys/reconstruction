@@ -26,17 +26,16 @@ var SceneSummaryListView = Backbone.View.extend({
 		var _this = this;
 		$.post('/at').done(function(data) {
 			_this.current_id = data.id;
-			_this.trigger('select', _this.current_id);
+			window.location = '/#/scene/' + data.id;
 			_this.model.fetch();
 		});
 	},
 
 	selectRandom: function() {
 		var model_index = Math.floor(Math.random() * this.model.length);
-
 		this.current_id = this.model.at(model_index).id;
 		this.render();
-		this.trigger('select', this.current_id);
+		window.location = '/#/scene/' + this.current_id;
 	},
 
 	render: function() {
