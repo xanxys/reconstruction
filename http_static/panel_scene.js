@@ -490,6 +490,9 @@ var LogView = Backbone.View.extend({
 
 var ScenePanel = Backbone.View.extend({
 	initialize: function(options) {
+		// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
+		this.for_figure = false;
+
 		this.id = options.id;
 	},
 

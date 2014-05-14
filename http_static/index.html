@@ -46,10 +46,6 @@
             </div>
           </div>
         </div>
-        
-        <!-- TODO: Move to scene view -->
-        <h2>Layers</h2>
-        <div class="list-group" id="ui_layers"></div>
       </div>
 
       <!-- switchable 10-col place occupied by a panel -->
@@ -71,13 +67,15 @@
 
   <!-- A panel to inspect (an analysis) of a single scene -->
   <script type="text/template" name="scene_panel">
-  Scene Beliefs and 3D view
-    <div class="col-md-1">
+    <div class="col-md-2">
+      <h2>Layers</h2>
+      <div class="list-group" id="ui_layers"></div>
+
       <h2>Beliefs</h2>
       <div class="list-group" id="search"></div>
     </div>
 
-    <div class="col-md-9">
+    <div class="col-md-8">
       <h2>Scene Belief</h2>
       <ul class="nav nav-tabs">
         <li class="active"><a href="#main" data-toggle="tab">Main</a></li>
@@ -139,6 +137,7 @@
 
   <script src="/static/parametric_meshes.js" type="text/javascript"></script>
   <script src="/static/panel_scene.js" type="text/javascript"></script>
+  <script src="/static/panel_job.js" type="text/javascript"></script>
   <script src="/static/app.js" type="text/javascript"></script>
 </body>
 </html>

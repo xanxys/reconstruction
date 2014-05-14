@@ -78,6 +78,7 @@ var ReconRouter = Backbone.Router.extend({
 
 	job: function(id) {
 		console.log('->job', id);
+		new JobPanel({id: id}).render();
 	},
 
 	scene: function(id) {
@@ -87,13 +88,9 @@ var ReconRouter = Backbone.Router.extend({
 });
 
 var ReconApp = function() {
-	// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
-	this.for_figure = false;
-
 	this.router = new ReconRouter();
 	this.router.dashboard();
 	Backbone.history.start();
-	
 
 	this.scene_summary_list = new SceneSummaryList();
 	this.scene_summary_list_view = new SceneSummaryListView({
