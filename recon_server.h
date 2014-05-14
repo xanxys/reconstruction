@@ -21,7 +21,10 @@ private:
 	Response handleJobRequest(const std::vector<std::string> sub_uri,
 		const std::string& method, const std::string& data);
 
-	Response handleScene(SceneBelief& belief);
+	// Remove handleBelief functionality from handleScene.
+	Response handleScene(SceneAnalyzer& analyzer);
+	Response handleBelief(SceneBelief& belief);
+
 	Response handleGrabcut(SceneBelief& belief, const std::string& data);
 
 	Json::Value serializeCamera(SceneBelief& belief);

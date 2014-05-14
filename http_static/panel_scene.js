@@ -5,17 +5,11 @@ var deserializeVector3 = function(d) {
 	return new THREE.Vector3(d.x, d.y, d.z);
 };
 
-var SceneSearchTree = Backbone.Model.extend({
-	urlRoot: '/scene'
-});
-
-// TODO: deprecated
 var Scene = Backbone.Model.extend({
 	urlRoot: '/scene'
 });
 
-// TODO: rename properly
-var NewScene = Backbone.Model.extend({
+var SceneBelief = Backbone.Model.extend({
 	urlRoot: '/scene',
 
 	initialize: function(options) {
@@ -493,15 +487,12 @@ var ScenePanel = Backbone.View.extend({
 	initialize: function(options) {
 		// When this mode is enabled, try producing high-contrast, big-text, less-clutter imagery.
 		this.for_figure = false;
-
-		this.id = options.id;
 	},
 
 	render: function() {
 		$('#panel').html(_.template($('script[name=scene_panel]').html()));
 
 		var _this = this;
-		var id = this.id;
 
 		this.layers_config = new LayersConfig();
 
@@ -512,36 +503,30 @@ var ScenePanel = Backbone.View.extend({
 		var config_view = new LayersView({model: this.layers_config});
 		this.layers_config.trigger('change');
 
+		var scene_search_view = new SceneSearchView({model: this.model});
 
-
-		var tree = new SceneSearchTree({id: id});
-		var scene_search_view = new SceneSearchView({model: tree});
-		tree.fetch({});
-
-		var _this = this;
 		scene_search_view.on('selectBelief', function(ev) {
-			var scene = new NewScene({
-				scene_id: id,
+			var belief = new SceneBelief({
+				scene_id: _this.model.id,
 				id: ev
 			});
 
-			var peeling_view = new PeelingView({model: scene});
-			var log_view = new LogView({model: scene});
-			var calibration_view = new CalibrationView({model: scene});
-			var grabcut_view = new GrabcutView({model: scene});
-			_this.main_view.model = scene;
-			_this.main_view.listenTo(scene, 'change', _this.main_view.refresh);
-			scene.fetch();
+			var peeling_view = new PeelingView({model: belief});
+			var log_view = new LogView({model: belief});
+			var calibration_view = new CalibrationView({model: belief});
+			var grabcut_view = new GrabcutView({model: belief});
+			_this.main_view.model = belief;
+			_this.main_view.listenTo(belief, 'change', _this.main_view.refresh);
+			belief.fetch();
 		});
 
-		// TODO: deprecate Scene
-		var scene = new Scene({id: id});
-		var peeling_view = new PeelingView({model: scene});
-		var log_view = new LogView({model: scene});
-		var calibration_view = new CalibrationView({model: scene});
-		var grabcut_view = new GrabcutView({model: scene});
-		this.main_view.model = scene;
-		this.main_view.listenTo(scene, 'change', this.main_view.refresh);
-		scene.fetch();
+		// TODO: Use belief explicitly.
+		// Then delete default belief-related code in server.
+		var peeling_view = new PeelingView({model: this.model});
+		var log_view = new LogView({model: this.model});
+		var calibration_view = new CalibrationView({model: this.model});
+		var grabcut_view = new GrabcutView({model: this.model});
+		this.main_view.model = this.model;
+		this.main_view.listenTo(this.model, 'change', this.main_view.refresh);
 	}
 });

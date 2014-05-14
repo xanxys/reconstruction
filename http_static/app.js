@@ -1,11 +1,11 @@
 "use strict";
 
-var SceneSummary = Backbone.Model.extend({
-});
-
+// A scene contained in /scene (a list) is a strict subset of
+// what's returned from /scene/id.
+// So you can call .fetch() to get full model.
 var SceneSummaryList = Backbone.Collection.extend({
 	url: '/scene',
-	model: SceneSummary,
+	model: Scene,
 });
 
 var SceneSummaryListView = Backbone.View.extend({
@@ -128,7 +128,9 @@ var ReconRouter = Backbone.Router.extend({
 
 	scene: function(id) {
 		console.log('->scene', id);
-		new ScenePanel({id: id}).render();
+		var scene = new Scene({id: id});
+		scene.fetch();
+		new ScenePanel({model: scene}).render();
 	},
 });
 

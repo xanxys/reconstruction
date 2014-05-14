@@ -32,12 +32,6 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		Json::Value v;
 		v["id"] = data_source.takeSnapshot();
 		return v;
-	} else if(uri.size() == 2 && uri[0] == "scene" && method == "GET") {
-		const std::string id = uri[1];
-		const auto& cloud = data_source.getScene(id);
-		SceneAnalyzer analyzer(cloud);
-
-		return handleScene(*analyzer.getBestBelief());
 	} else if(uri.size() == 3 && uri[0] == "scene" && uri[2] == "grabcut" && method == "POST") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
@@ -47,12 +41,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
 		SceneAnalyzer analyzer(cloud);
-
-		Json::Value scene;
-		for(int index : boost::irange(0, (int)analyzer.getAllBelief().size())) {
-			scene["candidates"].append(index);
-		}
-		return Response(scene);
+		return handleScene(analyzer);
 	} else if(uri.size() == 4 && uri[0] == "scene" && uri[2] == "belief" && method == "GET") {
 		const std::string id = uri[1];
 		const auto& cloud = data_source.getScene(id);
@@ -64,7 +53,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			return Response::notFound();
 		}
 
-		return handleScene(*beliefs[index]);
+		return handleBelief(*beliefs[index]);
 	} else if(uri.size() == 1 && uri[0] == "scene" && method == "GET") {
 		Json::Value scenes;
 		for(const auto& id : data_source.listScenes()) {
@@ -117,7 +106,10 @@ Response ReconServer::handleJobRequest(const std::vector<std::string> sub_uri,
 	return Response::notFound();
 }
 
-Response ReconServer::handleScene(SceneBelief& belief) {
+Response ReconServer::handleScene(SceneAnalyzer& analyzer) {
+	auto belief_ptr = analyzer.getBestBelief();
+	auto& belief = *belief_ptr;
+
 	Json::Value scene;
 	scene["camera"] = serializeCamera(belief);
 	scene["points"] = serializePoints(belief);
@@ -130,6 +122,25 @@ Response ReconServer::handleScene(SceneBelief& belief) {
 	scene["peeling"] = serializePeeling(belief);
 	scene["log"] = belief.getLog();
 
+	for(int index : boost::irange(0, (int)analyzer.getAllBelief().size())) {
+		scene["candidates"].append(index);
+	}
+
+	return Response(scene);
+}
+
+Response ReconServer::handleBelief(SceneBelief& belief) {
+	Json::Value scene;
+	scene["camera"] = serializeCamera(belief);
+	scene["points"] = serializePoints(belief);
+	scene["voxels"] = serializeVoxels(belief, false);
+	scene["voxels_empty"] = serializeVoxels(belief, true);
+	scene["rgb"] = dataURLFromImage(belief.getRGBImage());
+	scene["depth"] = dataURLFromImage(depthToRGB(belief.getDepthImage()));
+	scene["objects"] = serializeObjects(belief);
+	scene["planes"] = serializePlanes(belief);
+	scene["peeling"] = serializePeeling(belief);
+	scene["log"] = belief.getLog();
 	return Response(scene);
 }
 
