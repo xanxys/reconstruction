@@ -14,11 +14,11 @@
   <script src="/static/three.js"></script>
   <script src="/static/TrackballControls.js"></script>
 </head>
-<body>
+<body style="overflow: hidden">
   <div class="container-fluid">
     <div class="row">
       <!-- This column provides a quiick acces to any one of job or scene via lists -->
-      <div class="col-md-2">
+      <div class="col-md-2" style="background-color: #f8f8f8">
         <div>
           <h2><a href="#/dashboard">Dashboard</a></h2>
         </div>
@@ -44,6 +44,9 @@
             </div>
           </div>
         </div>
+        
+        <!-- Fill up the space -->
+        <div style="height:500px"></div>
       </div>
 
       <!-- switchable 10-col place occupied by a panel -->
@@ -55,14 +58,13 @@
 
   <!-- A panel to summarize jobs, health, version info etc. -->
   <script type="text/template" name="dashboard_panel">
-  Dashboard
+  <h1>Dashboard</h1>
   </script>
 
   <!-- A panel to control a job and view its result -->
   <script type="text/template" name="job_panel">  
-  Job Status, Controls, Result (if exists)
   	<div id="job_summary">
-  	</div
+  	</div>
   </script>
 
   <!-- A panel to inspect (an analysis) of a single scene -->
