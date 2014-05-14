@@ -96,11 +96,20 @@ var JobListView = Backbone.View.extend({
 		var list = this.$('#ui_jobs');
 		this.model.each(function(model) {
 			var entry = $('<a/>')
-				.text(model.id).attr('href', '#/job/' + model.id).addClass('list-group-item');
+				.attr('href', '#/job/' + model.id).addClass('list-group-item');
 
 			if(model.id === _this.current_id) {
 				entry.addClass('active');
 			}
+			// Don't add "running" since it will require refresh
+			// when succeeded. Safe tags to add are "finished" and "aborted".
+			if(model.get('progress') == 1) {
+				entry.append($('<span/>')
+					.text('finished')
+					.addClass('label label-success'));
+			}
+			entry.append(model.id);
+
 			entry.click(function() {
 				_this.current_id = model.id;
 				_this.render();
