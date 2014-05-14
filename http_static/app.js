@@ -62,8 +62,6 @@ var SceneSummaryListView = Backbone.View.extend({
 	}
 });
 
-var Job = Backbone.Model.extend({
-});
 
 var JobList = Backbone.Collection.extend({
 	url: '/jobs',
@@ -123,7 +121,9 @@ var ReconRouter = Backbone.Router.extend({
 
 	job: function(id) {
 		console.log('->job', id);
-		new JobPanel({id: id}).render();
+		var job = new Job({id: id});
+		job.fetch();
+		new JobPanel({model: job}).render();
 	},
 
 	scene: function(id) {

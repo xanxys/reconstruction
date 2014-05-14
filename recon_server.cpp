@@ -93,10 +93,21 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 	} else if(uri.size() == 1 && uri[0] == "job" && method == "POST") {
 		const std::string id = std::to_string(job_id++);
 		all_jobs.push_back(id);
-		
+
 		Json::Value status;
 		status["id"] = id;
 		return Response(status);
+	} else if(uri.size() == 2 && uri[0] == "job" && method == "GET") {
+		for(const auto& job_id : all_jobs) {
+			if(job_id == uri[1]) {
+				Json::Value job;
+				job["id"] = job_id;
+				job["status"] = "complete";
+				job["memo"] = "Calculate L1 norm";
+				job["source"] = "Random 10 scenes";
+				return Response(job);
+			}
+		}
 	}
 	return Response::notFound();
 }
