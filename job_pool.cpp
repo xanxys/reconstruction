@@ -6,17 +6,20 @@ EstimateL1Job::EstimateL1Job(EstimateL1Job&& that) :
 	id(that.id),
 	data_source(that.data_source),
 	worker(std::move(that.worker)),
+	count(that.count),
+	count_all(that.count_all),
 	result(that.result) {
 }
 
 EstimateL1Job::EstimateL1Job(std::string id, DataSource& data_source, std::vector<std::string> scene_ids) :
 	id(id), data_source(data_source),
+	count(0), count_all(1 + scene_ids.size()),
 	worker(&EstimateL1Job::estimateL1, this, scene_ids) {
 }
 
 float EstimateL1Job::getProgress() {
 	if(result.isNull()) {
-		return 0.1;
+		return static_cast<float>(count) / count_all;
 	} else {
 		return 1;
 	}
@@ -37,8 +40,11 @@ void EstimateL1Job::estimateL1(std::vector<std::string> scene_ids) {
 	Json::Value result;
 	for(const auto scene_id : scene_ids) {
 		result.append(mapEstimateL1(scene_id));
+		count++;
 	}
 	this->result = result;
+	count++;
+	assert(count == count_all);
 }
 
 // assuming shared, high-bandwidth DataSource, scene_id is enough.

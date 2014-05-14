@@ -32,6 +32,9 @@ private:
 
 	// TODO: thread-unsafe
 	Json::Value result;
+	int count;
+
+	const int count_all;
 };
 
 
