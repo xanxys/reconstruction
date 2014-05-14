@@ -79,7 +79,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			scenes.append(entry);
 		}
 		return scenes;
-	} else if(uri.size() == 1 && uri[0] == "jobs" && method == "GET") {
+	} else if(uri.size() == 1 && uri[0] == "job" && method == "GET") {
 		Json::Value jobs;
 		for(const auto& job_id : all_jobs) {
 			Json::Value job;

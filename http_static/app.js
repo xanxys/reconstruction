@@ -64,7 +64,7 @@ var SceneSummaryListView = Backbone.View.extend({
 
 
 var JobList = Backbone.Collection.extend({
-	url: '/jobs',
+	url: '/job',
 	model: Job,
 });
 
