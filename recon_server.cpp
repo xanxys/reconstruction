@@ -18,7 +18,7 @@ using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
 using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
 
-ReconServer::ReconServer() : data_source(true), job_id(0) {
+ReconServer::ReconServer() : data_source(true), job_pool(data_source) {
 }
 
 Response ReconServer::handleRequest(std::vector<std::string> uri,
@@ -79,7 +79,7 @@ Response ReconServer::handleJobRequest(const std::vector<std::string> sub_uri,
 
 	if(sub_uri.size() == 0 && method == "GET") {
 		Json::Value jobs;
-		for(const auto& job_id : all_jobs) {
+		for(const auto& job_id : job_pool.listJobs()) {
 			Json::Value job;
 			job["id"] = job_id;
 			job["status"] = "complete";
@@ -89,14 +89,12 @@ Response ReconServer::handleJobRequest(const std::vector<std::string> sub_uri,
 		}
 		return jobs;
 	} else if(sub_uri.size() == 0 && method == "POST") {
-		const std::string id = std::to_string(job_id++);
-		all_jobs.push_back(id);
-
+		const std::string id = job_pool.createJob();
 		Json::Value status;
 		status["id"] = id;
 		return Response(status);
 	} else if(sub_uri.size() == 1 && method == "GET") {
-		for(const auto& job_id : all_jobs) {
+		for(const auto& job_id : job_pool.listJobs()) {
 			if(job_id == sub_uri[0]) {
 				Json::Value job;
 				job["id"] = job_id;

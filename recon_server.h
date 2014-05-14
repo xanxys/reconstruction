@@ -9,6 +9,7 @@
 
 #include "analyzer/analyzer.h"
 #include "data_source.h"
+#include "job_pool.h"
 #include "web_server.h"
 
 // A controller. Two models are OpenNI grabber and SceneBelief.
@@ -51,6 +52,5 @@ private:
 	static Response sendImage(cv::Mat image);
 private:
 	DataSource data_source;
-	std::vector<std::string> all_jobs;
-	int job_id;
+	JobPool job_pool;
 };
