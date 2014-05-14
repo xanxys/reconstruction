@@ -1,9 +1,9 @@
 #include "recon_server.h"
 
-#include <map>
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 #include <boost/range/irange.hpp>
@@ -80,12 +80,7 @@ Response ReconServer::handleJobRequest(const std::vector<std::string> sub_uri,
 	if(sub_uri.size() == 0 && method == "GET") {
 		Json::Value jobs;
 		for(const auto& job_id : job_pool.listJobs()) {
-			Json::Value job;
-			job["id"] = job_id;
-			job["status"] = "complete";
-			job["memo"] = "Calculate L1 norm";
-			job["source"] = "Random 10 scenes";
-			jobs.append(job);
+			jobs.append(job_pool.getJobDescription(job_id));
 		}
 		return jobs;
 	} else if(sub_uri.size() == 0 && method == "POST") {
@@ -94,16 +89,8 @@ Response ReconServer::handleJobRequest(const std::vector<std::string> sub_uri,
 		status["id"] = id;
 		return Response(status);
 	} else if(sub_uri.size() == 1 && method == "GET") {
-		for(const auto& job_id : job_pool.listJobs()) {
-			if(job_id == sub_uri[0]) {
-				Json::Value job;
-				job["id"] = job_id;
-				job["status"] = "complete";
-				job["memo"] = "Calculate L1 norm";
-				job["source"] = "Random 10 scenes";
-				return Response(job);
-			}
-		}
+		Json::Value desc = job_pool.getJobDescription(sub_uri[0]);
+		return Response(desc);
 	}
 	return Response::notFound();
 }

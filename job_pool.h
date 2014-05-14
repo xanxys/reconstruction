@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
+#include <jsoncpp/json/json.h>
+
 #include "data_source.h"
 
 // JobPool initiates, maintains, possibly kills jobs.
@@ -7,6 +12,9 @@
 class JobPool {
 public:
 	JobPool(DataSource& data_source);
+
+	// TODO: dummy interface for prototype. remove it.
+	Json::Value getJobDescription(std::string id);
 
 	// TODO: dummy interface for prototype. remove it.
 	std::vector<std::string> listJobs();
