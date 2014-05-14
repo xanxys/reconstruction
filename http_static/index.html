@@ -17,7 +17,21 @@
 <body>
   <div class="container-fluid">
     <div class="row">
+      <!-- This column provides a quiick acces to any one of job or scene via lists -->
       <div class="col-md-2">
+        <div>
+          <h2><a href="#/dashboard">Dashboard</a></h2>
+        </div>
+
+        <div>
+          <h2>Jobs</h2>
+          <button class="btn btn-primary">Launch Job</button>
+          <h3>Recent</h3>
+          <ul>
+            <li><a href="#/job/1234">Job 1234a (2 core, 80%)</a></li>
+          </ul>
+        </div>
+
         <div id="scene_list">
           <h2>Scene</h2>
           <div class="scene_status">
@@ -33,77 +47,98 @@
           </div>
         </div>
         
+        <!-- TODO: Move to scene view -->
         <h2>Layers</h2>
         <div class="list-group" id="ui_layers"></div>
       </div>
 
-      <div class="col-md-1">
-        <h2>Beliefs</h2>
-        <div class="list-group" id="search"></div>
+      <!-- switchable 10-col place occupied by a panel -->
+      <div class="col-md-10" id="panel">
+      loading
       </div>
+    </div>
+  </div>
 
-      <div class="col-md-9">
-        <h2>Scene Belief</h2>
-        <ul class="nav nav-tabs">
-          <li class="active"><a href="#main" data-toggle="tab">Main</a></li>
-          <li><a href="#peeling" data-toggle="tab">Peeling</a></li>
-          <li><a href="#log" data-toggle="tab">Log</a></li>
-          <li><a href="#grabcut" data-toggle="tab">Grabcut</a></li>
-          <li><a href="#calibration" data-toggle="tab">Calibration</a></li>
-        </ul>
+  <!-- A panel to summarize jobs, health, version info etc. -->
+  <script type="text/template" name="dashboard_panel">
+  Dashboard
+  </script>
 
-        <div class="tab-content">
-          <div class="tab-pane active" id="main">
-            <canvas id="ui_3d" width="800" height="600"></canvas>
-          </div>
+  <!-- A panel to control a job and view its result -->
+  <script type="text/template" name="job_panel">  
+  Job Status, Controls, Result (if exists)
+  </script>
 
-          <div class="tab-pane" id="peeling">
-          </div>
+  <!-- A panel to inspect (an analysis) of a single scene -->
+  <script type="text/template" name="scene_panel">
+  Scene Beliefs and 3D view
+    <div class="col-md-1">
+      <h2>Beliefs</h2>
+      <div class="list-group" id="search"></div>
+    </div>
 
-          <div class="tab-pane" id="log">
-            <pre>
-            </pre>
-          </div>
+    <div class="col-md-9">
+      <h2>Scene Belief</h2>
+      <ul class="nav nav-tabs">
+        <li class="active"><a href="#main" data-toggle="tab">Main</a></li>
+        <li><a href="#peeling" data-toggle="tab">Peeling</a></li>
+        <li><a href="#log" data-toggle="tab">Log</a></li>
+        <li><a href="#grabcut" data-toggle="tab">Grabcut</a></li>
+        <li><a href="#calibration" data-toggle="tab">Calibration</a></li>
+      </ul>
 
-          <div class="tab-pane" id="grabcut">
-            <div style="position:relative; width:640px; height:480px">
-              <canvas style="position:absolute" id="ui_grabcut" width="640" height="480"></canvas>
-
-              <canvas style="position:absolute" id="ui_grabcut_drawing" width="640" height="480"></canvas>
-            </div>
-
-            <button class="btn btn-default" id="ui_draw_fg">FG</button>
-            <button class="btn btn-default" id="ui_draw_bg">BG</button>
-            <button class="btn btn-default" id="ui_clear">Clear</button>
-            <button class="btn btn-primary" id="ui_do_grabcut">Grabcut</button>
-          </div>
-
-          <div class="tab-pane" id="calibration">
-          </div>
+      <div class="tab-content">
+        <div class="tab-pane active" id="main">
+          <canvas id="ui_3d" width="800" height="600"></canvas>
         </div>
 
-        <!-- Modal -->
-        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title" id="myModalLabel">Grabcut Result</h4>
-              </div>
-              <div class="modal-body" id="ui_modal_result">
+        <div class="tab-pane" id="peeling">
+        </div>
 
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-              </div>
-            </div>
+        <div class="tab-pane" id="log">
+          <pre>
+          </pre>
+        </div>
+
+        <div class="tab-pane" id="grabcut">
+          <div style="position:relative; width:640px; height:480px">
+            <canvas style="position:absolute" id="ui_grabcut" width="640" height="480"></canvas>
+
+            <canvas style="position:absolute" id="ui_grabcut_drawing" width="640" height="480"></canvas>
           </div>
+
+          <button class="btn btn-default" id="ui_draw_fg">FG</button>
+          <button class="btn btn-default" id="ui_draw_bg">BG</button>
+          <button class="btn btn-default" id="ui_clear">Clear</button>
+          <button class="btn btn-primary" id="ui_do_grabcut">Grabcut</button>
+        </div>
+
+        <div class="tab-pane" id="calibration">
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <!-- Modal Dialogs -->
+  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="myModalLabel">Grabcut Result</h4>
+        </div>
+        <div class="modal-body" id="ui_modal_result">
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
   </div>
-  
+
   <script src="/static/parametric_meshes.js" type="text/javascript"></script>
+  <script src="/static/panel_scene.js" type="text/javascript"></script>
   <script src="/static/app.js" type="text/javascript"></script>
 </body>
 </html>
