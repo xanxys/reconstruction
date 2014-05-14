@@ -26,35 +26,21 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 
 	if(uri.size() == 0) {
 		return sendStaticFile("/index.html", "text/html");
-	} else if(uri.size() == 2 && uri[0] == "static") {
+	} else if(uri[0] == "static" && uri.size() == 2) {
 		return sendStaticFile(uri[1]);
-	} else if(uri.size() == 1 && uri[0] == "scene" && method == "POST") {
-		Json::Value v;
-		v["id"] = data_source.takeSnapshot();
-		return v;
-	} else if(uri.size() == 3 && uri[0] == "scene" && uri[2] == "grabcut" && method == "POST") {
-		const std::string id = uri[1];
-		const auto& cloud = data_source.getScene(id);
-		SceneAnalyzer analyzer(cloud);
-		return handleGrabcut(*analyzer.getBestBelief(), data);
-	} else if(uri.size() == 2 && uri[0] == "scene" && method == "GET") {
-		const std::string id = uri[1];
-		const auto& cloud = data_source.getScene(id);
-		SceneAnalyzer analyzer(cloud);
-		return handleScene(analyzer);
-	} else if(uri.size() == 4 && uri[0] == "scene" && uri[2] == "belief" && method == "GET") {
-		const std::string id = uri[1];
-		const auto& cloud = data_source.getScene(id);
-		SceneAnalyzer analyzer(cloud);
-		auto beliefs = analyzer.getAllBelief();
+	} else if(uri[0] == "scene") {
+		return handleSceneRequest(
+			std::vector<std::string>(uri.begin() + 1, uri.end()), method, data);
+	} else if(uri[0] == "job") {
+		return handleJobRequest(
+			std::vector<std::string>(uri.begin() + 1, uri.end()), method, data);
+	}
+	return Response::notFound();
+}
 
-		const int index = std::stoi(uri[3]);
-		if(index < 0 || index >= beliefs.size()) {
-			return Response::notFound();
-		}
-
-		return handleBelief(*beliefs[index]);
-	} else if(uri.size() == 1 && uri[0] == "scene" && method == "GET") {
+Response ReconServer::handleSceneRequest(const std::vector<std::string> sub_uri,
+	const std::string& method, const std::string& data) {
+	if(sub_uri.size() == 0 && method == "GET") {
 		Json::Value scenes;
 		for(const auto& id : data_source.listScenes()) {
 			Json::Value entry;
@@ -63,9 +49,27 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 			scenes.append(entry);
 		}
 		return scenes;
-	} else if(uri[0] == "job") {
-		return handleJobRequest(
-			std::vector<std::string>(uri.begin() + 1, uri.end()), method, data);
+	} else if(sub_uri.size() == 0 && method == "POST") {
+		Json::Value v;
+		v["id"] = data_source.takeSnapshot();
+		return v;
+	} else if(sub_uri.size() >= 1) {
+		const std::string scene_id = sub_uri[0];
+		const auto& cloud = data_source.getScene(scene_id);
+		SceneAnalyzer analyzer(cloud);
+
+		if(sub_uri.size() == 1 && method == "GET") {
+			return handleScene(analyzer);
+		} else if(sub_uri.size() == 2 && sub_uri[1] == "grabcut" && method == "POST") {
+			return handleGrabcut(*analyzer.getBestBelief(), data);
+		} else if(sub_uri.size() == 3 && sub_uri[1] == "belief" && method == "GET") {
+			auto beliefs = analyzer.getAllBelief();
+			const int belief_id = std::stoi(sub_uri[2]);
+			if(belief_id < 0 || belief_id >= beliefs.size()) {
+				return Response::notFound();
+			}
+			return handleBelief(*beliefs[belief_id]);
+		}
 	}
 	return Response::notFound();
 }
