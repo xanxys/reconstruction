@@ -23,6 +23,7 @@ Core::Core() :
 }
 
 void Core::enableExtensions() {
+	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
 	if(GLEW_OK != err) {
 		throw glewGetErrorString(err);
@@ -93,7 +94,7 @@ void Core::init() {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, pre_buffer->unsafeGetId(), 0);
 
 	//
-	warp_shader = Shader::create("renderer/warp.vs", "renderer/warp.fs");
+	// warp_shader = Shader::create("renderer/warp.vs", "renderer/warp.fs");
 	standard_shader = Shader::create("renderer/base.vs", "renderer/base.fs");
 	texture_shader = Shader::create("renderer/tex.vs", "renderer/tex.fs");
 }
@@ -126,7 +127,7 @@ cv::Mat Core::render(
 
 	tex->useIn(0);
 	texture_shader->use();
-	texture_shader->setUniform("texture", 0);
+	texture_shader->setUniform("tex", 0);
 	texture_shader->setUniform("luminance", 1.0f);
 	texture_shader->setUniformMat4("world_to_screen", proj_view.data());
 	texture_shader->setUniformMat4("local_to_world", trans.data());

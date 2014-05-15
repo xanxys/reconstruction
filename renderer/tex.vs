@@ -1,4 +1,4 @@
-#version 330 core
+#version 300 es
 uniform mat4 world_to_screen;  // projection * view
 uniform mat4 local_to_world;
 layout(location = 0) in vec3 pos_world;
