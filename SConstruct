@@ -8,7 +8,8 @@ env = Environment(
 	'/usr/include/eigen3',
 	'/usr/include/GL',
 	'/usr/include/ni',
-	'/usr/include/pcl-1.6',
+	'/usr/include/pcl-1.6', # for dev
+	'/usr/include/pcl-1.7', # for EC2
 	'/usr/include/jsoncpp',
 	],
 	LIBPATH = [
