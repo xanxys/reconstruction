@@ -296,7 +296,7 @@ DataSource::DataSource(bool enable_xtion) : xtion_prefix("xtion") {
 	const std::string dataset_path_prefix = "/data-new/research/2014/reconstruction";
 
 	sources["MS"].reset(new MSDataSource(dataset_path_prefix + "/MS"));
-	sources["NYU"].reset(new NYU2DataSource(dataset_path_prefix + "/NYU2"));
+	sources["NYU"].reset(new NYU2DataSource(dataset_path_prefix + "/NYU2-slice"));
 
 	if(enable_xtion) {
 		xtion = new XtionDataSource();
