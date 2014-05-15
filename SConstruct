@@ -7,9 +7,9 @@ env = Environment(
 	CPPPATH = [
 	'/usr/include/eigen3',
 	'/usr/include/GL',
+	'/usr/include/GLFW',  # for EC2
 	'/usr/include/ni',
-	'/usr/include/pcl-1.6', # for dev
-	'/usr/include/pcl-1.7', # for EC2
+	'/usr/include/pcl-1.6',
 	'/usr/include/jsoncpp',
 	],
 	LIBPATH = [
