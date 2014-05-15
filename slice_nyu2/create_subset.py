@@ -17,7 +17,7 @@ def get_minimum_subset(scene_dir):
 	time_tolerance = 0.1
 
 	def time_of(path_rel):
-		return float(path.split('-')[1])
+		return float(path_rel.split('-')[1])
 
 	# Partition files
 	rgbs = []
