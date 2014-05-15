@@ -41,7 +41,7 @@ Response ReconServer::handleRequest(std::vector<std::string> uri,
 Response ReconServer::handleSceneRequest(const std::vector<std::string> sub_uri,
 	const std::string& method, const std::string& data) {
 	if(sub_uri.size() == 0 && method == "GET") {
-		Json::Value scenes;
+		Json::Value scenes(Json::arrayValue);
 		for(const auto& id : data_source.listScenes()) {
 			Json::Value entry;
 			entry["id"] = id;

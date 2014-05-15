@@ -23,6 +23,9 @@ using RigidTrans3f = Eigen::Transform<float, 3, Eigen::AffineCompact>;
 
 MSDataSource::MSDataSource(std::string dataset_path_prefix) :
 	dataset_path_prefix(dataset_path_prefix) {
+	if(!boost::filesystem::exists(dataset_path_prefix) || !boost::filesystem::is_directory(dataset_path_prefix)) {
+		throw std::runtime_error("Failed to find MS dataset");
+	}
 }
 
 std::vector<std::string> MSDataSource::listScenes() {
@@ -295,14 +298,28 @@ std::string XtionDataSource::takeSnapshot() {
 DataSource::DataSource(bool enable_xtion) : xtion_prefix("xtion") {
 	const std::string dataset_path_prefix = "/data-new/research/2014/reconstruction";
 
-	sources["MS"].reset(new MSDataSource(dataset_path_prefix + "/MS"));
-	sources["NYU"].reset(new NYU2DataSource(dataset_path_prefix + "/NYU2-slice"));
+	// Don't write like sources["MS"].reset(...); they'll put null-pointer when
+	// DataSource creation fails!
+	try {
+		auto ptr = new MSDataSource(dataset_path_prefix + "/MS");
+		sources["MS"].reset(ptr);
+	} catch(...) {
+	}
 
+	try {
+		auto ptr = new NYU2DataSource(dataset_path_prefix + "/NYU2-slice");
+		sources["NYU"].reset(ptr);
+	} catch(...) {
+	}
+
+	xtion = nullptr;
 	if(enable_xtion) {
-		xtion = new XtionDataSource();
-		sources[xtion_prefix].reset(xtion);
-	} else {
-		xtion = nullptr;
+		try {
+			xtion = new XtionDataSource();
+			sources[xtion_prefix].reset(xtion);
+		} catch(pcl::PCLIOException exc) {
+			// Give up xtion when IO error occurs.
+		}
 	}
 }
 
@@ -323,7 +340,11 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id
 	const std::string source_prefix = id.substr(0, index);
 	const std::string source_id = id.substr(index + 1);
 
-	return sources[source_prefix]->getScene(source_id);
+	if(sources[source_prefix]) {
+		return sources[source_prefix]->getScene(source_id);
+	} else {
+		throw std::runtime_error("Scene not found");
+	}
 }
 
 std::string DataSource::takeSnapshot() {
