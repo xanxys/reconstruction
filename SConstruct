@@ -19,7 +19,11 @@ env = Environment(
 	'/usr/include/jsoncpp',
 	],
 	LIBPATH = [
-	])
+	],
+	CPPDEFINES = [
+		# 'ENABLE_USB_IO'
+	]
+	)
 env['ENV']['TERM'] = os.environ['TERM']
 
 # project specific code

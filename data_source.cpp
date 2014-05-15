@@ -11,7 +11,9 @@
 #include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
 #include <opencv2/opencv.hpp>
+#ifdef ENABLE_USB_IO
 #include <pcl/io/openni_grabber.h>
+#endif
 #include <pcl/io/pcd_io.h>
 #include <sensor_msgs/PointCloud2.h>
 
@@ -255,6 +257,7 @@ double NYU2DataSource::extractTime(const boost::filesystem::path& path_file) {
 }
 
 
+#ifdef ENABLE_USB_IO
 XtionDataSource::XtionDataSource() : new_id(0) {
 	pcl::Grabber* source = new pcl::OpenNIGrabber();
 
@@ -293,6 +296,7 @@ std::string XtionDataSource::takeSnapshot() {
 	}
 	return id;
 }
+#endif
 
 
 DataSource::DataSource(bool enable_xtion) : xtion_prefix("xtion") {
@@ -312,6 +316,7 @@ DataSource::DataSource(bool enable_xtion) : xtion_prefix("xtion") {
 	} catch(...) {
 	}
 
+	#ifdef ENABLE_USB_IO
 	xtion = nullptr;
 	if(enable_xtion) {
 		try {
@@ -321,6 +326,7 @@ DataSource::DataSource(bool enable_xtion) : xtion_prefix("xtion") {
 			// Give up xtion when IO error occurs.
 		}
 	}
+	#endif
 }
 
 std::vector<std::string> DataSource::listScenes() {
@@ -348,6 +354,10 @@ pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr DataSource::getScene(std::string id
 }
 
 std::string DataSource::takeSnapshot() {
+	#ifdef ENABLE_USB_IO
 	assert(xtion);
 	return xtion_prefix + "-" + xtion->takeSnapshot();
+	#else
+	throw std::runtime_error("Xtion support is not compiled");
+	#endif
 }

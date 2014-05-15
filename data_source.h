@@ -50,6 +50,7 @@ private:
 };
 
 
+#ifdef ENABLE_USB_IO
 class XtionDataSource : public DataSourceInterface {
 public:
 	XtionDataSource();
@@ -67,6 +68,7 @@ private:
 	pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr latest_cloud;
 	std::map<std::string, pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr> xtion_clouds;
 };
+#endif
 
 
 // Facade of multiple sub-DataSources.
@@ -87,5 +89,7 @@ private:
 	const std::string xtion_prefix;
 
 	// optional XtionDataSource (borrowed)
+	#ifdef ENABLE_USB_IO
 	XtionDataSource* xtion;
+	#endif
 };
