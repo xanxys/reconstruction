@@ -1,7 +1,13 @@
 # default header
 import os
+
+if os.path.exists('/usr/bin/clang++'):
+	compiler = 'clang++'
+else:
+	compiler = 'g++'
+
 env = Environment(
-	CXX = "clang++",
+	CXX = compiler,
 	CXXFLAGS = '-std=c++11 -Wno-deprecated -Wno-attributes',
 	CCFLAGS = ['-O3', '-g'],
 	CPPPATH = [
