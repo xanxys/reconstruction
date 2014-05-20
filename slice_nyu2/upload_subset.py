@@ -35,11 +35,7 @@ dest = {
 	"prefix": "nyu2-slice-"
 }
 
-credential = {
-	"key": "AKIAJ3IWENP74M7MZQCQ",
-	"secret": "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",
-}
-
+credential = json.load(open('../dev_credential.json'))
 
 count = {
 	"scene": 0,
