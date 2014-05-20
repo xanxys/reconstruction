@@ -18,12 +18,18 @@ conn = boto.ec2.connect_to_region(
 	aws_access_key_id = credential["key"],
 	aws_secret_access_key = credential["secret"])
 
-print('Running instances before launching:')
-for reservation in conn.get_all_reservations():
-	print(reservation, [(inst, inst.instance_type) for inst in reservation.instances])
+def show_instances():
+	for reservation in conn.get_all_reservations():
+		print(reservation, [(inst, inst.instance_type) for inst in reservation.instances])
 
-# conn.run_instances('ami-a73676a6',
-# 	instance_type = 'g2.2xlarge',
-# 	key_name = 'ec2_devel_key',
-# 	security_groups = ['WebFrontend'])
 
+print('Running instances BEFORE launching:')
+show_instances()
+
+conn.run_instances('ami-a73676a6',
+	instance_type = 'g2.2xlarge',
+	key_name = 'ec2_devel_key',
+	security_groups = ['WebFrontend'])
+
+print('Running instances AFTER launching:')
+show_instances()
