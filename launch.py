@@ -26,7 +26,7 @@ def show_instances():
 print('Running instances BEFORE launching:')
 show_instances()
 
-conn.run_instances('ami-a73676a6',
+conn.run_instances('ami-3dfaba3c',
 	instance_type = 'g2.2xlarge',
 	key_name = 'ec2_devel_key',
 	security_groups = ['WebFrontend'])
