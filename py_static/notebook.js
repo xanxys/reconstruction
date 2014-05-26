@@ -3,7 +3,6 @@ var WorldView = Backbone.View.extend({
 	el: '<canvas/>',
 
 	initialize: function(options) {
-		console.log('hello');
 		this.$el[0].width = 640;
 		this.$el[0].height = 480;
 
@@ -49,6 +48,7 @@ var WorldView = Backbone.View.extend({
 	},
 });
 
+
 var deserPointcloud = function(data) {
 	// Deserialize XYZ & RGB components.
 	var points_geom = new THREE.Geometry();
@@ -76,35 +76,63 @@ var deserPointcloud = function(data) {
 	return new THREE.ParticleSystem(points_geom, material);
 };
 
-var Notebook = function() {
-	this.view = new WorldView();
-	$('#world_view').append(this.view.$el);
-	this.view.setup();
 
-	// TODO: refactor
-	var code_view = CodeMirror.fromTextArea($('#snippet')[0], {
-		value: "1+2",
-		mode: "python"
-	});
-	code_view.setSize(640, 80);
+var SnippetView = Backbone.View.extend({
+	events: {
+		'click .send_snippet': "send"
+	},
 
-	var _this = this;
-	$('#send_snippet').click(function() {
-		var code = code_view.getValue();
+	initialize: function(options) {
+		this.$el.html(_.template($('#template-snippet').text()));
+
+		this.code_view = CodeMirror.fromTextArea(this.$('textarea')[0], {
+			value: "1+2",
+			mode: "python"
+		});
+		this.code_view.setSize(640, 80);
+	},
+
+	send: function() {
+		this.$('.result').empty();
+		this.trigger('beforeSend');
+
+		var code = this.code_view.getValue();
+		var _this = this;
 		$.post('/snippet', {"code": code}).done(function(data) {
-			$('#result').empty();
-
 			var result_str = $('<pre/>').text(data['str']);
 			if(data.type === 'exception') {
 				result_str.addClass('bg-warning');
 			}
-			$('#result').append(result_str);
+			_this.$('.result').append(result_str);
 
 			if(data.type === 'success' && data.json.type === 'pointcloud') {
 				var obj = deserPointcloud(data.json.data);
 				_this.view.scene.add(obj);
 			}
 		});
+	}
+});
+
+
+var Notebook = function() {
+	this.view = new WorldView();
+	$('#world_view').append(this.view.$el);
+	this.view.setup();
+
+	this.snippet_views = [];
+	this.addNewEmptySnippet();
+};
+
+Notebook.prototype.addNewEmptySnippet = function() {
+	var snippet_view = new SnippetView();
+	$('#snippets').append(snippet_view.$el);
+	this.snippet_views.push(snippet_view);
+
+	var _this = this;
+	snippet_view.on('beforeSend', function() {
+		if(_.last(_this.snippet_views) === snippet_view) {
+			_this.addNewEmptySnippet();
+		}
 	});
 };
 
