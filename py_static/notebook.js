@@ -107,7 +107,7 @@ var SnippetView = Backbone.View.extend({
 
 			if(data.type === 'success' && data.json.type === 'pointcloud') {
 				var obj = deserPointcloud(data.json.data);
-				_this.view.scene.add(obj);
+				_this.trigger('shareObject', obj);
 			}
 		});
 	}
@@ -133,6 +133,10 @@ Notebook.prototype.addNewEmptySnippet = function() {
 		if(_.last(_this.snippet_views) === snippet_view) {
 			_this.addNewEmptySnippet();
 		}
+	});
+
+	snippet_view.on('shareObject', function(obj) {
+		_this.view.scene.add(obj);
 	});
 };
 
