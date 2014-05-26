@@ -18,7 +18,7 @@ def index():
 
 @app.route('/static/<path:path>')
 def serve_static(path):
-	return flask.send_from_directory('./static', path)
+	return flask.send_from_directory('./py_static', path)
 
 @app.route('/<scene_id>')
 def image(scene_id):
