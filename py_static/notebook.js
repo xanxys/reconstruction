@@ -82,9 +82,15 @@ var Notebook = function() {
 	this.view.setup();
 
 	// TODO: refactor
+	var code_view = CodeMirror.fromTextArea($('#snippet')[0], {
+		value: "1+2",
+		mode: "python"
+	});
+	code_view.setSize(640, 80);
+
 	var _this = this;
 	$('#send_snippet').click(function() {
-		var code = $('#snippet').val();
+		var code = code_view.getValue();
 		$.post('/snippet', {"code": code}).done(function(data) {
 			$('#result').empty();
 			$('#result').append($('<div/>').text(data['type']));

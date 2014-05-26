@@ -11,12 +11,18 @@
 	<script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
 	<script src="/static/three.min.js"></script>
 	<script src="/static/TrackballControls.js"></script>
+	<script src="/static/codemirror-compressed.js"></script>
+	<link rel="stylesheet" href="/static/codemirror.css"/>
 </head>
 <body>
-	<div>
+	<div class="col-md-6">
+		<h2>World #1</h2>
 		<div id="world_view"></div>
-		<div>
-			<textarea id="snippet" cols="60" rows="5"></textarea>
+		<div class="snippet">
+			1:
+			<div class="panel panel-default">
+				<textarea id="snippet" cols="40" rows="5"></textarea>
+			</div>
 			<div id="result"></div>
 			<button id="send_snippet">Run</button>
 		</div>
