@@ -20,6 +20,14 @@ def index():
 def serve_static(path):
 	return flask.send_from_directory('./py_static', path)
 
+@app.route('/snippet', methods=['POST'])
+def post_snippet():
+	try:
+		result = eval(flask.request.values['code'])
+		return str(result)
+	except:
+		return 'exception raised'
+
 @app.route('/<scene_id>')
 def image(scene_id):
 	scene_root = os.path.join(dataset_root, scene_id)

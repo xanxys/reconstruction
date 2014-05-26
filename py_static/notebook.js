@@ -51,8 +51,16 @@ var WorldView = Backbone.View.extend({
 
 var Notebook = function() {
 	this.view = new WorldView();
-	$('body').append(this.view.$el);
+	$('#world_view').append(this.view.$el);
 	this.view.setup();
+
+	// TODO: refactor
+	$('#send_snippet').click(function() {
+		var code = $('#snippet').val();
+		$.post('/snippet', {"code": code}).done(function(data) {
+			$('#result').text(data);
+		});
+	});
 };
 
 var notebook = new Notebook();
