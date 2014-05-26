@@ -4,8 +4,8 @@ var WorldView = Backbone.View.extend({
 
 	initialize: function(options) {
 		console.log('hello');
-		this.$el.width = 640;
-		this.$el.height = 480;
+		this.$el[0].width = 640;
+		this.$el[0].height = 480;
 
 		//this.setup();
 	},
