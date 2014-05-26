@@ -2,15 +2,35 @@
 from __future__ import print_function, division
 import flask
 
+import cv2
 import imp
 import os
-import cv2
+import traceback
+
+import json
 
 slic = imp.load_dynamic('slic', 'SLIC-Superpixels/slic.so')
 
 app = flask.Flask(__name__, static_url_path='/py_static')
 
 dataset_root = '/data-new/research/2014/reconstruction/NYU2-slice'
+
+
+class PointCloud(object):
+	def __init__(self, path):
+		self.points = json.load(open(path))
+
+	def serializeJson(self):
+		return {
+			"type": "pointcloud",
+			"data": self.points
+		}
+
+# TODO: separate server & interactive interpreter namespace
+def load_point_cloud(path):
+	return PointCloud(path)
+
+
 
 @app.route('/')
 def index():
@@ -24,9 +44,25 @@ def serve_static(path):
 def post_snippet():
 	try:
 		result = eval(flask.request.values['code'])
-		return str(result)
+		json_result = None
+		if hasattr(result, 'serializeJson'):
+			try:
+				json_result = result.serializeJson()
+			except:
+				pass
+
+		ext_result = {
+			'type': 'success',
+			'str': str(result),
+			'json': json_result
+		}
 	except:
-		return 'exception raised'
+		ext_result = {
+			'type': 'exception',
+			'str': traceback.format_exc()
+		}
+
+	return flask.jsonify(**ext_result)
 
 @app.route('/<scene_id>')
 def image(scene_id):

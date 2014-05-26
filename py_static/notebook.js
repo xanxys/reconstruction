@@ -49,16 +49,51 @@ var WorldView = Backbone.View.extend({
 	},
 });
 
+var deserPointcloud = function(data) {
+	// Deserialize XYZ & RGB components.
+	var points_geom = new THREE.Geometry();
+	var vs = _.map(data, function(v) {
+		return new THREE.Vector3(v.x, v.y, v.z);
+	});
+	points_geom.vertices = vs;
+
+	var rgb_is_valid = false;
+	if(data.length > 0 && data[0].r !== undefined) {
+		rgb = _.map(data, function(v) {
+			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255);
+		});
+		points_geom.colors = rgb;
+		rgb_is_valid = true;
+	}
+
+	var material = new THREE.ParticleSystemMaterial(rgb_is_valid ? {
+			size: 0.005,
+			vertexColors: true
+		} : {
+			size: 0.005,
+			color: '#aaf'
+		});
+	return new THREE.ParticleSystem(points_geom, material);
+};
+
 var Notebook = function() {
 	this.view = new WorldView();
 	$('#world_view').append(this.view.$el);
 	this.view.setup();
 
 	// TODO: refactor
+	var _this = this;
 	$('#send_snippet').click(function() {
 		var code = $('#snippet').val();
 		$.post('/snippet', {"code": code}).done(function(data) {
-			$('#result').text(data);
+			$('#result').empty();
+			$('#result').append($('<div/>').text(data['type']));
+			$('#result').append($('<div/>').text(data['str']));
+
+			if(data.type === 'success' && data.json.type === 'pointcloud') {
+				var obj = deserPointcloud(data.json.data);
+				_this.view.scene.add(obj);
+			}
 		});
 	});
 };
