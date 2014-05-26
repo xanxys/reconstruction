@@ -93,8 +93,12 @@ var Notebook = function() {
 		var code = code_view.getValue();
 		$.post('/snippet', {"code": code}).done(function(data) {
 			$('#result').empty();
-			$('#result').append($('<div/>').text(data['type']));
-			$('#result').append($('<div/>').text(data['str']));
+
+			var result_str = $('<pre/>').text(data['str']);
+			if(data.type === 'exception') {
+				result_str.addClass('bg-warning');
+			}
+			$('#result').append(result_str);
 
 			if(data.type === 'success' && data.json.type === 'pointcloud') {
 				var obj = deserPointcloud(data.json.data);
