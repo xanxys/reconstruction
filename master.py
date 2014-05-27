@@ -26,9 +26,22 @@ class PointCloud(object):
 			"data": self.points
 		}
 
+class Mesh(object):
+	def __init__(self, path):
+		self.points = json.load(open(path))
+
+	def serializeJson(self):
+		return {
+			"type": "mesh",
+			"data": self.points
+		}
+
 # TODO: separate server & interactive interpreter namespace
 def load_point_cloud(path):
 	return PointCloud(path)
+
+def load_mesh(path):
+	return Mesh(path)
 
 
 

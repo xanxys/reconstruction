@@ -79,14 +79,26 @@ var deserPointcloud = function(data) {
 	return new THREE.ParticleSystem(points_geom, material);
 };
 
+// somehow not working
 var deserMesh = function(data) {
-	// TODO: use efficient version
-	// var geom = new THREE.BufferGeometry()
-	var geom = new THREE.Geometry();
-	geom.faces = data.faces;
-	geom.vertices = _.map(data.vertices, function(vertex) {
-		return new THREE.Vector3(vertex.x, vertex.y, vertex.z);
+	var geom = new THREE.BufferGeometry();
+
+	// Expand face vertex index to vertex content by copying.
+	var position_attr = new THREE.Float32Attribute(data.faces.length * 3, 3);
+	var normal_attr = new THREE.Float32Attribute(data.faces.length * 3, 3);
+	_.each(data.faces, function(face, face_index) {
+		_.each(face, function(vertex_index, i) {
+			var vertex = data.vertices[vertex_index];
+			position_attr.setXYZ(face_index * 3 + i,
+				vertex.x, vertex.y, vertex.z);
+			normal_attr.setXYZ(face_index * 3 + i,
+				vertex.normal_x, vertex.normal_y, vertex.normal_z);
+		});
 	});
+
+
+	geom.addAttribute('position', position_attr);
+	geom.addAttribute('normal', normal_attr);
 
 	return new THREE.Mesh(
 		geom,
