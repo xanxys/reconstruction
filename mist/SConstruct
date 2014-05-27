@@ -1,0 +1,48 @@
+# default header
+import distutils.sysconfig
+import os
+
+env = Environment(
+#	CXX = compiler,
+	CXXFLAGS = '-std=c++11 -Wno-deprecated -Wno-attributes -shared -fPIC -DPIC',
+	CCFLAGS = ['-O3', '-g'],
+	CPPPATH = [
+		distutils.sysconfig.get_python_inc(),
+		'/usr/include/pcl-1.6',
+		'/usr/include/eigen3',
+	],
+	LIBPATH = [
+	],
+	CPPDEFINES = [
+		# 'ENABLE_USB_IO'
+	]
+	)
+env['ENV']['TERM'] = os.environ['TERM']
+
+# project specific code
+LIBS = [
+	'libboost_system-mt',
+	'libboost_thread-mt',
+	'libdl',
+	'libjsoncpp',
+	'boost_python',
+	'libpcl_common',
+	'libpcl_features',
+	'libpcl_filters',
+	'libpcl_geometry',
+	'libpcl_io',
+	'libpcl_kdtree',
+	'libpcl_search',
+	'libpcl_surface',
+	'libpcl_segmentation',
+	'libpthread',
+]
+
+# Magic to make .so compilation work
+# from http://stackoverflow.com/questions/2246399/scons-to-make-a-shared-library-so-with-a-static-libarary-a
+env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
+env.SharedLibrary(
+	env.File('mist.so'),
+	source =
+		[env.Object(f) for f in env.Glob('*.cpp')],
+	LIBS = LIBS)
