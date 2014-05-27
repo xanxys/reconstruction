@@ -50,20 +50,23 @@ var WorldView = Backbone.View.extend({
 
 
 var deserPointcloud = function(data) {
-	// Deserialize XYZ & RGB components.
-	var points_geom = new THREE.Geometry();
-	var vs = _.map(data, function(v) {
-		return new THREE.Vector3(v.x, v.y, v.z);
-	});
-	points_geom.vertices = vs;
+	var rgb_is_valid = (data.length > 0 && data[0].r !== undefined);
 
-	var rgb_is_valid = false;
-	if(data.length > 0 && data[0].r !== undefined) {
-		rgb = _.map(data, function(v) {
-			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255);
+	var points_geom = new THREE.BufferGeometry();
+
+	var position_attr = new THREE.Float32Attribute(data.length, 3);
+	points_geom.addAttribute('position', position_attr);
+	_.each(data, function(vertex, index) {
+		position_attr.setXYZ(index, vertex.x, vertex.y, vertex.z);
+	});
+
+	if(rgb_is_valid) {
+		var color_attr = new THREE.Float32Attribute(data.length, 3);
+		points_geom.addAttribute('color', color_attr);
+		_.each(data, function(vertex, index) {
+			color_attr.setXYZ(index,
+				vertex.r / 255, vertex.g / 255, vertex.b / 255);
 		});
-		points_geom.colors = rgb;
-		rgb_is_valid = true;
 	}
 
 	var material = new THREE.ParticleSystemMaterial(rgb_is_valid ? {
@@ -74,6 +77,22 @@ var deserPointcloud = function(data) {
 			color: '#aaf'
 		});
 	return new THREE.ParticleSystem(points_geom, material);
+};
+
+var deserMesh = function(data) {
+	// TODO: use efficient version
+	// var geom = new THREE.BufferGeometry()
+	var geom = new THREE.Geometry();
+	geom.faces = data.faces;
+	geom.vertices = _.map(data.vertices, function(vertex) {
+		return new THREE.Vector3(vertex.x, vertex.y, vertex.z);
+	});
+
+	return new THREE.Mesh(
+		geom,
+		new THREE.MeshBasicMaterial({
+			color: 'green'
+		}));
 };
 
 
@@ -105,9 +124,14 @@ var SnippetView = Backbone.View.extend({
 			}
 			_this.$('.result').append(result_str);
 
-			if(data.type === 'success' && data.json.type === 'pointcloud') {
-				var obj = deserPointcloud(data.json.data);
-				_this.trigger('shareObject', obj);
+			if(data.type === 'success') {
+				if(data.json.type === 'pointcloud') {
+					var obj = deserPointcloud(data.json.data);
+					_this.trigger('shareObject', obj);
+				} else if(data.json.type === 'mesh') {
+					var obj = deserMesh(data.json.data);
+					_this.trigger('shareObject', obj);
+				}
 			}
 		});
 	}
