@@ -20,6 +20,14 @@ class PointCloud(object):
 	def __init__(self, path):
 		self.points = json.load(open(path))
 
+	def color(self, color):
+		""" Assign single color to all points. """
+		for v in self.points:
+			v["r"] = color["r"]
+			v["g"] = color["g"]
+			v["b"] = color["b"]
+		return self
+
 	def serializeJson(self):
 		return {
 			"type": "pointcloud",
