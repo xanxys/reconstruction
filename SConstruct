@@ -50,18 +50,21 @@ LIBS = [
 	'libpthread',
 ]
 
+def exclude(f):
+	return str(f).startswith('mist/') or str(f).startswith('SLIC-Superpixels')
+
 env.Program(
 	'recon',
 	source =
 		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c")
-			if not f.name.endswith('_test.cpp')],
+			if not f.name.endswith('_test.cpp') and not exclude(f)],
 	LIBS = LIBS)
 
 program_test = env.Program(
 	'recon_test',
 	source =
 		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c")
-			if f.name != 'main.cpp'],
+			if f.name != 'main.cpp' and not exclude(f)],
 	LIBS = LIBS + ['libgtest', 'libgtest_main'])
 
 env.Command('test', None, './' + program_test[0].path)
