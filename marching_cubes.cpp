@@ -39,8 +39,13 @@ TriangleMesh<Eigen::Vector3f> extractIsosurface(
 			const auto pos = vertex0 + delta;
 			positions[i_vertex] = pos;
 			values[i_vertex] = field(pos);
-			// TODO: calculate normal.
-			normals[i_vertex] = Eigen::Vector3f(1,2,3);
+			const float dvdx = (field(pos + Eigen::Vector3f(resolution, 0, 0))
+				- field(pos - Eigen::Vector3f(resolution, 0, 0))) / (2 * resolution);
+			const float dvdy = (field(pos + Eigen::Vector3f(0, resolution, 0))
+				- field(pos - Eigen::Vector3f(0, resolution, 0))) / (2 * resolution);
+			const float dvdz = (field(pos + Eigen::Vector3f(0, 0, resolution))
+				- field(pos - Eigen::Vector3f(0, 0, resolution))) / (2 * resolution);
+			normals[i_vertex] = -Eigen::Vector3f(dvdx, dvdy, dvdz).normalized();
 		}
 		mesh.merge(tesselateCube(value, values, positions, normals));
 	}
