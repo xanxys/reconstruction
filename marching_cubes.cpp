@@ -60,6 +60,8 @@ TriangleMesh<Eigen::Vector3f> extractIsosurface(
 	return mesh;
 }
 
+// TODO: I don't understand MC exactly. Please replace
+// large cryptic numeric table with self-explaining compile-time code.
 TriangleMesh<Eigen::Vector3f> tesselateCube(float v_surface,
 	const std::array<float, 8>& values,
 	const std::array<Eigen::Vector3f, 8>& positions,
@@ -77,40 +79,22 @@ TriangleMesh<Eigen::Vector3f> tesselateCube(float v_surface,
 		return TriangleMesh<Eigen::Vector3f>();
 	}
 
-	std::cout << "========" << (int)mask_inside << std::endl;
-
 	// Generate vertices in sparse arrays.
-	uint16_t edge_flag = edgeTable[mask_inside];
+	const uint16_t edge_flag = edgeTable[mask_inside];
 
 	std::array<Eigen::Vector3f, 12> vert_pos;
 	std::array<Eigen::Vector3f, 12> vert_normal;
 	for(int i : boost::irange(0, 12)) {
-		vert_pos[i] = Eigen::Vector3f(0, 0, 0);
-		const auto vert_index_pair = edgeToVertex[i];
-		const int vert0 = std::get<0>(vert_index_pair);
-		const int vert1 = std::get<1>(vert_index_pair);
-		
-		// "<" vs. "<=" is very important.
 		if(edge_flag && (1 << i) == 0) {
 			continue;
 		}
-		/*
-		if(!((values[vert0] <= v_surface && v_surface <= values[vert1]) ||
-			(values[vert1] <= v_surface && v_surface <= values[vert0]))) {
-			// Edge doesn't contain vertex.
-			std::cout << "NOT CONTAINED:" << i << std::endl;
-			continue;
-		}
-		*/
-		
+		const auto vert_index_pair = edgeToVertex[i];
+		const int vert0 = std::get<0>(vert_index_pair);
+		const int vert1 = std::get<1>(vert_index_pair);
+
 		// Inverse linear-interpolate value.
-		float t = (v_surface - values[vert0]) / (values[vert1] - values[vert0]);
-		if(!(t >= 0 && t <= 1)) {
-			std::cout << "WARN Singularity encountred" << t << "@" << values[vert0] << "," << values[vert1] << ":" << v_surface << std::endl;
-			// Edge doesn't contain vertex.
-			//continue;
-			t = std::max(0.0f, std::min(1.0f, t));
-		}
+		const float t = std::max(0.0f, std::min(1.0f,
+			(v_surface - values[vert0]) / (values[vert1] - values[vert0])));
 
 		// Calculate face vertex attributes by linear interpolation.
 		vert_pos[i] = positions[vert0] + (positions[vert1] - positions[vert0]) * t;
@@ -122,9 +106,6 @@ TriangleMesh<Eigen::Vector3f> tesselateCube(float v_surface,
 	TriangleMesh<Eigen::Vector3f> delta;
 	std::map<int, int> compressed_vertex_index;
 	for(const int i_vert : tri_template) {
-		if(vert_pos[i_vert].norm() == 0) {
-			std::cout << (int)mask_inside << std::endl;
-		}
 		compressed_vertex_index[i_vert] = delta.vertices.size();
 		delta.vertices.push_back(
 			std::make_pair(vert_pos[i_vert], vert_normal[i_vert]));

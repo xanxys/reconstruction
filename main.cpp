@@ -8,11 +8,14 @@
 
 int main() {
 	const auto mesh = extractIsosurface(
-		0.5, [](Eigen::Vector3f p) {
-			return std::max(0.0f, 1 - p.norm());
+		3, [](Eigen::Vector3f p) {
+			return (
+				1 / (0.01 + p.norm()) +
+				1 / (0.01 + (p - Eigen::Vector3f(0.9,0.9,0.9)).norm())
+				);
 		}, std::make_pair(
-			Eigen::Vector3f(-2, -2, -2),
-			Eigen::Vector3f(2, 2, 2)),
+			Eigen::Vector3f(-3, -3, -3),
+			Eigen::Vector3f(3, 3, 3)),
 		0.1);
 	std::ofstream test("test.ply");
 	mesh.serializePLY(test);
