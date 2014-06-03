@@ -4,9 +4,11 @@
 #include "recon_server.h"
 
 #include <cmath>
+#include "logging.h"
 #include "marching_cubes.h"
 
 int main() {
+	INFO("creating metaball");
 	const auto mesh = extractIsosurface(
 		3, [](Eigen::Vector3f p) {
 			return (

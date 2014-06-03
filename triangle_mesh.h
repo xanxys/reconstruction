@@ -11,6 +11,7 @@ template<typename Vertex>
 class TriangleMesh {
 public:
 	// Merge given mesh into this by simple concatenation (in-place).
+	// time(worst): O(|delta.vertices| + |delta.faces|)
 	void merge(const TriangleMesh<Vertex>& delta) {
 		const int base_index = vertices.size();
 		for(const auto& face : delta.triangles) {
