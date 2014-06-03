@@ -76,7 +76,10 @@ TriangleMesh<Eigen::Vector3f> tesselateCube(float v_surface,
 
 		// Inverse linear-interpolate value.
 		const float t = (v_surface - values[vert0]) / (values[vert1] - values[vert0]);
-		assert(t > 0 && t < 1);
+		if(!(t > 0 && t < 1)) {
+			// Edge doesn't contain vertex.
+			continue;
+		}
 
 		// Calculate face vertex attributes by linear interpolation.
 		vert_pos[i] = positions[vert0] + (positions[vert1] - positions[vert0]) * t;

@@ -5,32 +5,14 @@
 
 #include <Eigen/Dense>
 
+#include "triangle_mesh.h"
+
 class F32Array3 {
 public:
 	F32Array3(int nx, int ny, int nz);
 private:
 	const int nx, ny, nz;
 	std::vector<float> data;
-};
-
-template<typename Vertex>
-class TriangleMesh {
-public:
-	// Merge given mesh into this by simple concatenation (in-place).
-	void merge(const TriangleMesh<Vertex>& delta) {
-		const int base_index = vertices.size();
-		for(const auto& face : delta.triangles) {
-			triangles.emplace_back(
-				std::get<0>(face) + base_index,
-				std::get<1>(face) + base_index,
-				std::get<2>(face) + base_index);
-		}
-		vertices.insert(vertices.end(),
-			delta.vertices.begin(), delta.vertices.end());
-	}
-public:
-	std::vector<std::tuple<int, int, int>> triangles;
-	std::vector<std::pair<Eigen::Vector3f, Vertex>> vertices;
 };
 
 

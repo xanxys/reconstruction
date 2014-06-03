@@ -24,7 +24,7 @@ env = Environment(
 		# 'ENABLE_USB_IO'
 	]
 	)
-env['ENV']['TERM'] = os.environ['TERM']
+env['ENV']['TERM'] = os.environ.get('TERM', '')
 
 # project specific code
 LIBS = [
