@@ -1,0 +1,1784 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"rot",
+				"rot_angle"
+			],
+			[
+				"resu",
+				"result_post"
+			],
+			[
+				"light",
+				"light_builder1"
+			],
+			[
+				"LightB",
+				"LightBuilderInterface"
+			],
+			[
+				"Light",
+				"LightBuilder"
+			],
+			[
+				"simu",
+				"simulation_result"
+			],
+			[
+				"handleSi",
+				"handleSimulationImage"
+			],
+			[
+				"convert",
+				"convertMeshToPy"
+			],
+			[
+				"ali",
+				"vertical-align:   (property)"
+			],
+			[
+				"cloud",
+				"cloud_colorless"
+			],
+			[
+				"cra",
+				"createPythonNDArrayFromIplImage"
+			],
+			[
+				"sma",
+				"smallest_area"
+			],
+			[
+				"planes",
+				"planes_refined"
+			],
+			[
+				"HashCell",
+				"HashCellView"
+			],
+			[
+				"clou",
+				"cloud_for_mobile"
+			],
+			[
+				"Point",
+				"PointXYZRGB"
+			],
+			[
+				"bad",
+				"badPlays"
+			],
+			[
+				"winni",
+				"winningSide"
+			],
+			[
+				"par",
+				"parseCSA"
+			],
+			[
+				"play",
+				"playerName"
+			],
+			[
+				"pl",
+				"playerName"
+			],
+			[
+				"get",
+				"getFilePaths"
+			],
+			[
+				"board",
+				"boardWithSinglePiece"
+			],
+			[
+				"fli",
+				"flipPositionY"
+			],
+			[
+				"promo",
+				"promotingPlayAt"
+			],
+			[
+				"maybe",
+				"maybePromotingPlayAt"
+			],
+			[
+				"delta",
+				"deltaMicrosec"
+			],
+			[
+				"count",
+				"count_dir"
+			],
+			[
+				"time_",
+				"time_tolerance"
+			],
+			[
+				"the_",
+				"the_depth"
+			],
+			[
+				"scene",
+				"scene_dir_abs"
+			],
+			[
+				"all",
+				"all_jobs"
+			],
+			[
+				"scene_",
+				"scene_id"
+			],
+			[
+				"job",
+				"job_pool"
+			],
+			[
+				"valu",
+				"valueOfSidedPiece"
+			],
+			[
+				"pie",
+				"pieceWeight"
+			],
+			[
+				"promote",
+				"promoteFlag"
+			],
+			[
+				"compres",
+				"compressBoard"
+			],
+			[
+				"norm",
+				"normalPieces"
+			],
+			[
+				"eva",
+				"evaluateCaptures"
+			],
+			[
+				"pieceT",
+				"pieceType"
+			],
+			[
+				"score",
+				"scoreCache"
+			],
+			[
+				"piece",
+				"pieceTypeRange"
+			],
+			[
+				"compress",
+				"compressCell"
+			],
+			[
+				"curre",
+				"currentBestPlay"
+			],
+			[
+				"curr",
+				"currentBestScore"
+			],
+			[
+				"currentBe",
+				"currentBestScore"
+			],
+			[
+				"ev",
+				"evaluatePlay"
+			],
+			[
+				"cu",
+				"currentBestScore"
+			],
+			[
+				"cur",
+				"currentBestPlay"
+			],
+			[
+				"eval",
+				"evaluateBoard"
+			],
+			[
+				"evalua",
+				"evaluatePlay"
+			],
+			[
+				"value",
+				"valueOfPiece"
+			],
+			[
+				"evalu",
+				"evaluateCapture"
+			],
+			[
+				"P",
+				"PlayerSide"
+			],
+			[
+				"Player",
+				"PlayerSide"
+			],
+			[
+				"legalMoves",
+				"legalMovesConsideringCheck"
+			],
+			[
+				"showPie",
+				"showPiecesInKanji"
+			],
+			[
+				"Sengo",
+				"SengoPair"
+			],
+			[
+				"Seng",
+				"SengoPair"
+			],
+			[
+				"pieceTypeTo",
+				"pieceTypeToBeCaptured"
+			],
+			[
+				"Bo",
+				"BoardState"
+			],
+			[
+				"fil",
+				"filterRun"
+			],
+			[
+				"Pl",
+				"Play"
+			],
+			[
+				"Play",
+				"PlayerSide"
+			],
+			[
+				"enemy",
+				"enemyTerritory"
+			],
+			[
+				"block",
+				"blockerSide"
+			],
+			[
+				"pote",
+				"potentialDestinationsInfinite"
+			],
+			[
+				"poten",
+				"potentialPositions"
+			],
+			[
+				"getPl",
+				"getPlayFromPlayer"
+			],
+			[
+				"CUI",
+				"CUIPlayer"
+			],
+			[
+				"ini",
+				"initialBoardState"
+			],
+			[
+				"create",
+				"createPlayer"
+			],
+			[
+				"Pla",
+				"PlayerSide"
+			],
+			[
+				"showDi",
+				"showDigitInKanji"
+			],
+			[
+				"showDigitI",
+				"showDigitInZenkakuArabic"
+			],
+			[
+				"showPiece",
+				"showPieceJapanese"
+			],
+			[
+				"log_",
+				"log_file_path"
+			],
+			[
+				"ptr_p",
+				"ptr_program_end"
+			],
+			[
+				"code",
+				"code_memory"
+			],
+			[
+				"voxels",
+				"voxels"
+			],
+			[
+				"voxel",
+				"voxel_merged"
+			],
+			[
+				"ix_",
+				"ix_min"
+			],
+			[
+				"iy",
+				"iy_max"
+			],
+			[
+				"iy_",
+				"iy_min"
+			],
+			[
+				"iz_m",
+				"iz_min"
+			],
+			[
+				"cou",
+				"count_maybe_filled"
+			],
+			[
+				"Em",
+				"EMPTY"
+			],
+			[
+				"Voxe",
+				"VoxelState"
+			],
+			[
+				"Voel",
+				"VoxelDescription"
+			],
+			[
+				"unknow",
+				"unknown_indices"
+			],
+			[
+				"Geometry",
+				"THREE.GeometryUtils"
+			],
+			[
+				"Camera",
+				"CameraParameters"
+			],
+			[
+				"narest",
+				"nearest_distance"
+			],
+			[
+				"depth",
+				"depth_time"
+			],
+			[
+				"target_ra",
+				"target_ratio_raw"
+			],
+			[
+				"DataSou",
+				"DataSourceInterface"
+			],
+			[
+				"NYU2",
+				"NYU2DataSource"
+			],
+			[
+				"DataS",
+				"DataSourceInterface"
+			],
+			[
+				"source",
+				"source_prefix"
+			],
+			[
+				"dataset",
+				"dataset_path_prefix"
+			],
+			[
+				"depthP",
+				"depthParam2"
+			],
+			[
+				"depthPara",
+				"depthParam1"
+			],
+			[
+				"CV_LOAD",
+				"CV_LOAD_IMAGE_COLOR"
+			],
+			[
+				"CV_LOAD_IMAGE_",
+				"CV_LOAD_IMAGE_GRAYSCALE"
+			],
+			[
+				"loadFrom",
+				"loadFromNYU2"
+			],
+			[
+				"data",
+				"dataset_path_prefix"
+			],
+			[
+				"maybe_",
+				"maybe_motion_id"
+			],
+			[
+				"path_",
+				"path_html"
+			],
+			[
+				"backgr",
+				"background-color"
+			],
+			[
+				"count_num_",
+				"count_num_metadata_notfound"
+			],
+			[
+				"resol",
+				"resolveDOF"
+			],
+			[
+				"rot_i",
+				"rot_in_clean_local"
+			],
+			[
+				"is",
+				"isFrameHeader"
+			],
+			[
+				"bonedata",
+				"bonedata_segment"
+			],
+			[
+				"remove",
+				"removeAllLP"
+			],
+			[
+				"wins",
+				"wins_honest"
+			],
+			[
+				"t_tar",
+				"t_targ_no_farm"
+			],
+			[
+				"t_ta",
+				"t_targ_no_farm"
+			],
+			[
+				"t_targ",
+				"t_targ_w_farm"
+			],
+			[
+				"t_t",
+				"t_targ_w_farm"
+			],
+			[
+				"nodes",
+				"nodes_remaining_new"
+			],
+			[
+				"changeTo",
+				"changeToBackground"
+			],
+			[
+				"Sce",
+				"SceneBelief"
+			],
+			[
+				"man",
+				"manhattan2"
+			],
+			[
+				"Manh",
+				"ManhattanBeliefTest"
+			],
+			[
+				"camera",
+				"camera_origin"
+			],
+			[
+				"Ma",
+				"ManhattanBeliefTest"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "marching_cubes.h",
+			"settings":
+			{
+				"buffer_size": 11541,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
+			"settings":
+			{
+				"buffer_size": 90,
+				"line_ending": "Unix",
+				"name": "untitled.sublime-build"
+			}
+		},
+		{
+			"file": "triangle_mesh.h",
+			"settings":
+			{
+				"buffer_size": 679,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "Packages/User/scons.sublime-build",
+	"command_palette":
+	{
+		"height": 85.0,
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"trai",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"update",
+				"Package Control: Upgrade/Overwrite All Packages"
+			],
+			[
+				"trailin",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"trail",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"json",
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"sort",
+				"Sort Lines"
+			],
+			[
+				"del",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"dele",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
+			[
+				"C++",
+				"Set Syntax: C++"
+			],
+			[
+				"yaml",
+				"Set Syntax: YAML"
+			],
+			[
+				"inden",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"thri",
+				"Set Syntax: Thrift"
+			],
+			[
+				"convert",
+				"z:AAAPackageDev: Convert (YAML, JSON, PList) to…"
+			],
+			[
+				"thrift",
+				"Set Syntax: Thrift"
+			],
+			[
+				"c++",
+				"Set Syntax: C++"
+			],
+			[
+				"conve",
+				"z:AAAPackageDev: Convert (YAML, JSON, PList) to…"
+			],
+			[
+				"conv",
+				"z:AAAPackageDev: Convert (YAML, JSON, PList) to…"
+			],
+			[
+				"syntax",
+				"Set Syntax: Thrift"
+			],
+			[
+				"cpp",
+				"Package Control: Upgrade Package"
+			],
+			[
+				"xml",
+				"Indent XML"
+			],
+			[
+				"aaap",
+				"z:AAAPackageDev: Convert (YAML, JSON, PList) to…"
+			],
+			[
+				"yam",
+				"Set Syntax: YAML"
+			],
+			[
+				"thrif",
+				"Set Syntax: Thrift Syntax"
+			],
+			[
+				"set",
+				"Set Syntax: Thrift"
+			],
+			[
+				"aaaa",
+				"z:AAAPackageDev: Convert (YAML, JSON, PList) to…"
+			],
+			[
+				"aaa",
+				"z:AAAPackageDev: Convert (YAML, JSON, PList) to…"
+			],
+			[
+				"reindent",
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"inputhe",
+				"InputHelper"
+			],
+			[
+				"inst",
+				"Package Control: Install Package"
+			],
+			[
+				"rein",
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"haske",
+				"Set Syntax: Haskell"
+			],
+			[
+				"fish",
+				"Set Syntax: Shell Script (fish)"
+			],
+			[
+				"shell",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"reinde",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"rei",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"reind",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"indent",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"bash",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"instll",
+				"Package Control: Install Package"
+			],
+			[
+				"upgera",
+				"Package Control: Upgrade Package"
+			],
+			[
+				"beaut",
+				"HTMLBeautify"
+			],
+			[
+				"beau",
+				"HTMLBeautify"
+			],
+			[
+				"bea",
+				"HTMLBeautify"
+			],
+			[
+				"beauti",
+				"HTMLBeautify"
+			],
+			[
+				"linter",
+				"SublimeLinter: Lint This View"
+			],
+			[
+				"markd",
+				"Set Syntax: Markdown"
+			],
+			[
+				"chann",
+				"Package Control: Add Channel"
+			],
+			[
+				"upgrade",
+				"Package Control: Upgrade Package"
+			],
+			[
+				"upgra",
+				"Package Control: Upgrade Package"
+			],
+			[
+				"package ",
+				"Package Control: Upgrade Package"
+			],
+			[
+				"proto",
+				"Set Syntax: Protocol Buffer"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"thr",
+				"Set Syntax: Thrift Syntax"
+			],
+			[
+				"pyt",
+				"Set Syntax: Python"
+			],
+			[
+				"pyth",
+				"Set Syntax: Python"
+			],
+			[
+				"AAA",
+				"z:AAAPackageDev: New PList Syntax Definition"
+			],
+			[
+				"saort",
+				"Set Syntax: ActionScript"
+			],
+			[
+				"syntax c",
+				"Set Syntax: C"
+			],
+			[
+				"syntax c++",
+				"Set Syntax: C++"
+			],
+			[
+				"color",
+				"Color picker"
+			],
+			[
+				"colorpi",
+				"Color picker"
+			],
+			[
+				"intall",
+				"Package Control: Install Package"
+			],
+			[
+				"remo",
+				"Package Control: Remove Package"
+			],
+			[
+				"add ",
+				"Add Colorcode to current color scheme"
+			],
+			[
+				"colorco",
+				"Add Colorcode to current color scheme"
+			],
+			[
+				"javas",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"colorcod",
+				"Add Colorcode to current color scheme"
+			],
+			[
+				"codeinte",
+				"SublimeCodeIntel: Reset"
+			],
+			[
+				"lint",
+				"Preferences: SublimeLinter Settings – User"
+			],
+			[
+				"markdo",
+				"Set Syntax: Markdown"
+			],
+			[
+				"sor",
+				"Sort Lines"
+			],
+			[
+				"so",
+				"Sort Lines"
+			],
+			[
+				"py",
+				"Set Syntax: Python"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 513.0
+	},
+	"console":
+	{
+		"height": 139.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/xyx/devenv/reconstruction/triangle_mesh.cpp",
+		"/home/xyx/devenv/reconstruction/data_source.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/data-lights/all_data.utf8.json",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/light_spec.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/light_spec.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/arled_server.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter_test.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/arled_server.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/json_util.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/http_static/ffe.js",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/driver.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/json_util.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/math_util.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/math_util.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/json_util_test.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/SConstruct",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/world.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/world.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/old_reader.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/old_reader.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/file_driver.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/raytracing.h",
+		"/home/xyx/devenv/reconstruction/main.cpp",
+		"/home/xyx/devenv/reconstruction/marching_cubes.h",
+		"/home/xyx/devenv/reconstruction/marching_cubes.cpp",
+		"/home/xyx/devenv/reconstruction/range3.cpp",
+		"/home/xyx/devenv/reconstruction/range3.h",
+		"/home/xyx/devenv/reconstruction/master.py",
+		"/home/xyx/devenv/reconstruction/recon_server.h",
+		"/home/xyx/devenv/reconstruction/SConstruct",
+		"/home/xyx/devenv/reconstruction/py_static/notebook.js",
+		"/home/xyx/devenv/reconstruction/mongoose.c",
+		"/home/xyx/devenv/reconstruction/mongoose.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/http_static/ffe.html",
+		"/home/xyx/devenv/reconstruction/mist/mist.cpp",
+		"/home/xyx/devenv/reconstruction/mist/test.py",
+		"/home/xyx/devenv/reconstruction/mist/SConstruct",
+		"/home/xyx/devenv/reconstruction/py_static/index.html",
+		"/home/xyx/devenv/reconstruction/py_static/codemirror-compressed.js",
+		"/home/xyx/devenv/reconstruction/http_static/index.html",
+		"/home/xyx/devenv/reconstruction/http_static/panel_scene.js",
+		"/home/xyx/devenv/reconstruction/recon_server.cpp",
+		"/home/xyx/devenv/reconstruction/http_static/app.js",
+		"/home/xyx/devenv/reconstruction/.gitignore",
+		"/home/xyx/devenv/onelife/web.py",
+		"/home/xyx/devenv/smith/smith.js",
+		"/home/xyx/devenv/smith/index.html",
+		"/home/xyx/devenv/open-motion/open_motion/locale/ja/LC_MESSAGES/django.po",
+		"/home/xyx/devenv/open-motion/open_motion/templates/motion.html",
+		"/home/xyx/devenv/open-motion/open_motion/views.py",
+		"/home/xyx/devenv/open-motion/open_motion/templates/index.html",
+		"/home/xyx/devenv/open-motion/open_motion/static/motion_viewer.js",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/slic_python.cpp",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/test.py",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/slic.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF_driver.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/world_test.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/mongoose.c",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/raytracing.cpp",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/slic.cpp",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/test_slic.cpp.old",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/SConstruct",
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/.gitignore",
+		"/home/xyx/devenv/euler/5.py",
+		"/home/xyx/devenv/euler/6.py",
+		"/home/xyx/devenv/euler/4.py",
+		"/home/xyx/devenv/euler/1.py",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/camera_parameters.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/web_server.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/main.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFWorld.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFWorld.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFConverter.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/Tracker.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/common.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/common.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/lrf_parameters.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/LRFOffset.json",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/LRF2Camera.json",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/all_data.json",
+		"/home/xyx/research/ar-led/README.md",
+		"/home/xyx/devenv/rule110/ecax.js",
+		"/home/xyx/devenv/rule110/index.html",
+		"/home/xyx/devenv/rule110/serialize.js",
+		"/home/xyx/devenv/rule110/eca_naive.js",
+		"/home/xyx/devenv/rule110/hashcell.js",
+		"/home/xyx/devenv/rule110/hashcell_view.js",
+		"/home/xyx/research/ar-led/scanner_rt/.gitignore",
+		"/home/xyx/research/ar-led/.gitignore",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/.gitignore",
+		"/home/xyx/devenv/rule110/backbone.js",
+		"/home/xyx/devenv/rule110/rule110.js",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/file_driver.h",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/sentis_driver.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/demo_cloud.json",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/camera_parameters_test.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/data-cameras/Nexus7-2013-rear.json",
+		"/home/xyx/devenv/reconstruction/data_source.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF_driver.cpp",
+		"/home/xyx/devenv/reconstruction/launch.py",
+		"/home/xyx/devenv/fukurou/FastBoard.hs",
+		"/home/xyx/devenv/fukurou/README.md",
+		"/home/xyx/devenv/fukurou/fukurou.cabal",
+		"/home/xyx/devenv/fukurou/Main.hs",
+		"/home/xyx/devenv/fukurou/Fukurou.hs",
+		"/home/xyx/devenv/fukurou/Learn.hs",
+		"/home/xyx/devenv/reconstruction/slice_nyu2/upload_subset.py",
+		"/home/xyx/devenv/reconstruction/dev_credential.json",
+		"/home/xyx/devenv/fukurou/Base.hs",
+		"/home/xyx/devenv/fukurou/CUI.hs",
+		"/home/xyx/devenv/fukurou/.gitignore",
+		"/home/xyx/devenv/fukurou/FastBoardTest.hs",
+		"/home/xyx/devenv/fukurou/20140517-173433.log",
+		"/home/xyx/Dropbox/medical/2014.txt",
+		"/home/xyx/devenv/reconstruction/slice_nyu2/create_subset.py",
+		"/home/xyx/ダウンロード/credentials.csv",
+		"/home/xyx/devenv/fukurou/Main.prof",
+		"/home/xyx/devenv/reconstruction/renderer/core.cpp",
+		"/home/xyx/devenv/fukurou/log",
+		"/home/xyx/devenv/reconstruction/web_server.cpp",
+		"/home/xyx/devenv/open-motion/converter/convert_all.py",
+		"/home/xyx/devenv/reconstruction/job_pool.cpp",
+		"/home/xyx/devenv/reconstruction/job_pool.h",
+		"/home/xyx/devenv/reconstruction/http_static/panel_job.js"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 94.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+			"LightSpot",
+			"importDistribution",
+			"\"long\"",
+			"handleLightsSummary",
+			"\"",
+			".id",
+			"handleSimulation",
+			"setSupp",
+			"world.reset",
+			"replaceLight",
+			"serialize",
+			"handleSimulationStart",
+			"re",
+			"light_id_replace",
+			"World",
+			"null",
+			"ScanLights",
+			".\n",
+			".",
+			"Compile",
+			"Compiler",
+			"ic",
+			", -1}",
+			"-1, ",
+			"regin",
+			"simulation",
+			"localize",
+			"base_photo",
+			"points",
+			"NondirectionalPlane",
+			"lights",
+			"//,",
+			"init_data",
+			"patternFromString",
+			"patternToString",
+			"OBB",
+			"cross",
+			"ref",
+			"layer_scene",
+			"/scene",
+			"p",
+			"$('#eca')",
+			"generateRepetition",
+			"replicate",
+			"setRuleFromUI",
+			"setInitialStateFromUI",
+			"this.patternToString",
+			"this.patternFromString",
+			"patternFromString",
+			"setInitialStateFromUI",
+			"Tracker",
+			"bootstrap",
+			"Ceiling",
+			"update",
+			"->update()",
+			"refine",
+			"ModelCoe",
+			"PointIndices",
+			"shared_ptr",
+			"handleUploadPhoto",
+			"winningSide",
+			"('+')",
+			"isPromotable",
+			"updateBo",
+			"promote",
+			"Float",
+			"H.",
+			"MSData",
+			"\"MS\"",
+			"MSDataSource",
+			"NYU2",
+			"183",
+			"data_source",
+			"handleScene",
+			"SceneSearchView",
+			"N",
+			"SceneSearchV",
+			"SceneSearchTree",
+			"NewScene",
+			"SceneSearchTree",
+			"TODO:",
+			"Flaot",
+			"Int",
+			"Float",
+			"evaluateFor",
+			"Fukurou",
+			"isCheck",
+			"UArray",
+			"leadsToCheck",
+			"BoardState",
+			"range",
+			"ValidPosition",
+			"|",
+			"Play",
+			"check",
+			"showPieceJapanese",
+			"getVoxelsDetailed",
+			"Search",
+			"VoxelsLayer",
+			"getVoxelsDetailed",
+			"driver",
+			"light_id_replace",
+			"world",
+			"driver",
+			"cloud",
+			"client_",
+			"cinfo",
+			"InitCM",
+			" VLenSquare3",
+			"VLenSqu",
+			"inline",
+			"SummaryListView",
+			"SummaryLi",
+			"SceneSummaryList",
+			"setRatio",
+			"cout",
+			"data/",
+			".fps",
+			"convertSkeletonToTree",
+			"g_motion_id",
+			"union",
+			"meta.exception",
+			"const",
+			"[,;",
+			"illegal.thrift",
+			"meta.const.thrift",
+			"entity.other.field-id.thrift",
+			"field"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"handleLightsFilters",
+			"SceneConverter",
+			"}",
+			"",
+			"PlaneGeometry",
+			"this.$el",
+			"patternToString",
+			"patternFromString",
+			"pcl::PointIndices",
+			"std::shared_ptr",
+			"Int",
+			"SceneBelief",
+			"Float",
+			"Int",
+			"FastBoard",
+			",",
+			"showPiecesInKanji",
+			"[ \\\\t]",
+			"[ \\t]",
+			"",
+			"ESC_CH_SPACE_OR_TAB",
+			"[ \\t]",
+			"[ \\\\t]",
+			"[ \\t]",
+			"",
+			"CH_SPACE_OR_TAB",
+			"",
+			"MotionViewer",
+			"VoxelIndex",
+			"manhattan.voxel_size",
+			"belief",
+			"SceneBelief& belief",
+			"SceneBelief",
+			"SceneBelief::",
+			"pi",
+			"Eigen::Vector3d",
+			"=",
+			"value=",
+			"std::shared_ptr",
+			"Eigen::Vector3f",
+			"tracking_ok",
+			"",
+			"FutureViewer",
+			"lrfCameraParams",
+			"cameraIntrinsicParams.getHeight()",
+			"cameraIntrinsicParams.getWidth()",
+			"getMatrix()",
+			"cameraIntrinsicParams.getHeight()",
+			"cameraIntrinsicParams.getWidth()",
+			"std::vector",
+			"std::string",
+			") \\{",
+			"{\\n\\t",
+			"(",
+			"",
+			"scene->",
+			"importDistribution",
+			"Core",
+			"ObjectId",
+			"Geometry",
+			"warp_shader->",
+			"standard_shader->"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "marching_cubes.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11541,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								848,
+								848
+							]
+						],
+						"settings":
+						{
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"codeintel_tooltips": "popup",
+							"sublime_auto_complete": true,
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 90,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								83,
+								83
+							]
+						],
+						"settings":
+						{
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"codeintel_tooltips": "popup",
+							"sublime_auto_complete": true,
+							"syntax": "Packages/AAAPackageDev/Syntax Definitions/Sublime Text Build System.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "triangle_mesh.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 679,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								679,
+								679
+							]
+						],
+						"settings":
+						{
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"codeintel_tooltips": "popup",
+							"sublime_auto_complete": true,
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 34.0
+	},
+	"input":
+	{
+		"height": 34.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 244.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.package_dev":
+	{
+		"height": 110.0
+	},
+	"project": "reconstruction.sublime-project",
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"camera",
+				"ar-led/scanner_rt/PCLccl/camera_parameters.h"
+			],
+			[
+				"camera_p",
+				"ar-led/scanner_rt/PCLccl/camera_parameters.cpp"
+			],
+			[
+				"lrfsca",
+				"ar-led/scanner_rt/PCLccl/driver/LRF/LRFScanner.h"
+			],
+			[
+				"ui",
+				"construct/ui.cpp"
+			],
+			[
+				"ui.",
+				"construct/ui.h"
+			],
+			[
+				"core.cpp",
+				"construct/core.cpp"
+			],
+			[
+				"light",
+				"construct/light.cpp"
+			],
+			[
+				"lig",
+				"construct/light.cpp"
+			],
+			[
+				"core.cp",
+				"construct/core.cpp"
+			],
+			[
+				"core.h",
+				"construct/core.h"
+			],
+			[
+				"ligh",
+				"construct/light.h"
+			],
+			[
+				"ui.c",
+				"construct/ui.cpp"
+			],
+			[
+				"scene",
+				"construct/scene.cpp"
+			],
+			[
+				"sce",
+				"construct/scene.cpp"
+			],
+			[
+				"sk",
+				"construct/sky.cpp"
+			],
+			[
+				"light.",
+				"construct/light.cpp"
+			],
+			[
+				"core",
+				"construct/core.cpp"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 267.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
