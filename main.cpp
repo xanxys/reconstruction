@@ -1,3 +1,4 @@
+#include <array>
 #include <iostream>
 #include <fstream>
 
@@ -6,9 +7,35 @@
 #include <cmath>
 #include "logging.h"
 #include "marching_cubes.h"
+#include "mapping.h"
+
+cv::Point2i eigenToCV(const Eigen::Vector2f& v) {
+	return cv::Point2i(v(0), v(1));
+}
+
+cv::Mat visualizeUVMap(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh) {
+	const int image_size = 2048;
+	cv::Mat image(image_size, image_size, CV_8UC3);
+	image = cv::Scalar(0, 0, 0);
+	const cv::Scalar color(0, 0, 255);
+	for(const auto& tri : mesh.triangles) {
+		const std::array<Eigen::Vector2f, 3> uvs = {
+			mesh.vertices[std::get<0>(tri)].second.second,
+			mesh.vertices[std::get<1>(tri)].second.second,
+			mesh.vertices[std::get<2>(tri)].second.second
+		};
+
+		for(int i : boost::irange(0, 3)) {
+			cv::line(image,
+				eigenToCV(uvs[i] * image_size),
+				eigenToCV(uvs[(i + 1) % 3] * image_size),
+				color);
+		}
+	}
+	return image;
+}
 
 int main() {
-	/*
 	INFO("creating metaball");
 	const auto mesh = extractIsosurface(
 		3, [](Eigen::Vector3f p) {
@@ -22,8 +49,13 @@ int main() {
 		0.1);
 	std::ofstream test("test.ply");
 	mesh.serializePLY(test);
-	return 0;
-	*/
+
+	const auto mesh_uv = assignUV(mesh);
+	cv::imwrite("uv.png", visualizeUVMap(mesh_uv));
+
+
+	//return 0;
+	
 
 	INFO("Launching HTTP server");
 	ReconServer server;

@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"mesh",
+				"mesh_with_uv"
+			],
+			[
 				"rot",
 				"rot_angle"
 			],
@@ -510,37 +514,32 @@
 			[
 				"camera",
 				"camera_origin"
-			],
-			[
-				"Ma",
-				"ManhattanBeliefTest"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"file": "marching_cubes.h",
+			"file": "main.cpp",
 			"settings":
 			{
-				"buffer_size": 11541,
+				"buffer_size": 665,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
+			"file": "mapping.h",
 			"settings":
 			{
-				"buffer_size": 90,
-				"line_ending": "Unix",
-				"name": "untitled.sublime-build"
+				"buffer_size": 1156,
+				"line_ending": "Unix"
 			}
 		},
 		{
 			"file": "triangle_mesh.h",
 			"settings":
 			{
-				"buffer_size": 679,
+				"buffer_size": 1664,
 				"line_ending": "Unix"
 			}
 		}
@@ -548,9 +547,17 @@
 	"build_system": "Packages/User/scons.sublime-build",
 	"command_palette":
 	{
-		"height": 85.0,
+		"height": 374.0,
 		"selected_items":
 		[
+			[
+				"inde",
+				"Indent JSON"
+			],
+			[
+				"json",
+				"Indent JSON"
+			],
 			[
 				"install",
 				"Package Control: Install Package"
@@ -570,10 +577,6 @@
 			[
 				"trail",
 				"Trailing Spaces: Delete Trailing Spaces"
-			],
-			[
-				"json",
-				"JSON Reindent: reindent file or selection"
 			],
 			[
 				"sort",
@@ -852,7 +855,7 @@
 				"Package Control: Install Package"
 			]
 		],
-		"width": 513.0
+		"width": 534.0
 	},
 	"console":
 	{
@@ -873,6 +876,18 @@
 	},
 	"file_history":
 	[
+		"/home/xyx/devenv/reconstruction/mapping.cpp",
+		"/home/xyx/devenv/reconstruction/triangle_mesh.h",
+		"/home/xyx/devenv/reconstruction/logging.h",
+		"/home/xyx/devenv/reconstruction/renderer/gl.cpp",
+		"/home/xyx/devenv/reconstruction/web_server.cpp",
+		"/home/xyx/devenv/reconstruction/main.cpp",
+		"/home/xyx/devenv/reconstruction/marching_cubes.h",
+		"/home/xyx/devenv/reconstruction/marching_cubes.cpp",
+		"/home/xyx/devenv/reconstruction/logging.cpp",
+		"/home/xyx/devenv/reconstruction/test.ply",
+		"/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
+		"/home/xyx/devenv/reconstruction/SConstruct",
 		"/home/xyx/devenv/reconstruction/triangle_mesh.cpp",
 		"/home/xyx/devenv/reconstruction/data_source.h",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.h",
@@ -899,14 +914,10 @@
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/old_reader.h",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/file_driver.cpp",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/raytracing.h",
-		"/home/xyx/devenv/reconstruction/main.cpp",
-		"/home/xyx/devenv/reconstruction/marching_cubes.h",
-		"/home/xyx/devenv/reconstruction/marching_cubes.cpp",
 		"/home/xyx/devenv/reconstruction/range3.cpp",
 		"/home/xyx/devenv/reconstruction/range3.h",
 		"/home/xyx/devenv/reconstruction/master.py",
 		"/home/xyx/devenv/reconstruction/recon_server.h",
-		"/home/xyx/devenv/reconstruction/SConstruct",
 		"/home/xyx/devenv/reconstruction/py_static/notebook.js",
 		"/home/xyx/devenv/reconstruction/mongoose.c",
 		"/home/xyx/devenv/reconstruction/mongoose.h",
@@ -992,15 +1003,7 @@
 		"/home/xyx/devenv/fukurou/20140517-173433.log",
 		"/home/xyx/Dropbox/medical/2014.txt",
 		"/home/xyx/devenv/reconstruction/slice_nyu2/create_subset.py",
-		"/home/xyx/ダウンロード/credentials.csv",
-		"/home/xyx/devenv/fukurou/Main.prof",
-		"/home/xyx/devenv/reconstruction/renderer/core.cpp",
-		"/home/xyx/devenv/fukurou/log",
-		"/home/xyx/devenv/reconstruction/web_server.cpp",
-		"/home/xyx/devenv/open-motion/converter/convert_all.py",
-		"/home/xyx/devenv/reconstruction/job_pool.cpp",
-		"/home/xyx/devenv/reconstruction/job_pool.h",
-		"/home/xyx/devenv/reconstruction/http_static/panel_job.js"
+		"/home/xyx/ダウンロード/credentials.csv"
 	],
 	"find":
 	{
@@ -1015,9 +1018,12 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": true,
+		"case_sensitive": false,
 		"find_history":
 		[
+			"ostream",
+			"1",
+			"e+",
 			"LightSpot",
 			"importDistribution",
 			"\"long\"",
@@ -1142,10 +1148,7 @@
 			"meta.exception",
 			"const",
 			"[,;",
-			"illegal.thrift",
-			"meta.const.thrift",
-			"entity.other.field-id.thrift",
-			"field"
+			"illegal.thrift"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1153,6 +1156,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"e-",
 			"handleLightsFilters",
 			"SceneConverter",
 			"}",
@@ -1230,19 +1234,19 @@
 			[
 				{
 					"buffer": 0,
-					"file": "marching_cubes.h",
+					"file": "main.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11541,
+						"buffer_size": 665,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								848,
-								848
+								134,
+								134
 							]
 						],
 						"settings":
@@ -1358,156 +1362,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
+					"file": "mapping.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 90,
+						"buffer_size": 1156,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								83,
-								83
-							]
-						],
-						"settings":
-						{
-							"codeintel": true,
-							"codeintel_config":
-							{
-								"JavaScript":
-								{
-									"codeintel_max_recursive_dir_depth": 2,
-									"codeintel_scan_files_in_project": false,
-									"javascriptExtraPaths":
-									[
-									]
-								},
-								"PHP":
-								{
-									"codeintel_max_recursive_dir_depth": 5,
-									"codeintel_scan_files_in_project": false,
-									"phpExtraPaths":
-									[
-									]
-								},
-								"Python":
-								{
-									"env":
-									{
-									}
-								}
-							},
-							"codeintel_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_live": true,
-							"codeintel_live_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_max_recursive_dir_depth": 10,
-							"codeintel_scan_exclude_dir":
-							{
-								"JavaScript":
-								[
-									"/build/",
-									"/min/"
-								]
-							},
-							"codeintel_scan_files_in_project": true,
-							"codeintel_selected_catalogs":
-							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
-							],
-							"codeintel_snippets": true,
-							"codeintel_syntax_map":
-							{
-								"Python Django": "Python"
-							},
-							"codeintel_tooltips": "popup",
-							"sublime_auto_complete": true,
-							"syntax": "Packages/AAAPackageDev/Syntax Definitions/Sublime Text Build System.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "triangle_mesh.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 679,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								679,
-								679
+								1130,
+								1130
 							]
 						],
 						"settings":
@@ -1622,7 +1494,36 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "triangle_mesh.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1664,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 204.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
 					"type": "text"
 				}
 			]
@@ -1661,7 +1562,7 @@
 	"menu_visible": true,
 	"output.exec":
 	{
-		"height": 244.0
+		"height": 159.0
 	},
 	"output.find_results":
 	{
@@ -1776,7 +1677,7 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 267.0,
+	"side_bar_width": 241.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{
