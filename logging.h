@@ -16,5 +16,5 @@ void logJson(std::string level, std::string path, int line, MessageType msg) {
 	entry["level"] = level;
 	entry["loc"]["path"] = path;
 	entry["loc"]["line"] = line;
-	std::cout << Json::FastWriter().write(entry) << std::endl;
+	std::cout << Json::FastWriter().write(entry);
 }

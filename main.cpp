@@ -8,6 +8,7 @@
 #include "marching_cubes.h"
 
 int main() {
+	/*
 	INFO("creating metaball");
 	const auto mesh = extractIsosurface(
 		3, [](Eigen::Vector3f p) {
@@ -22,7 +23,9 @@ int main() {
 	std::ofstream test("test.ply");
 	mesh.serializePLY(test);
 	return 0;
+	*/
 
+	INFO("Launching HTTP server");
 	ReconServer server;
 	server.launch();
 	while(true) {

@@ -5,6 +5,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "logging.h"
 #include "mongoose.h"
 
 Response::Response(Json::Value& value) :
@@ -90,13 +91,13 @@ int WebServer::eventHandler(struct mg_event* event) {
 			std::vector<uint8_t> buffer(size);
 			mg_read(event->conn, buffer.data(), buffer.size());
 			data = std::string(buffer.begin(), buffer.end());
-		}		
+		}
 	}
 
 	if(data_size) {
-		std::cout << method << " " << uri << " : " << std::stoi(data_size) << "B" << std::endl;
+		INFO(method + " " + uri + " : " + std::to_string(std::stoi(data_size)) + "B");
 	} else {
-		std::cout << method << " " << uri << std::endl;
+		INFO(method + " " + uri);
 	}
 
 	try {

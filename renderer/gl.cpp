@@ -3,10 +3,11 @@
 #include <array>
 #include <cassert>
 #include <fstream>
-#include <iostream>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
+
+#include "../logging.h"
 
 namespace construct {
 
@@ -19,7 +20,7 @@ Shader::~Shader() {
 }
 
 Shader::Shader(const std::string vertex_file_path, const std::string fragment_file_path) {
-	std::cout << "Compiling shader: " << vertex_file_path << " + " << fragment_file_path << std::endl;
+	INFO("Compiling shader: " + vertex_file_path + " + " + fragment_file_path);
 
 	// Compile Vertex Shader
 	const GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -27,7 +28,7 @@ Shader::Shader(const std::string vertex_file_path, const std::string fragment_fi
 	const char* vs_code_ptr = vs_code.c_str();
 	glShaderSource(VertexShaderID, 1, &vs_code_ptr, NULL);
 	glCompileShader(VertexShaderID);
-	std::cout << getLogFor(VertexShaderID) << std::endl;
+	INFO(getLogFor(VertexShaderID));
 
 	// Compile Fragment Shader
 	const GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -35,14 +36,14 @@ Shader::Shader(const std::string vertex_file_path, const std::string fragment_fi
 	const char* fs_code_ptr = fs_code.c_str();
 	glShaderSource(FragmentShaderID, 1, &fs_code_ptr, NULL);
 	glCompileShader(FragmentShaderID);
-	std::cout << getLogFor(FragmentShaderID) << std::endl;
+	INFO(getLogFor(FragmentShaderID));
 
 	// Link the program
 	program = glCreateProgram();
 	glAttachShader(program, VertexShaderID);
 	glAttachShader(program, FragmentShaderID);
 	glLinkProgram(program);
-	std::cout << getLogFor(program) << std::endl;
+	INFO(getLogFor(program));
 
 	// Release componenets.
 	glDeleteShader(VertexShaderID);
