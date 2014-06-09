@@ -35,8 +35,9 @@ std::pair<float, std::vector<Eigen::Vector2f>>
 		});
 		*/
 
-	// Starting with 2x of the minimum area, enlarge until packing succeeds.
-	for(float area_scale = 2; true; area_scale += 1) {
+	// Starting with 1x of the minimum area, enlarge until packing succeeds.
+	for(float area_scale = 1; true; area_scale += 0.5) {
+		INFO("Trying scale", area_scale);
 		const float area = min_area * area_scale;
 		const float size = std::sqrt(area);
 
