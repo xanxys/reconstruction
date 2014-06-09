@@ -38,9 +38,9 @@ public:
 
 		for(const auto vertex : vertices) {
 			output <<
-				vertex.first(0) * 100 << " " <<
-				vertex.first(1) * 100 << " " <<
-				vertex.first(2) * 100 << std::endl;
+				vertex.first(0) << " " <<
+				vertex.first(1) << " " <<
+				vertex.first(2) << std::endl;
 		}
 		for(const auto triangle : triangles) {
 			output << "3 " <<
