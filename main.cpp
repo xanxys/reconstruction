@@ -2,13 +2,15 @@
 #include <iostream>
 #include <fstream>
 
-#include "recon_server.h"
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 #include "logging.h"
 #include "mapping.h"
 #include "marching_cubes.h"
-#include "texture_conversion.h"
+#include "recon_server.h"
 #include "scene_converter.h"
+#include "texture_conversion.h"
 
 void testMeshIO() {
 	INFO("creating metaball");
@@ -38,8 +40,27 @@ void testMeshIO() {
 	writeObjMaterial(test_mat);
 }
 
+void testPointCloudMeshing() {
+	INFO("Creating textured mesh from point cloud");
+	std::ifstream test("ocha_points.json");
+	Json::Value cloud;
+	Json::Reader().parse(test, cloud);
+
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_pcl(new pcl::PointCloud<pcl::PointXYZ>());
+	for(const auto& point : cloud) {
+		pcl::PointXYZ pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		cloud_pcl->points.push_back(pt);
+	}
+	OBBFitter(cloud_pcl).extract();
+
+}
+
 int main() {
 	testMeshIO();
+	testPointCloudMeshing();
 
 	INFO("Launching HTTP server");
 	ReconServer server;
