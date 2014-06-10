@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -23,6 +25,33 @@ public:
 		vertices.insert(vertices.end(),
 			delta.vertices.begin(), delta.vertices.end());
 	}
+
+	// Transform vertex attributes without changing positions.
+	/*
+	template<typename Mapper>
+	auto mapAttribute(Mapper f) const -> TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type> {
+		TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type> mesh;
+		mesh.triangles = triangles;
+		mesh.vertices.resize(vertices.size());
+		std::transform(vertices.begin(), vertices.end(), mesh.vertices.begin(),
+				[&](const std::pair<Eigen::Vector3f, Vertex> vertex) {
+					return std::make_pair(vertex.first, f(vertex.second));
+				});
+		return mesh;
+	}
+	*/
+
+	/*
+	template<typename Mapper>
+	auto map(Mapper f) const -> TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type::> {
+		TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type> mesh;
+		mesh.triangles = triangles;
+		mesh.vertices.resize(vertices.size());
+		std::transform(vertices.begin(), vertices.end(), mesh.vertices.begin(), f);
+		return mesh;
+	}
+	*/
+
 
 	// Serialize this mesh in ASCII PLY format.
 	void serializePLY(std::ostream& output) const {
@@ -47,6 +76,31 @@ public:
 				std::get<0>(triangle) << " " <<
 				std::get<1>(triangle) << " " <<
 				std::get<2>(triangle) << std::endl;
+		}
+	}
+
+	// Serialize this mesh in ASCII PLY format.
+	// with UV coordinates.
+	// condition: Vertex = Eigen::Vector2f
+	void serializeObjWithUv(std::ostream& output) const {
+		for(const auto vertex : vertices) {
+			output << "v " <<
+				vertex.first(0) << " " <<
+				vertex.first(1) << " " <<
+				vertex.first(2) << std::endl;
+		}
+
+		for(const auto vertex : vertices) {
+			output << "vt " <<
+				vertex.second(0) << " " <<
+				vertex.second(1) << std::endl;
+		}
+
+		for(const auto triangle : triangles) {
+			output << "f " <<
+				(1 + std::get<0>(triangle)) << "/" << (1 + std::get<0>(triangle)) << " " <<
+				(1 + std::get<1>(triangle)) << "/" << (1 + std::get<1>(triangle)) << " " <<
+				(1 + std::get<2>(triangle)) << "/" << (1 + std::get<2>(triangle)) << std::endl;
 		}
 	}
 public:

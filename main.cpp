@@ -35,6 +35,17 @@ cv::Mat visualizeUVMap(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vect
 	return image;
 }
 
+TriangleMesh<Eigen::Vector2f> dropNormal(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh) {
+	TriangleMesh<Eigen::Vector2f> mesh_uv;
+	mesh_uv.triangles = mesh.triangles;
+	mesh_uv.vertices.resize(mesh.vertices.size());
+	std::transform(mesh.vertices.begin(), mesh.vertices.end(), mesh_uv.vertices.begin(),
+		[](const std::pair<Eigen::Vector3f, std::pair<Eigen::Vector3f, Eigen::Vector2f>>& vertex) {
+			return std::make_pair(vertex.first, vertex.second.second);
+		});
+	return mesh_uv;
+}
+
 int main() {
 	INFO("creating metaball");
 	const auto mesh = extractIsosurface(
@@ -52,10 +63,9 @@ int main() {
 
 	const auto mesh_uv = assignUV(mesh);
 	cv::imwrite("uv.png", visualizeUVMap(mesh_uv));
+	std::ofstream test_uv("test_uv.obj");
 
-
-	//return 0;
-	
+	dropNormal(mesh_uv).serializeObjWithUv(test_uv);
 
 	INFO("Launching HTTP server");
 	ReconServer server;
