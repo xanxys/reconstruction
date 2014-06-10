@@ -173,11 +173,11 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 				v0.second,
 				(offset + std::get<0>(local_uvs[i])) * scale));
 		const auto& v1 = mesh.vertices[std::get<1>(mesh.triangles[i])];
-		mesh_with_uv.vertices.emplace_back(v0.first, std::make_pair(
+		mesh_with_uv.vertices.emplace_back(v1.first, std::make_pair(
 				v0.second,
 				(offset + std::get<1>(local_uvs[i])) * scale));
 		const auto& v2 = mesh.vertices[std::get<2>(mesh.triangles[i])];
-		mesh_with_uv.vertices.emplace_back(v0.first, std::make_pair(
+		mesh_with_uv.vertices.emplace_back(v2.first, std::make_pair(
 				v0.second,
 				(offset + std::get<2>(local_uvs[i])) * scale));
 
