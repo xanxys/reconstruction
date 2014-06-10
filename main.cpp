@@ -9,6 +9,10 @@
 #include "marching_cubes.h"
 #include "mapping.h"
 
+Eigen::Vector2f swapY(const Eigen::Vector2f& v) {
+	return Eigen::Vector2f(v(0), 1 - v(1));
+}
+
 cv::Point2i eigenToCV(const Eigen::Vector2f& v) {
 	return cv::Point2i(v(0), v(1));
 }
@@ -27,8 +31,8 @@ cv::Mat visualizeUVMap(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vect
 
 		for(int i : boost::irange(0, 3)) {
 			cv::line(image,
-				eigenToCV(uvs[i] * image_size),
-				eigenToCV(uvs[(i + 1) % 3] * image_size),
+				eigenToCV(swapY(uvs[i]) * image_size),
+				eigenToCV(swapY(uvs[(i + 1) % 3]) * image_size),
 				color);
 		}
 	}
@@ -44,6 +48,14 @@ TriangleMesh<Eigen::Vector2f> dropNormal(const TriangleMesh<std::pair<Eigen::Vec
 			return std::make_pair(vertex.first, vertex.second.second);
 		});
 	return mesh_uv;
+}
+
+void writeObjMaterial(std::ostream& output) {
+	output << "newmtl obj_uv" << std::endl;
+	output << "Ka 1.0 1.0 1.0" << std::endl;
+	output << "Kd 1.0 1.0 1.0" << std::endl;
+	output << "Ks 0.0 0.0 0.0" << std::endl;
+	output << "map_Kd uv.png" << std::endl;
 }
 
 int main() {
@@ -64,8 +76,9 @@ int main() {
 	const auto mesh_uv = assignUV(mesh);
 	cv::imwrite("uv.png", visualizeUVMap(mesh_uv));
 	std::ofstream test_uv("test_uv.obj");
-
-	dropNormal(mesh_uv).serializeObjWithUv(test_uv);
+	std::ofstream test_mat("test_uv.mtl");
+	dropNormal(mesh_uv).serializeObjWithUv(test_uv, "test_uv.mtl");
+	writeObjMaterial(test_mat);
 
 	INFO("Launching HTTP server");
 	ReconServer server;

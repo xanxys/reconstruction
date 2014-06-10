@@ -82,7 +82,8 @@ public:
 	// Serialize this mesh in ASCII PLY format.
 	// with UV coordinates.
 	// condition: Vertex = Eigen::Vector2f
-	void serializeObjWithUv(std::ostream& output) const {
+	void serializeObjWithUv(std::ostream& output, std::string mtllib) const {
+		output << "mtllib " << mtllib << std::endl;
 		for(const auto vertex : vertices) {
 			output << "v " <<
 				vertex.first(0) << " " <<
@@ -96,6 +97,8 @@ public:
 				vertex.second(1) << std::endl;
 		}
 
+		output << "g " << "test_obj" << std::endl;
+		output << "usemtl " << "obj_uv" << std::endl;
 		for(const auto triangle : triangles) {
 			output << "f " <<
 				(1 + std::get<0>(triangle)) << "/" << (1 + std::get<0>(triangle)) << " " <<
