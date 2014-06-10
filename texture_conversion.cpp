@@ -76,10 +76,10 @@ cv::Mat bake3DTexture(
 	return texture;
 }
 
-void writeObjMaterial(std::ostream& output) {
+void writeObjMaterial(std::ostream& output, std::string texture_path) {
 	output << "newmtl obj_uv" << std::endl;
 	output << "Ka 1.0 1.0 1.0" << std::endl;
 	output << "Kd 1.0 1.0 1.0" << std::endl;
 	output << "Ks 0.0 0.0 0.0" << std::endl;
-	output << "map_Kd uv.png" << std::endl;
+	output << "map_Kd " << texture_path << std::endl;
 }

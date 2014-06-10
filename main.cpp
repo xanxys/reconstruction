@@ -39,7 +39,7 @@ void testMeshIO() {
 	std::ofstream test_uv("test_uv.obj");
 	std::ofstream test_mat("test_uv.mtl");
 	mesh_uv.serializeObjWithUv(test_uv, "test_uv.mtl");
-	writeObjMaterial(test_mat);
+	writeObjMaterial(test_mat, "uv_3d.png");
 }
 
 // Get barycentric coordinate of the narest point on triangle surface.
@@ -106,9 +106,6 @@ void testPointCloudMeshing() {
 
 	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_pcl).extract();
 	const auto mesh_uv = mapSecond(assignUV(mesh));
-	std::ofstream room_box_uv("room_box_uv.obj");
-	mesh_uv.serializeObjWithUv(room_box_uv, "uv_debug.mtl");
-
 	cv::imwrite("uv_box.png", visualizeUVMap(mesh_uv));
 
 	// Project points to the surface and draw circle onto texture.
@@ -133,6 +130,11 @@ void testPointCloudMeshing() {
 			color, -1);
 	}
 	cv::imwrite("uv_pt_baked.png", texture);
+
+	std::ofstream room_box_uv("room_box_uv.obj");
+	mesh_uv.serializeObjWithUv(room_box_uv, "uv_baked.mtl");
+	std::ofstream mat_baked("uv_baked.mtl");
+	writeObjMaterial(mat_baked, "uv_pt_baked.png");
 }
 
 int main() {

@@ -40,4 +40,4 @@ TriangleMesh<TypeSecond> mapSecond(const TriangleMesh<std::pair<TypeFirst, TypeS
 	return mesh_snd;
 }
 
-void writeObjMaterial(std::ostream& output);
+void writeObjMaterial(std::ostream& output, std::string texture_path);
