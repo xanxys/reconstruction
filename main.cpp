@@ -6,6 +6,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include "cloud_conversion.h"
 #include "logging.h"
 #include "mapping.h"
 #include "marching_cubes.h"
@@ -42,52 +43,6 @@ void testMeshIO() {
 	writeObjMaterial(test_mat, "uv_3d.png");
 }
 
-// Get barycentric coordinate of the narest point on triangle surface.
-Eigen::Vector2f nearestBarycentricApprox(
-	const Eigen::Vector3f& v0, const Eigen::Vector3f& v1, const Eigen::Vector3f& v2, const Eigen::Vector3f& p) {
-	const auto d1 = v1 - v0;
-	const auto d2 = v2 - v0;
-	Eigen::Matrix3f m;
-	m.col(0) = d1;
-	m.col(1) = d2;
-	m.col(2) = d1.cross(d2);
-
-	const Eigen::Vector3f coord = m.inverse() * (p - v0);
-	// approximate barycentric coordinates.
-	float bary0 = std::max(0.0f, coord(0));
-	float bary1 = std::max(0.0f, coord(1));
-	if(bary1 + bary0 > 1) {
-		const float scale = 1 / (bary0 + bary1);
-		bary0 *= scale;
-		bary1 *= scale;
-	}
-	return Eigen::Vector2f(bary0, bary1);
-}
-
-// Get linear-interpolate coordinate of the surfact point, which is nearest to the given point.
-Eigen::Vector2f nearestCoordinate(
-	const TriangleMesh<Eigen::Vector2f>& mesh, const Eigen::Vector3f p) {
-	float min_dist = std::numeric_limits<float>::max();
-	Eigen::Vector2f coord;
-	for(const auto& tri : mesh.triangles) {
-		const Eigen::Vector3f v0 = mesh.vertices[std::get<0>(tri)].first;
-		const Eigen::Vector3f v1 = mesh.vertices[std::get<1>(tri)].first;
-		const Eigen::Vector3f v2 = mesh.vertices[std::get<2>(tri)].first;
-		const auto bary = nearestBarycentricApprox(v0, v1, v2, p);
-
-		const Eigen::Vector3f pt_nearest = v0 + (v1 - v0) * bary(0) + (v2 - v0) * bary(1);
-		const float dist = (p - pt_nearest).norm();
-		if(dist < min_dist) {
-			min_dist = dist;
-
-			const Eigen::Vector2f c0 = mesh.vertices[std::get<0>(tri)].second;
-			const Eigen::Vector2f c1 = mesh.vertices[std::get<1>(tri)].second;
-			const Eigen::Vector2f c2 = mesh.vertices[std::get<2>(tri)].second;
-			coord = c0 + (c1 - c0) * bary(0) + (c2 - c0) * bary(1);
-		}
-	}
-	return coord;
-}
 
 void testPointCloudMeshing() {
 	INFO("Creating textured mesh from point cloud");

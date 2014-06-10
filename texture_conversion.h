@@ -1,3 +1,4 @@
+// 3D -> 2D texture conversion
 #pragma once
 
 #include <array>
