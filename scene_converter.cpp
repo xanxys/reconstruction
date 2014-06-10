@@ -54,7 +54,7 @@ OBBFitter::OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 			(std::get<1>(s_range) - std::get<0>(s_range)) *
 			(std::get<1>(t_range) - std::get<0>(t_range));
 
-		INFO("@angle", angle, " area=", area);
+		DEBUG("@angle", angle, " area=", area);
 
 		if(area < best_area) {
 			best_area = area;
