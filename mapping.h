@@ -80,7 +80,7 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 		uvs[ix_topleft] = Eigen::Vector2f(0, 0);
 		uvs[ix_topright] = Eigen::Vector2f(width, 0);
 		uvs[ix_bottom] = Eigen::Vector2f(
-			std::sqrt((vs[ix_topright] - vs[ix_bottom]).squaredNorm() - std::pow(height, 2)),
+			std::sqrt((vs[ix_topleft] - vs[ix_bottom]).squaredNorm() - std::pow(height, 2)),
 			height);
 
 		uv_sizes.emplace_back(width, height);
@@ -103,11 +103,11 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 				(offset + std::get<0>(local_uvs[i])) * scale));
 		const auto& v1 = mesh.vertices[std::get<1>(mesh.triangles[i])];
 		mesh_with_uv.vertices.emplace_back(v1.first, std::make_pair(
-				v0.second,
+				v1.second,
 				(offset + std::get<1>(local_uvs[i])) * scale));
 		const auto& v2 = mesh.vertices[std::get<2>(mesh.triangles[i])];
 		mesh_with_uv.vertices.emplace_back(v2.first, std::make_pair(
-				v0.second,
+				v2.second,
 				(offset + std::get<2>(local_uvs[i])) * scale));
 
 		// Put tri.
