@@ -39,6 +39,53 @@ cv::Mat visualizeUVMap(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vect
 	return image;
 }
 
+// color: [0-1]^3, RGB
+// output, uint8*3 image (in BGR, which is opencv standard)
+cv::Mat bake3DTexture(
+	const TriangleMesh<Eigen::Vector2f>& mesh,
+	std::function<Eigen::Vector3f(Eigen::Vector3f)> colorField
+	) {
+	const int texture_size = 512;
+	cv::Mat texture(texture_size, texture_size, CV_8UC3);
+	texture = cv::Scalar(0, 0, 0);
+	for(const auto& triangle : mesh.triangles) {
+		const auto& v0 = mesh.vertices[std::get<0>(triangle)];
+		const auto& v1 = mesh.vertices[std::get<1>(triangle)];
+		const auto& v2 = mesh.vertices[std::get<2>(triangle)];
+
+		const Eigen::Vector2f p_tex0 = swapY(v0.second) * texture_size;
+		const Eigen::Vector2f p_tex1 = swapY(v1.second) * texture_size;
+		const Eigen::Vector2f p_tex2 = swapY(v2.second) * texture_size;
+
+		// Create integer AABB [pmin, pmax) that contains the triangle completely.
+		// Note that pixel center for pixel (x,y) is (x+0.5, y+0.5).
+		const Eigen::Vector2i pmin = p_tex0.cwiseMin(p_tex1).cwiseMin(p_tex2).cast<int>();
+		const Eigen::Vector2i pmax = p_tex0.cwiseMax(p_tex1).cwiseMax(p_tex2).cast<int>() + Eigen::Vector2i(2, 2);
+
+		Eigen::Matrix2f to_barycentric;
+		to_barycentric.col(0) = p_tex1 - p_tex0;
+		to_barycentric.col(1) = p_tex2 - p_tex0;
+		to_barycentric = to_barycentric.inverse().eval();
+		for(int y : boost::irange(pmin(1), pmax(1))) {
+			for(int x : boost::irange(pmin(0), pmax(0))) {
+				const Eigen::Vector2f center_tex(x + 0.5, y + 0.5);
+				const Eigen::Vector2f barycentric = to_barycentric * (center_tex - p_tex0);
+
+				// Do nothing if current pixel lies outside of the triangle.
+				if(barycentric.minCoeff() < 0 || barycentric(0) + barycentric(1) > 1) {
+					continue;
+				}
+
+				const Eigen::Vector3f v = v0.first + barycentric(0) * (v1.first - v0.first) + barycentric(1) * (v2.first - v0.first);
+				const Eigen::Vector3i color_int = (colorField(v) * 255).cast<int>();
+				texture.at<cv::Vec3b>(y, x) = cv::Vec3b(color_int(2), color_int(1), color_int(0));
+			}
+		}
+	}
+	return texture;
+}
+
+
 TriangleMesh<Eigen::Vector2f> dropNormal(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh) {
 	TriangleMesh<Eigen::Vector2f> mesh_uv;
 	mesh_uv.triangles = mesh.triangles;
@@ -58,7 +105,7 @@ void writeObjMaterial(std::ostream& output) {
 	output << "map_Kd uv.png" << std::endl;
 }
 
-int main() {
+void testMeshIO() {
 	INFO("creating metaball");
 	const auto mesh = extractIsosurface(
 		3, [](Eigen::Vector3f p) {
@@ -75,10 +122,19 @@ int main() {
 
 	const auto mesh_uv = assignUV(mesh);
 	cv::imwrite("uv.png", visualizeUVMap(mesh_uv));
+	cv::imwrite("uv_3d.png", bake3DTexture(dropNormal(mesh_uv),
+		[](Eigen::Vector3f p) {
+			return p;
+		}));
+
 	std::ofstream test_uv("test_uv.obj");
 	std::ofstream test_mat("test_uv.mtl");
 	dropNormal(mesh_uv).serializeObjWithUv(test_uv, "test_uv.mtl");
 	writeObjMaterial(test_mat);
+}
+
+int main() {
+	testMeshIO();
 
 	INFO("Launching HTTP server");
 	ReconServer server;
