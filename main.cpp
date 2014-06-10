@@ -8,6 +8,7 @@
 #include "mapping.h"
 #include "marching_cubes.h"
 #include "texture_conversion.h"
+#include "scene_converter.h"
 
 void testMeshIO() {
 	INFO("creating metaball");
