@@ -17,7 +17,7 @@ Eigen::Vector2f swapY(const Eigen::Vector2f& v);
 
 cv::Point2i eigenToCV(const Eigen::Vector2f& v);
 
-cv::Mat visualizeUVMap(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh);
+cv::Mat visualizeUVMap(const TriangleMesh<Eigen::Vector2f>& mesh);
 
 
 // color: [0-1]^3, RGB
@@ -27,8 +27,6 @@ cv::Mat bake3DTexture(
 	std::function<Eigen::Vector3f(Eigen::Vector3f)> colorField
 	);
 
-
-TriangleMesh<Eigen::Vector2f> dropNormal(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh);
 
 template<typename TypeFirst, typename TypeSecond>
 TriangleMesh<TypeSecond> mapSecond(const TriangleMesh<std::pair<TypeFirst, TypeSecond>>& mesh) {

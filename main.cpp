@@ -14,7 +14,7 @@
 
 void testMeshIO() {
 	INFO("creating metaball");
-	const auto mesh = extractIsosurface(
+	const auto mesh_n = extractIsosurface(
 		3, [](Eigen::Vector3f p) {
 			return (
 				1 / (0.01 + p.norm()) +
@@ -25,18 +25,19 @@ void testMeshIO() {
 			Eigen::Vector3f(3, 3, 3)),
 		0.1);
 	std::ofstream test("test.ply");
-	mesh.serializePLY(test);
+	mesh_n.serializePLY(test);
 
-	const auto mesh_uv = assignUV(mesh);
+	const auto mesh_n_uv = assignUV(mesh_n);
+	const auto mesh_uv = mapSecond(mesh_n_uv);
 	cv::imwrite("uv.png", visualizeUVMap(mesh_uv));
-	cv::imwrite("uv_3d.png", bake3DTexture(dropNormal(mesh_uv),
+	cv::imwrite("uv_3d.png", bake3DTexture(mesh_uv,
 		[](Eigen::Vector3f p) {
 			return p;
 		}));
 
 	std::ofstream test_uv("test_uv.obj");
 	std::ofstream test_mat("test_uv.mtl");
-	dropNormal(mesh_uv).serializeObjWithUv(test_uv, "test_uv.mtl");
+	mesh_uv.serializeObjWithUv(test_uv, "test_uv.mtl");
 	writeObjMaterial(test_mat);
 }
 
@@ -56,9 +57,11 @@ void testPointCloudMeshing() {
 	}
 
 	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_pcl).extract();
-	const auto mesh_uv = assignUV(mesh);
+	const auto mesh_uv = mapSecond(assignUV(mesh));
 	std::ofstream room_box_uv("room_box_uv.obj");
-	mapSecond(mesh_uv).serializeObjWithUv(room_box_uv, "uv_debug.mtl");
+	mesh_uv.serializeObjWithUv(room_box_uv, "uv_debug.mtl");
+
+	cv::imwrite("uv_box.png", visualizeUVMap(mesh_uv));
 }
 
 int main() {
