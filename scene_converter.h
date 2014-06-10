@@ -7,15 +7,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-// A (oriented) plane described by ax + by + cz = d.
-// which means normal = (a,b,c) (normalized).
-class PlaneGeometry {
-public:
-	PlaneGeometry(float a, float b, float c, float d);
-	PlaneGeometry(Eigen::Vector3f normal, float d);
-	float a, b, c, d;
-};
-
+#include "triangle_mesh.h"
 
 // Fit an orinted bounding box (with Y-axis-only rotation) to
 // given point cloud, and return (6) planes of the OBB.
@@ -23,13 +15,17 @@ class OBBFitter {
 public:
 	OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
-	// Return all planes included in the given point cloud.
-	std::vector<PlaneGeometry> extract();
+	// Return a box with 12 triangles.
+	TriangleMesh<std::nullptr_t> extract() const;
 private:
-	static PlaneGeometry planeUpper(Eigen::Vector3f axis, float v);
-	static PlaneGeometry planeLower(Eigen::Vector3f axis, float v);
+	static float mean(const std::pair<float, float>& pair);
+	static float half(const std::pair<float, float>& pair);
+
+	static TriangleMesh<std::nullptr_t> createBox(
+		Eigen::Vector3f center,Eigen::Vector3f half_dx,
+		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
 	// The list will be sorted.
 	static std::pair<float, float> robustMinMax(std::vector<float>& values);
 private:
-	std::vector<PlaneGeometry> planes;
+	TriangleMesh<std::nullptr_t> mesh;
 };

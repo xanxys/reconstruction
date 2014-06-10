@@ -54,8 +54,11 @@ void testPointCloudMeshing() {
 		pt.z = point["z"].asDouble();
 		cloud_pcl->points.push_back(pt);
 	}
-	OBBFitter(cloud_pcl).extract();
 
+	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_pcl).extract();
+	const auto mesh_uv = assignUV(mesh);
+	std::ofstream room_box_uv("room_box_uv.obj");
+	mapSecond(mesh_uv).serializeObjWithUv(room_box_uv, "uv_debug.mtl");
 }
 
 int main() {

@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <boost/math/constants/constants.hpp>
+#include <boost/range/irange.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
@@ -15,15 +16,6 @@ typedef pcl::PointCloud<pcl::PointXYZ> ColorCloud;
 
 using pcl::PointIndices;
 using pcl::PointXYZ;
-
-PlaneGeometry::PlaneGeometry(float a, float b, float c, float d) :
-	a(a), b(b), c(c), d(d) {
-}
-
-PlaneGeometry::PlaneGeometry(Eigen::Vector3f normal, float d) :
-	a(normal(0)), b(normal(1)), c(normal(2)), d(d) {
-}
-
 
 OBBFitter::OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	const float angle_step = 0.05;
@@ -81,25 +73,60 @@ OBBFitter::OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	Eigen::Vector3f yplus(0, 1, 0);
 	Eigen::Vector3f tplus(tplus_zx(1), 0, tplus_zx(0));
 
-	// floor & ceiling
-	planes.push_back(planeLower(yplus, std::get<0>(y_range)));
-	planes.push_back(planeUpper(yplus, std::get<1>(y_range)));
-
-	// S
-	planes.push_back(planeLower(splus, std::get<0>(best_s_range)));
-	planes.push_back(planeUpper(splus, std::get<1>(best_s_range)));
-
-	// T
-	planes.push_back(planeLower(tplus, std::get<0>(best_t_range)));
-	planes.push_back(planeUpper(tplus, std::get<1>(best_t_range)));
+	// Create box from Y,S,T axes.
+	mesh = createBox(
+		tplus * mean(best_t_range) +
+		yplus * mean(y_range) +
+		splus * mean(best_s_range),
+		tplus * half(best_t_range),
+		yplus * half(y_range),
+		splus * half(best_s_range));
 }
 
-PlaneGeometry OBBFitter::planeUpper(Eigen::Vector3f axis, float v) {
-	return PlaneGeometry(-axis, -v);
+float OBBFitter::mean(const std::pair<float, float>& pair) {
+	return (pair.first + pair.second) / 2;
 }
 
-PlaneGeometry OBBFitter::planeLower(Eigen::Vector3f axis, float v) {
-	return PlaneGeometry(axis, v);
+float OBBFitter::half(const std::pair<float, float>& pair) {
+	return (pair.second - pair.first) / 2;
+}
+
+TriangleMesh<std::nullptr_t> OBBFitter::createBox(
+		Eigen::Vector3f center,Eigen::Vector3f half_dx,
+		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz) {
+	TriangleMesh<std::nullptr_t> box;
+	for(int i : boost::irange(0, 8)) {
+		const Eigen::Vector3f vertex_pos = center +
+			((i & 0b001) ? 1 : -1) * half_dx +
+			((i & 0b010) ? 1 : -1) * half_dy +
+			((i & 0b100) ? 1 : -1) * half_dz;
+		box.vertices.push_back(std::make_pair(vertex_pos, nullptr));
+	}
+
+	// Create inward-facing triangles. (CCW is positive direction)
+	// Draw a cube with 000-111 to understand this.
+	box.triangles = {
+		// X-
+		std::make_tuple(0, 2, 4),
+		std::make_tuple(6, 4, 2),
+		// X+
+		std::make_tuple(5, 7, 1),
+		std::make_tuple(3, 1, 7),
+		// Y-
+		std::make_tuple(0, 4, 1),
+		std::make_tuple(5, 1, 4),
+		// Y+
+		std::make_tuple(6, 2, 7),
+		std::make_tuple(3, 7, 2),
+		// Z-
+		std::make_tuple(0, 1, 2),
+		std::make_tuple(3, 2, 1),
+		// Z+
+		std::make_tuple(6, 7, 4),
+		std::make_tuple(5, 4, 7)
+	};
+
+	return box;
 }
 
 std::pair<float, float> OBBFitter::robustMinMax(std::vector<float>& values) {
@@ -109,7 +136,6 @@ std::pair<float, float> OBBFitter::robustMinMax(std::vector<float>& values) {
 		values[int(values.size() * 0.99)]);
 }
 
-std::vector<PlaneGeometry> OBBFitter::extract() {
-	return planes;
+TriangleMesh<std::nullptr_t> OBBFitter::extract() const {
+	return mesh;
 }
-

@@ -30,5 +30,16 @@ cv::Mat bake3DTexture(
 
 TriangleMesh<Eigen::Vector2f> dropNormal(const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh);
 
+template<typename TypeFirst, typename TypeSecond>
+TriangleMesh<TypeSecond> mapSecond(const TriangleMesh<std::pair<TypeFirst, TypeSecond>>& mesh) {
+	TriangleMesh<Eigen::Vector2f> mesh_snd;
+	mesh_snd.triangles = mesh.triangles;
+	mesh_snd.vertices.resize(mesh.vertices.size());
+	std::transform(mesh.vertices.begin(), mesh.vertices.end(), mesh_snd.vertices.begin(),
+		[](const std::pair<Eigen::Vector3f, std::pair<TypeFirst, TypeSecond>>& vertex) {
+			return std::make_pair(vertex.first, vertex.second.second);
+		});
+	return mesh_snd;
+}
 
 void writeObjMaterial(std::ostream& output);
