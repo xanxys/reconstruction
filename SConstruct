@@ -53,6 +53,15 @@ LIBS = [
 def exclude(f):
 	return str(f).startswith('mist/') or str(f).startswith('SLIC-Superpixels')
 
+# TODO: hack. doesn't work when proto new files are added
+env.Command(
+	['asset.pb.cc', 'asset.pb.h'],
+	['proto/asset.proto'],
+	'protoc --proto_path=proto --cpp_out ./ proto/asset.proto')
+
+env.Depends(env.Glob('*.cpp'), ['asset.pb.cc', 'asset.pb.h'])
+env.Depends(env.Glob('*/*.cpp'), ['asset.pb.cc', 'asset.pb.h'])
+
 env.Program(
 	'recon',
 	source =

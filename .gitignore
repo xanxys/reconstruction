@@ -4,3 +4,5 @@ recon_test
 .sconsign.dblite
 data/
 archive/
+*.pb.cc
+*.pb.h

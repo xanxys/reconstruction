@@ -64,7 +64,7 @@ void testPointCloudMeshing() {
 	cv::imwrite("uv_box.png", visualizeUVMap(mesh_uv));
 
 	// Project points to the surface and draw circle onto texture.
-	const int tex_size = 1024;
+	const int tex_size = 2048;
 	cv::Mat texture(tex_size, tex_size, CV_8UC3);
 	texture = cv::Scalar(0, 0, 0);
 	for(const auto& point : cloud) {
@@ -81,7 +81,7 @@ void testPointCloudMeshing() {
 			point["r"].asDouble());
 
 		cv::circle(
-			texture, eigenToCV(swapY(uv) * tex_size), 3,
+			texture, eigenToCV(swapY(uv) * tex_size), 1,
 			color, -1);
 	}
 	cv::imwrite("uv_pt_baked.png", texture);
