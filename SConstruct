@@ -17,6 +17,7 @@ env = Environment(
 	'/usr/include/ni',
 	'/usr/include/pcl-1.6',
 	'/usr/include/jsoncpp',
+	'./',
 	],
 	LIBPATH = [
 	],
@@ -47,6 +48,7 @@ LIBS = [
 	'libpcl_kdtree',
 	'libpcl_search',
 	'libpcl_segmentation',
+	'libprotobuf',
 	'libpthread',
 ]
 
@@ -65,14 +67,14 @@ env.Depends(env.Glob('*/*.cpp'), ['asset.pb.cc', 'asset.pb.h'])
 env.Program(
 	'recon',
 	source =
-		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c")
+		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c") + env.Glob('*.cc')
 			if not f.name.endswith('_test.cpp') and not exclude(f)],
 	LIBS = LIBS)
 
 program_test = env.Program(
 	'recon_test',
 	source =
-		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c")
+		[env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*.c") + env.Glob('*.cc')
 			if f.name != 'main.cpp' and not exclude(f)],
 	LIBS = LIBS + ['libgtest', 'libgtest_main'])
 
