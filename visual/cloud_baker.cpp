@@ -8,13 +8,14 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <cloud_conversion.h>
 #include <logging.h>
-#include <mapping.h>
-#include <marching_cubes.h>
-#include <recon_server.h>
-#include <scene_converter.h>
-#include <texture_conversion.h>
+#include <visual/cloud_conversion.h>
+#include <visual/mapping.h>
+#include <visual/marching_cubes.h>
+#include <visual/scene_converter.h>
+#include <visual/texture_conversion.h>
+
+namespace visual {
 
 CloudBaker::CloudBaker(const Json::Value& cloud) : cloud(cloud) {
 }
@@ -70,3 +71,5 @@ VirtualFile CloudBaker::writeImage(std::string name, const cv::Mat& image) {
 	cv::imencode8
 }
 */
+
+}  // namespace

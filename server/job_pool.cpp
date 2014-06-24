@@ -1,6 +1,8 @@
 #include "job_pool.h"
 
-#include "analyzer/analyzer.h"
+#include <analyzer/analyzer.h>
+
+namespace server {
 
 EstimateL1Job::EstimateL1Job(EstimateL1Job&& that) :
 	id(that.id),
@@ -101,3 +103,5 @@ Json::Value JobPool::getJobDescription(std::string query_id) {
 	}
 	throw std::runtime_error("Job query did not match anything");
 }
+
+}  // namespace

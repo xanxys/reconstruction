@@ -10,6 +10,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+namespace server {
 
 class DataSourceInterface {
 public:
@@ -93,3 +94,5 @@ private:
 	XtionDataSource* xtion;
 	#endif
 };
+
+}  // namespace

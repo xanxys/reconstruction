@@ -8,10 +8,12 @@
 #include <opencv2/opencv.hpp>
 #include <pcl/point_types.h>
 
-#include "analyzer/analyzer.h"
-#include "data_source.h"
-#include "job_pool.h"
-#include "web_server.h"
+#include <analyzer/analyzer.h>
+#include <server/data_source.h>
+#include <server/job_pool.h>
+#include <server/web_server.h>
+
+namespace server {
 
 // A controller. Two models are OpenNI grabber and SceneBelief.
 class ReconServer : public WebServer {
@@ -55,3 +57,5 @@ private:
 	DataSource data_source;
 	JobPool job_pool;
 };
+
+}  // namespace

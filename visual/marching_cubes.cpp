@@ -5,7 +5,9 @@
 
 #include <boost/range/irange.hpp>
 
-#include "range3.h"
+#include <range3.h>
+
+namespace visual {
 
 F32Array3::F32Array3(int nx, int ny, int nz) : nx(nx), ny(ny), nz(nz) {
 	data.resize(nx * ny * nz);
@@ -119,3 +121,5 @@ TriangleMesh<Eigen::Vector3f> tesselateCube(float v_surface,
 	}
 	return delta;
 }
+
+}  // namespace

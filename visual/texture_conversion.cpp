@@ -1,5 +1,7 @@
 #include "texture_conversion.h"
 
+namespace visual {
+
 Eigen::Vector2f swapY(const Eigen::Vector2f& v) {
 	return Eigen::Vector2f(v(0), 1 - v(1));
 }
@@ -83,3 +85,5 @@ void writeObjMaterial(std::ostream& output, std::string texture_path) {
 	output << "Ks 0.0 0.0 0.0" << std::endl;
 	output << "map_Kd " << texture_path << std::endl;
 }
+
+}  // namespace

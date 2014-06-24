@@ -12,6 +12,8 @@
 
 #include "logging.h"
 
+namespace visual {
+
 typedef pcl::PointCloud<pcl::PointXYZ> ColorCloud;
 
 using pcl::PointIndices;
@@ -139,3 +141,5 @@ std::pair<float, float> OBBFitter::robustMinMax(std::vector<float>& values) {
 TriangleMesh<std::nullptr_t> OBBFitter::extract() const {
 	return mesh;
 }
+
+}  // namespace

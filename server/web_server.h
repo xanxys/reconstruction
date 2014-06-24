@@ -8,6 +8,8 @@
 struct mg_event;
 struct mg_context;
 
+namespace server {
+
 class Response {
 public:
 	// Success Response
@@ -44,3 +46,5 @@ private:
 private:
 	struct mg_context* ctx;
 };
+
+}  // namespace

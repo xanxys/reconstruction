@@ -7,7 +7,9 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include "triangle_mesh.h"
+#include <visual/triangle_mesh.h>
+
+namespace visual {
 
 // Fit an orinted bounding box (with Y-axis-only rotation) to
 // given point cloud, and return (6) planes of the OBB.
@@ -29,3 +31,5 @@ private:
 private:
 	TriangleMesh<std::nullptr_t> mesh;
 };
+
+}  // namespace

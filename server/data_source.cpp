@@ -17,6 +17,8 @@
 #include <pcl/io/pcd_io.h>
 #include <sensor_msgs/PointCloud2.h>
 
+namespace server {
+
 using boost::filesystem::path;
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
@@ -361,3 +363,5 @@ std::string DataSource::takeSnapshot() {
 	throw std::runtime_error("Xtion support is not compiled");
 	#endif
 }
+
+}  // namespace

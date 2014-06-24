@@ -11,6 +11,7 @@
 
 #include "triangle_mesh.h"
 
+namespace visual {
 
 // Try to find packing of rectangles in a (minimum) square region.
 // Obviously, it's NP-hard problem, so don't expect near-optimal result.
@@ -115,3 +116,5 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 	}
 	return mesh_with_uv;
 }
+
+}  // namespace

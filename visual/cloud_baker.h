@@ -5,6 +5,8 @@
 #include <asset.pb.h>
 #include <logging.h>
 
+namespace visual {
+
 // CloudBaker takes a single point cloud and generates
 // textured 3D mesh as asset.
 class CloudBaker {
@@ -21,3 +23,5 @@ private:
 	// Change this to more concrete vars that captures 3D point cloud.
 	const Json::Value& cloud;
 };
+
+}  // namespace

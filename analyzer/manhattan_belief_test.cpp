@@ -6,14 +6,14 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include "../data_source.h"
+#include <server/data_source.h>
 
 class ManhattanBeliefTest : public testing::Test {
 protected:
 	virtual void SetUp() {
 		// TODO: this call is dependent on files which are not checked in!
 		// (part of large dataset)
-		cloud = DataSource(false).getScene("MS-pumpkin-1");
+		cloud = server::DataSource(false).getScene("MS-pumpkin-1");
 		frame.reset(new FrameBelief(cloud));
 	}
 
