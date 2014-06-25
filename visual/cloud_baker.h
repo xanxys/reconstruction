@@ -1,6 +1,8 @@
 #pragma once
 
 #include <jsoncpp/json/json.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 #include <asset.pb.h>
 #include <logging.h>
@@ -19,9 +21,9 @@ public:
 	//WavefrontObject getWavefrontObject();
 private:
 	//VirtualFile writeImage(std::string name, const cv::Mat& image);
+	static pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 private:
-	// Change this to more concrete vars that captures 3D point cloud.
-	const Json::Value& cloud;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 };
 
 }  // namespace

@@ -519,14 +519,6 @@
 	},
 	"buffers":
 	[
-		{
-			"file": "triangle_mesh.h",
-			"settings":
-			{
-				"buffer_size": 3564,
-				"line_ending": "Unix"
-			}
-		}
 	],
 	"build_system": "Packages/User/scons.sublime-build",
 	"command_palette":
@@ -860,9 +852,41 @@
 	},
 	"file_history":
 	[
+		"/home/xyx/devenv/reconstruction/main.cpp",
+		"/home/xyx/devenv/reconstruction/logging.cpp",
+		"/home/xyx/devenv/unitro/src/Core.hpp",
+		"/home/xyx/devenv/unitro/src/data/Matrix.hpp",
+		"/home/xyx/devenv/reconstruction/server/web_server.cpp",
+		"/home/xyx/devenv/reconstruction/SConstruct",
+		"/home/xyx/devenv/reconstruction/analyzer/scene_belief_test.cpp",
+		"/home/xyx/devenv/reconstruction/analyzer/manhattan_belief_test.cpp",
+		"/home/xyx/devenv/reconstruction/server/job_pool.cpp",
+		"/home/xyx/devenv/reconstruction/server/web_server.h",
+		"/home/xyx/devenv/reconstruction/server/recon_server.h",
+		"/home/xyx/devenv/reconstruction/server/recon_server.cpp",
+		"/home/xyx/devenv/reconstruction/server/job_pool.h",
+		"/home/xyx/devenv/reconstruction/server/data_source.h",
+		"/home/xyx/devenv/reconstruction/server/data_source.cpp",
+		"/home/xyx/devenv/reconstruction/server/base64.h",
+		"/home/xyx/devenv/reconstruction/server/base64.cpp",
+		"/home/xyx/devenv/reconstruction/data_source.h",
+		"/home/xyx/devenv/reconstruction/visual/texture_conversion.h",
+		"/home/xyx/devenv/reconstruction/visual/scene_converter.h",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
+		"/home/xyx/devenv/reconstruction/visual/marching_cubes.cpp",
+		"/home/xyx/devenv/reconstruction/visual/marching_cubes.h",
+		"/home/xyx/devenv/reconstruction/visual/mapping.cpp",
+		"/home/xyx/devenv/reconstruction/visual/mapping.h",
+		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
+		"/home/xyx/devenv/reconstruction/visual/texture_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
+		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
+		"/home/xyx/devenv/reconstruction/triangle_mesh.h",
+		"/home/xyx/devenv/reconstruction/mapping.h",
 		"/home/xyx/download/onelife.json",
 		"/home/xyx/devenv/research-3d/Dockerfile",
-		"/home/xyx/devenv/reconstruction/main.cpp",
 		"/home/xyx/devenv/reconstruction/cloud_baker.h",
 		"/home/xyx/devenv/reconstruction/asset.pb.cc",
 		"/home/xyx/devenv/UnrealEngine/GenerateProjectFiles.sh",
@@ -874,12 +898,10 @@
 		"/home/xyx/devenv/reconstruction/uv_baked.mtl",
 		"/home/xyx/devenv/reconstruction/base64.cpp",
 		"/home/xyx/devenv/reconstruction/asset.pb.h",
-		"/home/xyx/devenv/reconstruction/SConstruct",
 		"/home/xyx/devenv/reconstruction/base64.h",
 		"/home/xyx/devenv/reconstruction/proto/asset.proto",
 		"/home/xyx/devenv/reconstruction/.gitignore",
 		"/home/xyx/devenv/reconstruction/mapping.cpp",
-		"/home/xyx/devenv/reconstruction/mapping.h",
 		"/home/xyx/devenv/reconstruction/cloud_conversion.cpp",
 		"/home/xyx/devenv/reconstruction/cloud_conversion.h",
 		"/home/xyx/devenv/reconstruction/texture_conversion.h",
@@ -888,8 +910,6 @@
 		"/home/xyx/devenv/reconstruction/test.ply",
 		"/home/xyx/devenv/reconstruction/scene_converter.h",
 		"/home/xyx/devenv/reconstruction/scene_converter.cpp",
-		"/home/xyx/devenv/reconstruction/triangle_mesh.h",
-		"/home/xyx/devenv/reconstruction/logging.cpp",
 		"/home/xyx/devenv/reconstruction/logging.h",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.cpp",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.h",
@@ -904,7 +924,6 @@
 		"/home/xyx/devenv/reconstruction/marching_cubes.cpp",
 		"/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
 		"/home/xyx/devenv/reconstruction/triangle_mesh.cpp",
-		"/home/xyx/devenv/reconstruction/data_source.h",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.h",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.cpp",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/data-lights/all_data.utf8.json",
@@ -960,34 +979,7 @@
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/mongoose.c",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/raytracing.cpp",
 		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/slic.cpp",
-		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/test_slic.cpp.old",
-		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/SConstruct",
-		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/.gitignore",
-		"/home/xyx/devenv/euler/5.py",
-		"/home/xyx/devenv/euler/6.py",
-		"/home/xyx/devenv/euler/4.py",
-		"/home/xyx/devenv/euler/1.py",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/camera_parameters.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/web_server.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/main.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFWorld.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFWorld.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFConverter.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/Tracker.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/common.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/common.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/lrf_parameters.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/LRFOffset.json",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/LRF2Camera.json",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/all_data.json",
-		"/home/xyx/research/ar-led/README.md",
-		"/home/xyx/devenv/rule110/ecax.js",
-		"/home/xyx/devenv/rule110/index.html",
-		"/home/xyx/devenv/rule110/serialize.js",
-		"/home/xyx/devenv/rule110/eca_naive.js",
-		"/home/xyx/devenv/rule110/hashcell.js",
-		"/home/xyx/devenv/rule110/hashcell_view.js",
-		"/home/xyx/research/ar-led/scanner_rt/.gitignore"
+		"/home/xyx/devenv/reconstruction/SLIC-Superpixels/test_slic.cpp.old"
 	],
 	"find":
 	{
@@ -1005,6 +997,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"Ob",
+			"start",
 			"fstream",
 			"e+",
 			"e-",
@@ -1130,9 +1124,7 @@
 			"data/",
 			".fps",
 			"convertSkeletonToTree",
-			"g_motion_id",
-			"union",
-			"meta.exception"
+			"g_motion_id"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1214,38 +1206,8 @@
 	"groups":
 	[
 		{
-			"selected": 0,
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "triangle_mesh.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3564,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								563,
-								563
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				}
 			]
 		}
 	],

@@ -17,20 +17,23 @@
 
 namespace visual {
 
-CloudBaker::CloudBaker(const Json::Value& cloud) : cloud(cloud) {
-}
-
-void CloudBaker::writeWavefrontObject() {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_pcl(new pcl::PointCloud<pcl::PointXYZ>());
-	for(const auto& point : cloud) {
-		pcl::PointXYZ pt;
+CloudBaker::CloudBaker(const Json::Value& cloud_json) {
+	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGB pt;
 		pt.x = point["x"].asDouble();
 		pt.y = point["y"].asDouble();
 		pt.z = point["z"].asDouble();
-		cloud_pcl->points.push_back(pt);
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		cloud->points.push_back(pt);
 	}
+}
 
-	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_pcl).extract();
+void CloudBaker::writeWavefrontObject() {
+	const auto cloud_colorless = decolor(*cloud);
+	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
 	const auto mesh_uv = mapSecond(assignUV(mesh));
 	cv::imwrite("uv_box.png", visualizeUVMap(mesh_uv));
 
@@ -38,19 +41,12 @@ void CloudBaker::writeWavefrontObject() {
 	const int tex_size = 2048;
 	cv::Mat texture(tex_size, tex_size, CV_8UC3);
 	texture = cv::Scalar(0, 0, 0);
-	for(const auto& point : cloud) {
-		const Eigen::Vector3f pos(
-			point["x"].asDouble(),
-			point["y"].asDouble(),
-			point["z"].asDouble());
+	for(const auto& point : cloud->points) {
+		const Eigen::Vector3f pos = point.getVector3fMap();
 		const auto uv = nearestCoordinate(mesh_uv, pos);
 		// DEBUG("nearestUV", uv(0), uv(1));
 
-		const cv::Scalar color(
-			point["b"].asDouble(),
-			point["g"].asDouble(),
-			point["r"].asDouble());
-
+		const cv::Scalar color(point.b, point.g, point.r);
 		cv::circle(
 			texture, eigenToCV(swapY(uv) * tex_size), 1,
 			color, -1);
@@ -64,6 +60,18 @@ void CloudBaker::writeWavefrontObject() {
 
 //	WavefrontObject obj;
 	//return obj;
+}
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr CloudBaker::decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_colorless(new pcl::PointCloud<pcl::PointXYZ>());
+	for(const auto& point : cloud) {
+		pcl::PointXYZ pt;
+		pt.x = point.x;
+		pt.y = point.y;
+		pt.z = point.z;
+		cloud_colorless->points.push_back(pt);
+	}
+	return cloud_colorless;
 }
 
 /*
