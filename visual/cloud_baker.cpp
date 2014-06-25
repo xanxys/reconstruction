@@ -5,6 +5,7 @@
 #include <fstream>
 #include <limits>
 
+#include <boost/filesystem.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -16,6 +17,24 @@
 #include <visual/texture_conversion.h>
 
 namespace visual {
+
+void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
+	const boost::filesystem::path dir_path(dir_name);
+	boost::filesystem::create_directory(dir_path);
+
+	const boost::filesystem::path name_obj("object.obj");
+	const boost::filesystem::path name_mtl("object.mtl");
+	const boost::filesystem::path name_diffuse("diffuse.png");
+
+	// Write bunch of files.
+	std::ofstream f_obj((dir_path / name_obj).string());
+	mesh.serializeObjWithUv(f_obj, name_mtl.string());
+
+	std::ofstream f_mtl((dir_path / name_mtl).string());
+	writeObjMaterial(f_mtl, name_diffuse.string());
+
+	cv::imwrite((dir_path / name_diffuse).string(), diffuse);
+}
 
 CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -31,7 +50,7 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	}
 }
 
-void CloudBaker::writeWavefrontObject() {
+TexturedMesh CloudBaker::generateRoomMesh() {
 	const auto cloud_colorless = decolor(*cloud);
 	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
 	const auto mesh_uv = mapSecond(assignUV(mesh));
@@ -39,8 +58,8 @@ void CloudBaker::writeWavefrontObject() {
 
 	// Project points to the surface and draw circle onto texture.
 	const int tex_size = 2048;
-	cv::Mat texture(tex_size, tex_size, CV_8UC3);
-	texture = cv::Scalar(0, 0, 0);
+	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
+	diffuse = cv::Scalar(0, 0, 0);
 	for(const auto& point : cloud->points) {
 		const Eigen::Vector3f pos = point.getVector3fMap();
 		const auto uv = nearestCoordinate(mesh_uv, pos);
@@ -48,18 +67,19 @@ void CloudBaker::writeWavefrontObject() {
 
 		const cv::Scalar color(point.b, point.g, point.r);
 		cv::circle(
-			texture, eigenToCV(swapY(uv) * tex_size), 1,
+			diffuse, eigenToCV(swapY(uv) * tex_size), 1,
 			color, -1);
 	}
-	cv::imwrite("uv_pt_baked.png", texture);
 
-	std::ofstream room_box_uv("room_box_uv.obj");
-	mesh_uv.serializeObjWithUv(room_box_uv, "uv_baked.mtl");
-	std::ofstream mat_baked("uv_baked.mtl");
-	writeObjMaterial(mat_baked, "uv_pt_baked.png");
+	TexturedMesh tm;
+	tm.diffuse = diffuse;
+	tm.mesh = mesh_uv;
+	return tm;
+}
 
-//	WavefrontObject obj;
-	//return obj;
+void CloudBaker::writeWavefrontObject() {
+	auto tm = generateRoomMesh();
+	tm.writeWavefrontObject("room_box");
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr CloudBaker::decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
@@ -73,11 +93,5 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr CloudBaker::decolor(const pcl::PointCloud<pc
 	}
 	return cloud_colorless;
 }
-
-/*
-VirtualFile CloudBaker::writeImage(std::string name, const cv::Mat& image) {
-	cv::imencode8
-}
-*/
 
 }  // namespace
