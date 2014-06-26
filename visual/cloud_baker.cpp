@@ -6,10 +6,12 @@
 #include <limits>
 
 #include <boost/filesystem.hpp>
+#include <boost/range/irange.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
 #include <logging.h>
+#include <range2.h>
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
@@ -70,11 +72,42 @@ TexturedMesh CloudBaker::generateRoomMesh() {
 			diffuse, eigenToCV(swapY(uv) * tex_size), 1,
 			color, -1);
 	}
+	fillHoles(diffuse, cv::Vec3b(0, 0, 0), 5);
 
 	TexturedMesh tm;
 	tm.diffuse = diffuse;
 	tm.mesh = mesh_uv;
 	return tm;
+}
+
+void CloudBaker::fillHoles(cv::Mat& image, const cv::Vec3b undefined, int iteration) {
+	const Eigen::Vector2i imageMin(0, 0);
+	const Eigen::Vector2i imageMax(image.cols, image.rows);
+	for(int step : boost::irange(0, iteration)) {
+		bool propagation_happened = false;
+		for(auto pos : range2(imageMin, imageMax)) {
+			auto& current_pixel = image.at<cv::Vec3b>(pos.y(), pos.x());
+			if(current_pixel != undefined) {
+				continue;
+			}
+			// Copy defined neighbor color.
+			// (Search range contains itself, but it's ok because it's undefined thus ignored)
+			for(auto pos_search : range2(
+				(pos - Eigen::Vector2i(1, 1)).cwiseMax(imageMin),
+				(pos + Eigen::Vector2i(2, 2)).cwiseMin(imageMax))) {
+				const auto candidate = image.at<cv::Vec3b>(pos_search.y(), pos_search.x());
+				if(candidate != undefined) {
+					current_pixel = candidate;
+					propagation_happened = true;
+					break;
+				}
+			}
+		}
+		// all pixels are filled, or image == undefined
+		if(!propagation_happened) {
+			break;
+		}
+	}
 }
 
 void CloudBaker::writeWavefrontObject() {

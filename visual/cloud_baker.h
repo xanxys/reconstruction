@@ -31,6 +31,13 @@ public:
 	void writeWavefrontObject();
 private:
 	TexturedMesh generateRoomMesh();
+
+	// Fill pixels with value = undefined with approximately nearest
+	// colors. Does nothing if all pixel = undefined.
+	// iteration = approx min distance of value propagation
+	//
+	// worst time: O(iteration * number of pixels)
+	static void fillHoles(cv::Mat& image, cv::Vec3b undefined, int iteration);
 	static pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 private:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
