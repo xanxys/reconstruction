@@ -56,17 +56,14 @@ TexturedMesh CloudBaker::generateRoomMesh() {
 	const auto cloud_colorless = decolor(*cloud);
 	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
 	const auto mesh_uv = mapSecond(assignUV(mesh));
-	cv::imwrite("uv_box.png", visualizeUVMap(mesh_uv));
 
-	// Project points to the surface and draw circle onto texture.
+	// Project points to the surface and draw circles onto texture.
 	const int tex_size = 2048;
 	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
 	diffuse = cv::Scalar(0, 0, 0);
 	for(const auto& point : cloud->points) {
 		const Eigen::Vector3f pos = point.getVector3fMap();
 		const auto uv = nearestCoordinate(mesh_uv, pos);
-		// DEBUG("nearestUV", uv(0), uv(1));
-
 		const cv::Scalar color(point.b, point.g, point.r);
 		cv::circle(
 			diffuse, eigenToCV(swapY(uv) * tex_size), 1,
