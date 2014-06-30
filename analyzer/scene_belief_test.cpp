@@ -6,7 +6,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include "../data_source.h"
+#include <server/data_source.h>
 
 class SceneBeliefTest : public testing::Test {
 protected:
@@ -14,7 +14,7 @@ protected:
 		// TODO: this call is dependent on files which are not checked in!
 		// (part of large dataset)
 		pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr cloud =
-			DataSource(false).getScene("MS-pumpkin-1");
+			server::DataSource(false).getScene("MS-pumpkin-1");
 
 		FrameBelief frame(cloud);
 		auto manhattans = ManhattanBelief::expand(frame);

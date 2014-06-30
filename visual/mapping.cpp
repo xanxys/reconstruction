@@ -2,6 +2,7 @@
 
 #include "logging.h"
 
+namespace visual {
 
 std::pair<float, std::vector<Eigen::Vector2f>>
 	packRectangles(std::vector<Eigen::Vector2f> rectangles) {
@@ -77,3 +78,4 @@ std::pair<float, std::vector<Eigen::Vector2f>>
 	}
 }
 
+}  // namespace

@@ -10,9 +10,11 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
-#include "logging.h"
-#include "marching_cubes.h"
-#include "mapping.h"
+#include <logging.h>
+#include <visual/mapping.h>
+#include <visual/marching_cubes.h>
+
+namespace visual {
 
 Eigen::Vector2f swapY(const Eigen::Vector2f& v);
 
@@ -42,3 +44,5 @@ TriangleMesh<TypeSecond> mapSecond(const TriangleMesh<std::pair<TypeFirst, TypeS
 }
 
 void writeObjMaterial(std::ostream& output, std::string texture_path);
+
+}  // namespace

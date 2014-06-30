@@ -5,8 +5,10 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "logging.h"
-#include "mongoose.h"
+#include <logging.h>
+#include <server/mongoose.h>
+
+namespace server {
 
 Response::Response(Json::Value& value) :
 	Response(Json::FastWriter().write(value), "application/json") {
@@ -42,11 +44,11 @@ std::string Response::serialize() {
 
 void WebServer::launch() {
 	const char* options[] = {"listening_ports", "8080", NULL};
-	ctx = mg_start(options, &eventHandler, this);
+	ctx = ::mg_start(options, &eventHandler, this);
 }
 
 Response WebServer::sendStaticFile(std::string path) {
-	std::string mime(mg_get_builtin_mime_type(path.c_str()));
+	std::string mime(::mg_get_builtin_mime_type(path.c_str()));
 	return sendStaticFile(path, mime);
 }
 
@@ -64,7 +66,7 @@ Response WebServer::sendStaticFile(
 }
 
 
-int WebServer::eventHandler(struct mg_event* event) {
+int WebServer::eventHandler(struct ::mg_event* event) {
 	// Ignore non-request events.
 	if(event->type != MG_REQUEST_BEGIN) {
 		return 0;
@@ -84,7 +86,7 @@ int WebServer::eventHandler(struct mg_event* event) {
 
 	// Get data
 	std::string data;
-	const char* data_size = mg_get_header(event->conn, "Content-Length");
+	const char* data_size = ::mg_get_header(event->conn, "Content-Length");
 	if(data_size != nullptr) {
 		const int size = std::stoi(data_size);
 		if(0 < size && size < 100 * 1000 * 1000) {
@@ -104,14 +106,16 @@ int WebServer::eventHandler(struct mg_event* event) {
 		auto response = reinterpret_cast<WebServer*>(event->user_data)
 			->handleRequest(req_parsed, method, data);
 		const std::string response_str = response.serialize();
-		mg_write(event->conn, response_str.data(), response_str.size());
+		::mg_write(event->conn, response_str.data(), response_str.size());
 	} catch(std::exception& exc) {
 		const std::string response_str = Response(500, exc.what(), "text/plain").serialize();
-		mg_write(event->conn, response_str.data(), response_str.size());
+		::mg_write(event->conn, response_str.data(), response_str.size());
 	} catch(...) {
 		const std::string response_str = Response(500, "Unknown exception", "text/plain").serialize();
-		mg_write(event->conn, response_str.data(), response_str.size());
+		::mg_write(event->conn, response_str.data(), response_str.size());
 	}
 
 	return 1;
 }
+
+}  // namespace

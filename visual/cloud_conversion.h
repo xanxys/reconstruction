@@ -11,6 +11,7 @@
 
 #include "triangle_mesh.h"
 
+namespace visual {
 
 // Get barycentric coordinate of the narest point on triangle surface.
 Eigen::Vector2f nearestBarycentricApprox(
@@ -19,3 +20,5 @@ Eigen::Vector2f nearestBarycentricApprox(
 // Get linear-interpolate coordinate of the surfact point, which is nearest to the given point.
 Eigen::Vector2f nearestCoordinate(
 	const TriangleMesh<Eigen::Vector2f>& mesh, const Eigen::Vector3f p);
+
+}  // namespace

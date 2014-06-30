@@ -7,7 +7,9 @@
 #include <boost/optional.hpp>
 #include <jsoncpp/json/json.h>
 
-#include "data_source.h"
+#include <server/data_source.h>
+
+namespace server {
 
 class EstimateL1Job {
 public:
@@ -58,3 +60,5 @@ private:
 	std::vector<EstimateL1Job> all_jobs;
 	int job_id;
 };
+
+}  // namespace

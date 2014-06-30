@@ -9,6 +9,8 @@
 
 #include <Eigen/Dense>
 
+namespace visual {
+
 template<typename Vertex>
 class TriangleMesh {
 public:
@@ -110,3 +112,5 @@ public:
 	std::vector<std::tuple<int, int, int>> triangles;
 	std::vector<std::pair<Eigen::Vector3f, Vertex>> vertices;
 };
+
+}  // namespace

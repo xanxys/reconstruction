@@ -5,7 +5,9 @@
 
 #include <Eigen/Dense>
 
-#include "triangle_mesh.h"
+#include <visual/triangle_mesh.h>
+
+namespace visual {
 
 class F32Array3 {
 public:
@@ -340,3 +342,5 @@ const std::vector<std::pair<int, int>> edgeToVertex = {
 	{2, 6},
 	{3, 7}
 };
+
+}  // namespace

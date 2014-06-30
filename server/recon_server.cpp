@@ -11,7 +11,9 @@
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
 
-#include "base64.h"
+#include <server/base64.h>
+
+namespace server {
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 using ColorCloud = pcl::PointCloud<pcl::PointXYZRGBA>;
@@ -339,3 +341,5 @@ std::string ReconServer::dataURLFromImage(const cv::Mat& image) {
 	return "data:image/jpeg;base64," +
 	base64_encode(reinterpret_cast<const uint8_t*>(buffer_s.data()), buffer_s.size());
 }
+
+}  // namespace
