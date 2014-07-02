@@ -21,6 +21,34 @@ public:
 	cv::Mat diffuse;
 };
 
+
+enum class VoxelState {
+	OCCUPIED,
+	EMPTY
+};
+
+
+class VoxelDescription {
+public:
+	VoxelDescription();
+public:
+	bool guess;
+	VoxelState state;
+	Eigen::Vector3f average_image_color;
+};
+
+
+class Voxelizer {
+public:
+	Voxelizer(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, float voxel_size);
+	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailed() const;
+	std::map<std::tuple<int, int, int>, VoxelDescription> getVoxelsDetailedWithoutGuess() const;
+private:
+	float voxel_size;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
+};
+
+
 // CloudBaker takes a single point cloud and generates
 // textured 3D mesh as asset.
 class CloudBaker {

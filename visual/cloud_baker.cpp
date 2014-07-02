@@ -10,6 +10,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <analyzer/voxel_traversal.h>
 #include <logging.h>
 #include <range2.h>
 #include <visual/cloud_conversion.h>
@@ -19,6 +20,8 @@
 #include <visual/texture_conversion.h>
 
 namespace visual {
+
+using Tuple3i = std::tuple<int, int, int>;
 
 void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
 	const boost::filesystem::path dir_path(dir_name);
@@ -37,6 +40,92 @@ void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
 
 	cv::imwrite((dir_path / name_diffuse).string(), diffuse);
 }
+
+
+VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0), guess(false) {
+}
+
+
+Voxelizer::Voxelizer(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, float voxel_size) :
+	cloud(cloud), voxel_size(voxel_size) {
+}
+
+std::map<Tuple3i, VoxelDescription> Voxelizer::getVoxelsDetailed() const {
+	std::map<Tuple3i, VoxelDescription> vx;
+	return vx;
+}
+
+std::map<Tuple3i, VoxelDescription> Voxelizer::getVoxelsDetailedWithoutGuess() const {
+
+	// known to be filled
+	std::map<Tuple3i, bool> voxels;
+	std::map<Tuple3i, Eigen::Vector3f> voxels_accum;
+	std::map<Tuple3i, int> voxels_count;
+	for(const auto& pt : cloud->points) {
+		if(!std::isfinite(pt.x)) {
+			continue;
+		}
+
+		auto ix = pt.getVector3fMap() / voxel_size;
+		auto key = std::make_tuple(
+			static_cast<int>(std::floor(ix.x())),
+			static_cast<int>(std::floor(ix.y())),
+			static_cast<int>(std::floor(ix.z())));
+
+		voxels[key] = true;
+		if(voxels_accum.find(key) == voxels_accum.end()) {
+			voxels_accum[key] = Eigen::Vector3f(pt.r, pt.g, pt.b);
+			voxels_count[key] = 1;
+		} else {
+			voxels_accum[key] += Eigen::Vector3f(pt.r, pt.g, pt.b);
+			voxels_count[key] += 1;
+		}
+	}
+
+	// TODO: remove and use frame.camera_pos (need to consolidate
+	// frame.camera_pos semantics)
+	const auto& camera_origin = Eigen::Vector3f::Zero();
+
+	std::map<Tuple3i, bool> voxels_empty;
+	for(const auto& pair_filled : voxels) {
+		// cast ray from camera
+		const auto pos = Eigen::Vector3f(
+			std::get<0>(pair_filled.first) + 0.5,
+			std::get<1>(pair_filled.first) + 0.5,
+			std::get<2>(pair_filled.first) + 0.5) * voxel_size;
+
+		const auto dir = (pos - camera_origin).normalized();
+
+		// traverse until hit.
+		VoxelTraversal traversal(voxel_size, camera_origin, dir);
+		for(int i : boost::irange(0, 100)) {
+			const auto key = traversal.next();
+
+			// Hit wall.
+			if(voxels.find(key) != voxels.end()) {
+				break;
+			}
+
+			voxels_empty[key] = true;
+		}
+	}
+
+	std::map<Tuple3i, VoxelDescription> voxel_merged;
+	for(const auto& pair_filled : voxels) {
+		VoxelDescription desc;
+		desc.state = VoxelState::OCCUPIED;
+		desc.average_image_color =
+		voxels_accum[pair_filled.first] / voxels_count[pair_filled.first];
+		voxel_merged[pair_filled.first] = desc;
+	}
+	for(const auto& pair_empty : voxels_empty) {
+		VoxelDescription desc;
+		desc.state = VoxelState::EMPTY;
+		voxel_merged[pair_empty.first] = desc;
+	}
+	return voxel_merged;
+}
+
 
 CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
