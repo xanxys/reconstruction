@@ -8,19 +8,10 @@
 
 #include <asset.pb.h>
 #include <logging.h>
+#include <visual/textured_mesh.h>
 #include <visual/triangle_mesh.h>
 
 namespace visual {
-
-// A triangle mesh with single diffuse texture.
-class TexturedMesh {
-public:
-	void writeWavefrontObject(std::string dir_name) const;
-public:
-	TriangleMesh<Eigen::Vector2f> mesh;
-	cv::Mat diffuse;
-};
-
 
 enum class VoxelState {
 	OCCUPIED,

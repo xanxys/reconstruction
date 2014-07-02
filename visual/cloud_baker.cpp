@@ -23,24 +23,6 @@ namespace visual {
 
 using Tuple3i = std::tuple<int, int, int>;
 
-void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
-	const boost::filesystem::path dir_path(dir_name);
-	boost::filesystem::create_directory(dir_path);
-
-	const boost::filesystem::path name_obj("object.obj");
-	const boost::filesystem::path name_mtl("object.mtl");
-	const boost::filesystem::path name_diffuse("diffuse.png");
-
-	// Write bunch of files.
-	std::ofstream f_obj((dir_path / name_obj).string());
-	mesh.serializeObjWithUv(f_obj, name_mtl.string());
-
-	std::ofstream f_mtl((dir_path / name_mtl).string());
-	writeObjMaterial(f_mtl, name_diffuse.string());
-
-	cv::imwrite((dir_path / name_diffuse).string(), diffuse);
-}
-
 
 VoxelDescription::VoxelDescription() : average_image_color(0, 0, 0), guess(false) {
 }
