@@ -121,6 +121,19 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		pt.b = point["b"].asDouble();
 		cloud->points.push_back(pt);
 	}
+
+	Voxelizer voxzelizer(cloud, 0.05);
+	const auto vxs = voxzelizer.getVoxelsDetailedWithoutGuess();
+	int num_occupied = 0;
+	int num_empty = 0;
+	for(const auto& vx : vxs) {
+		if(vx.second.state == VoxelState::OCCUPIED) {
+			num_occupied++;
+		} else if(vx.second.state == VoxelState::EMPTY) {
+			num_empty++;
+		}
+	}
+	INFO("Voxel Stat occupied", num_occupied, "empty", num_empty);
 }
 
 TexturedMesh CloudBaker::generateRoomMesh() {
@@ -176,11 +189,6 @@ void CloudBaker::fillHoles(cv::Mat& image, const cv::Vec3b undefined, int iterat
 			break;
 		}
 	}
-}
-
-void CloudBaker::writeWavefrontObject() {
-	auto tm = generateRoomMesh();
-	tm.writeWavefrontObject("room_box");
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr CloudBaker::decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {

@@ -51,7 +51,7 @@ void testPointCloudMeshing() {
 	Json::Value cloud;
 	Json::Reader().parse(test, cloud);
 
-	visual::CloudBaker(cloud).writeWavefrontObject();
+	visual::CloudBaker(cloud).generateRoomMesh().writeWavefrontObject("room_box");
 }
 
 int main() {

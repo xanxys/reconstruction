@@ -47,9 +47,8 @@ public:
 	// Convert json-style XYZRGB point cloud.
 	CloudBaker(const Json::Value& cloud);
 
-	void writeWavefrontObject();
-private:
 	TexturedMesh generateRoomMesh();
+private:
 
 	// Fill pixels with value = undefined with approximately nearest
 	// colors. Does nothing if all pixel = undefined.
