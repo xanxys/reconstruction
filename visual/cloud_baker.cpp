@@ -134,6 +134,12 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		}
 	}
 	INFO("Voxel Stat occupied", num_occupied, "empty", num_empty);
+
+	// Goal:
+	// Label all voxels as:
+	// * EMPTY (air)
+	// * EXTERIOR (static building part)
+	// * OBJECTS
 }
 
 TexturedMesh CloudBaker::generateRoomMesh() {
@@ -141,17 +147,27 @@ TexturedMesh CloudBaker::generateRoomMesh() {
 	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
 	const auto mesh_uv = mapSecond(assignUV(mesh));
 
+	// Assign distance from exterior to points.
+	for(const auto& point : cloud->points) {
+		const Eigen::Vector3f pos = point.getVector3fMap();
+		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
+	}
+
 	// Project points to the surface and draw circles onto texture.
 	const int tex_size = 2048;
+	const float thresh_distance = 0.5;
 	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
 	diffuse = cv::Scalar(0, 0, 0);
 	for(const auto& point : cloud->points) {
 		const Eigen::Vector3f pos = point.getVector3fMap();
-		const auto uv = nearestCoordinate(mesh_uv, pos);
-		const cv::Scalar color(point.b, point.g, point.r);
-		cv::circle(
-			diffuse, eigenToCV(swapY(uv) * tex_size), 1,
-			color, -1);
+		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
+		// Ignore points too far from exterior.
+		if(dist_and_uv.first < thresh_distance) {
+			const cv::Scalar color(point.b, point.g, point.r);
+			cv::circle(
+				diffuse, eigenToCV(swapY(dist_and_uv.second) * tex_size), 1,
+				color, -1);
+		}
 	}
 	fillHoles(diffuse, cv::Vec3b(0, 0, 0), 5);
 
