@@ -110,16 +110,24 @@ std::map<Tuple3i, VoxelDescription> Voxelizer::getVoxelsDetailedWithoutGuess() c
 
 
 CloudBaker::CloudBaker(const Json::Value& cloud_json) {
-	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-	for(const auto& point : cloud_json) {
-		pcl::PointXYZRGB pt;
-		pt.x = point["x"].asDouble();
-		pt.y = point["y"].asDouble();
-		pt.z = point["z"].asDouble();
-		pt.r = point["r"].asDouble();
-		pt.g = point["g"].asDouble();
-		pt.b = point["b"].asDouble();
-		cloud->points.push_back(pt);
+	loadFromJson(cloud_json);
+
+	// Approximate exterior by OBB.
+	const auto cloud_colorless = decolor(*cloud);
+	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
+	exterior_mesh = mapSecond(assignUV(mesh));
+
+	// Voxelize
+	// Goal:
+	// Label all voxels as:
+	// * EMPTY (air)
+	// * EXTERIOR (static building part)
+	// * OBJECTS
+
+	// Assign distance from exterior to points.
+	for(const auto& point : cloud->points) {
+		const Eigen::Vector3f pos = point.getVector3fMap();
+		const auto dist_and_uv = nearestCoordinate(exterior_mesh, pos);
 	}
 
 	Voxelizer voxzelizer(cloud, 0.05);
@@ -134,24 +142,24 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		}
 	}
 	INFO("Voxel Stat occupied", num_occupied, "empty", num_empty);
+}
 
-	// Goal:
-	// Label all voxels as:
-	// * EMPTY (air)
-	// * EXTERIOR (static building part)
-	// * OBJECTS
+void CloudBaker::loadFromJson(const Json::Value& cloud_json) {
+	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGB pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		cloud->points.push_back(pt);
+	}
 }
 
 TexturedMesh CloudBaker::generateRoomMesh() {
-	const auto cloud_colorless = decolor(*cloud);
-	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
-	const auto mesh_uv = mapSecond(assignUV(mesh));
-
-	// Assign distance from exterior to points.
-	for(const auto& point : cloud->points) {
-		const Eigen::Vector3f pos = point.getVector3fMap();
-		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
-	}
+	const auto& mesh_uv = exterior_mesh;
 
 	// Project points to the surface and draw circles onto texture.
 	const int tex_size = 2048;

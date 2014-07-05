@@ -49,6 +49,7 @@ public:
 
 	TexturedMesh generateRoomMesh();
 private:
+	void loadFromJson(const Json::Value& cloud);
 
 	// Fill pixels with value = undefined with approximately nearest
 	// colors. Does nothing if all pixel = undefined.
@@ -59,6 +60,7 @@ private:
 	static pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 private:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
+	TriangleMesh<Eigen::Vector2f> exterior_mesh;
 };
 
 }  // namespace
