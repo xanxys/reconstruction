@@ -18,6 +18,7 @@
 #include <visual/marching_cubes.h>
 #include <visual/scene_converter.h>
 #include <visual/texture_conversion.h>
+#include <visual/voxel_conversion.h>
 
 namespace visual {
 
@@ -124,13 +125,18 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	// * EXTERIOR (static building part)
 	// * OBJECTS
 
+	const float voxel_size = 0.05;
+
+	const auto exterior_voxel = meshToVoxel(
+		exterior_mesh, Eigen::Vector3f::Zero(), voxel_size, Eigen::Vector3i(20, 20, 20));
+
 	// Assign distance from exterior to points.
 	for(const auto& point : cloud->points) {
 		const Eigen::Vector3f pos = point.getVector3fMap();
 		const auto dist_and_uv = nearestCoordinate(exterior_mesh, pos);
 	}
 
-	Voxelizer voxzelizer(cloud, 0.05);
+	Voxelizer voxzelizer(cloud, voxel_size);
 	const auto vxs = voxzelizer.getVoxelsDetailedWithoutGuess();
 	int num_occupied = 0;
 	int num_empty = 0;
