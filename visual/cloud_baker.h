@@ -18,6 +18,12 @@ enum class VoxelState {
 	EMPTY
 };
 
+enum class RoomVoxel {
+	EMPTY,
+	EXTERIOR,
+	INTERIOR,
+	UNKNOWN
+};
 
 class VoxelDescription {
 public:
@@ -50,6 +56,7 @@ public:
 	TexturedMesh generateRoomMesh();
 private:
 	void loadFromJson(const Json::Value& cloud);
+	static Json::Value showVec3i(const Eigen::Vector3i& v);
 
 	// Fill pixels with value = undefined with approximately nearest
 	// colors. Does nothing if all pixel = undefined.

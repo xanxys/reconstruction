@@ -127,17 +127,9 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 
 	const float voxel_size = 0.05;
 
-	const auto exterior_voxel = meshToVoxel(
-		exterior_mesh, Eigen::Vector3f::Zero(), voxel_size, Eigen::Vector3i(20, 20, 20));
-
-	// Assign distance from exterior to points.
-	for(const auto& point : cloud->points) {
-		const Eigen::Vector3f pos = point.getVector3fMap();
-		const auto dist_and_uv = nearestCoordinate(exterior_mesh, pos);
-	}
-
-	Voxelizer voxzelizer(cloud, voxel_size);
-	const auto vxs = voxzelizer.getVoxelsDetailedWithoutGuess();
+	// Voxelize point cloud.
+	Voxelizer voxelizer(cloud, voxel_size);
+	const auto vxs = voxelizer.getVoxelsDetailedWithoutGuess();
 	int num_occupied = 0;
 	int num_empty = 0;
 	for(const auto& vx : vxs) {
@@ -148,6 +140,56 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		}
 	}
 	INFO("Voxel Stat occupied", num_occupied, "empty", num_empty);
+
+	// Calculate min & max point.
+	Eigen::Vector3i imin(1000, 1000, 1000), imax(-1000, -1000, -1000);
+	for(const auto& vx : vxs) {
+		const Eigen::Vector3i i(
+			std::get<0>(vx.first), std::get<1>(vx.first), std::get<2>(vx.first));
+		imin = imin.cwiseMin(i);
+		imax = imax.cwiseMax(i);
+	}
+	INFO("Voxel range:", showVec3i(imin), showVec3i(imax));
+
+	// Densify voxel.
+	DenseVoxel<RoomVoxel> dv(imax - imin + Eigen::Vector3i(1, 1, 1));
+	for(const auto& i : range3(dv.shape())) {
+		dv[i] = RoomVoxel::UNKNOWN;
+	}
+	for(const auto& vx : vxs) {
+		const Eigen::Vector3i i(
+			std::get<0>(vx.first), std::get<1>(vx.first), std::get<2>(vx.first));
+
+		RoomVoxel label;
+		if(vx.second.state == VoxelState::OCCUPIED) {
+			label = RoomVoxel::INTERIOR;
+		} else if(vx.second.state == VoxelState::EMPTY) {
+			label = RoomVoxel::EMPTY;
+		}
+		dv[i - imin] = label;
+	}
+
+	// Fill exterior.
+	const auto exterior_voxel = meshToVoxel(
+		exterior_mesh, imin.cast<float>() * voxel_size, voxel_size, dv.shape());
+	assert(dv.shape() == exterior_voxel.shape());
+	for(const auto& i : range3(dv.shape())) {
+		if(exterior_voxel[i]) {
+			dv[i] = RoomVoxel::EXTERIOR;
+		}
+	}
+
+
+
+
+}
+
+Json::Value CloudBaker::showVec3i(const Eigen::Vector3i& v) {
+	Json::Value m;
+	m["x"] = v.x();
+	m["y"] = v.y();
+	m["z"] = v.z();
+	return m;
 }
 
 void CloudBaker::loadFromJson(const Json::Value& cloud_json) {
