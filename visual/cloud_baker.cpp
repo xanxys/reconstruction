@@ -179,6 +179,22 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		}
 	}
 
+	// Show stat.
+	std::map<RoomVoxel, int> count = {
+		{RoomVoxel::INTERIOR, 0},
+		{RoomVoxel::EXTERIOR, 0},
+		{RoomVoxel::EMPTY, 0},
+		{RoomVoxel::UNKNOWN, 0},
+	};
+	for(const auto& i : range3(dv.shape())) {
+		count[dv[i]] += 1;
+	}
+	Json::Value stat;
+	stat["interior"] = count[RoomVoxel::INTERIOR];
+	stat["exterior"] = count[RoomVoxel::EXTERIOR];
+	stat["empty"] = count[RoomVoxel::EMPTY];
+	stat["unknown"] = count[RoomVoxel::UNKNOWN];
+	INFO("Voxel composition", stat);
 
 
 
