@@ -142,6 +142,7 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	INFO("Voxel Stat occupied", num_occupied, "empty", num_empty);
 
 	// Calculate min & max point.
+	const Eigen::Vector3i margin(20, 20, 20);
 	Eigen::Vector3i imin(1000, 1000, 1000), imax(-1000, -1000, -1000);
 	for(const auto& vx : vxs) {
 		const Eigen::Vector3i i(
@@ -149,6 +150,8 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		imin = imin.cwiseMin(i);
 		imax = imax.cwiseMax(i);
 	}
+	imin -= margin;
+	imax += margin;
 	INFO("Voxel range:", showVec3i(imin), showVec3i(imax));
 
 	// Densify voxel.
@@ -157,7 +160,7 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		dv[i] = RoomVoxel::UNKNOWN;
 	}
 	for(const auto& vx : vxs) {
-		const Eigen::Vector3i i(
+		const auto i = margin + Eigen::Vector3i(
 			std::get<0>(vx.first), std::get<1>(vx.first), std::get<2>(vx.first));
 
 		RoomVoxel label;
@@ -196,8 +199,15 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	stat["unknown"] = count[RoomVoxel::UNKNOWN];
 	INFO("Voxel composition", stat);
 
-
-
+	// Dump debug mesh.
+	TriangleMesh<std::nullptr_t> mesh_debug;
+	for(const auto& i : range3(dv.shape())) {
+		const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
+		if(dv[i] == RoomVoxel::EXTERIOR)
+			mesh_debug.vertices.push_back(std::make_pair(pos, nullptr));
+	}
+	std::ofstream f_debug("debug_voxel.ply");
+	mesh_debug.serializePLY(f_debug);
 }
 
 Json::Value CloudBaker::showVec3i(const Eigen::Vector3i& v) {

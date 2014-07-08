@@ -26,8 +26,8 @@ DenseVoxel<bool> meshToVoxel(
 
 		for(int i1 : boost::irange(0, n1)) {
 			for(int i2 : boost::irange(0, n2)) {
-				const float t1 = i1 / n1;
-				const float t2 = i2 / n2;
+				const float t1 = static_cast<float>(i1) / n1;
+				const float t2 = static_cast<float>(i2) / n2;
 				if(t1 + t2 > 1) {
 					break;
 				}
