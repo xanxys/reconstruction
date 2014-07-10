@@ -209,6 +209,16 @@ TriangleMesh<std::nullptr_t> CloudBaker::extractSurface(
 CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	loadFromJson(cloud_json);
 
+	// Dump raw point cloud.
+	{
+		TriangleMesh<std::nullptr_t> mesh;
+		for(const auto& p : cloud->points) {
+			mesh.vertices.push_back(std::make_pair(p.getVector3fMap(), nullptr));
+		}
+		std::ofstream f_debug("raw_cloud.ply");
+		mesh.serializePLY(f_debug);
+	}
+
 	// Approximate exterior by OBB.
 	const auto cloud_colorless = decolor(*cloud);
 	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
