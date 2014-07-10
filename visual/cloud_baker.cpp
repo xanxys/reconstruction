@@ -1,11 +1,19 @@
 #include "cloud_baker.h"
 
 #include <array>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <limits>
+#include <map>
+#include <set>
 
 #include <boost/filesystem.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/graph_utility.hpp>
+#include <boost/graph/one_bit_color_map.hpp>
+#include <boost/graph/stoer_wagner_min_cut.hpp>
+#include <boost/graph/boykov_kolmogorov_max_flow.hpp>
 #include <boost/range/irange.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -182,7 +190,22 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		}
 	}
 
-	// Show stat.
+	logVoxelCounts(dv);
+	estimateUnknownCells(dv);
+	logVoxelCounts(dv);
+
+	// Dump debug mesh.
+	TriangleMesh<std::nullptr_t> mesh_debug;
+	for(const auto& i : range3(dv.shape())) {
+		const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
+		if(dv[i] == RoomVoxel::EXTERIOR)
+			mesh_debug.vertices.push_back(std::make_pair(pos, nullptr));
+	}
+	std::ofstream f_debug("debug_voxel.ply");
+	mesh_debug.serializePLY(f_debug);
+}
+
+void CloudBaker::logVoxelCounts(const DenseVoxel<RoomVoxel>& dv) {
 	std::map<RoomVoxel, int> count = {
 		{RoomVoxel::INTERIOR, 0},
 		{RoomVoxel::EXTERIOR, 0},
@@ -198,16 +221,127 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	stat["empty"] = count[RoomVoxel::EMPTY];
 	stat["unknown"] = count[RoomVoxel::UNKNOWN];
 	INFO("Voxel composition", stat);
+}
 
-	// Dump debug mesh.
-	TriangleMesh<std::nullptr_t> mesh_debug;
-	for(const auto& i : range3(dv.shape())) {
-		const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
-		if(dv[i] == RoomVoxel::EXTERIOR)
-			mesh_debug.vertices.push_back(std::make_pair(pos, nullptr));
+void CloudBaker::estimateUnknownCells(DenseVoxel<RoomVoxel>& dv) {
+	// Use very common technique.
+	// * Create 2 virtual vertex corresponding to 2 labels.
+	// * Connect known label vertices with one of the two label vertices, with infinite capacity.
+	// Mincut represents two labled regions.
+	using Traits = boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS>;
+	using Graph = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
+		boost::property<boost::vertex_name_t, std::string,
+		boost::property<boost::vertex_index_t, long,
+		boost::property<boost::vertex_color_t, boost::default_color_type,
+		boost::property<boost::vertex_distance_t, long,
+		boost::property<boost::vertex_predecessor_t, Traits::edge_descriptor>>>>>,
+
+		boost::property<boost::edge_capacity_t, long,
+		boost::property<boost::edge_residual_capacity_t, long,
+		boost::property<boost::edge_reverse_t, Traits::edge_descriptor>>>>;
+
+	// Create vertex index - position mapping.
+	const int num_real_vertices = dv.shape().prod();
+	const int num_vertices = num_real_vertices + 2;
+
+	const int vertex_source = num_real_vertices;  // EMPTY
+	const int vertex_sink = num_real_vertices + 1;  // other labels
+
+	const Eigen::Vector3i strides(1, dv.shape()(0), dv.shape()(0) * dv.shape()(1));
+	auto pos_to_vertex = [&](const Eigen::Vector3i& pos) -> int {
+		return pos.dot(strides);
+	};
+
+	// Setup convenience functions.
+	Graph g(num_vertices);
+	auto reverse_edge = get(boost::edge_reverse, g);
+	auto residual_capacity = get(boost::edge_residual_capacity, g);
+	auto capacity = get(boost::edge_capacity, g);
+
+	auto create_edge = [&](int u, int v, int weight_uv, int weight_vu) {
+		auto e_uv = boost::add_edge(u, v, g).first;
+		auto e_vu = boost::add_edge(v, u, g).first;
+
+		reverse_edge[e_uv] = e_vu;
+		reverse_edge[e_vu] = e_uv;
+
+		capacity[e_uv] = weight_uv;
+		residual_capacity[e_uv] = weight_uv;
+
+		capacity[e_vu] = weight_vu;
+		residual_capacity[e_vu] = weight_vu;
+	};
+
+	// Add edges to represent known labels.
+	for(const auto& pos : range3(dv.shape())) {
+		if(dv[pos] == RoomVoxel::UNKNOWN) {
+			continue;
+		}
+
+		if(dv[pos] == RoomVoxel::EMPTY) {
+			create_edge(vertex_source, pos_to_vertex(pos), 1000000, 0);
+		} else {
+			create_edge(pos_to_vertex(pos), vertex_sink, 1000000, 0);
+		}
 	}
-	std::ofstream f_debug("debug_voxel.ply");
-	mesh_debug.serializePLY(f_debug);
+
+	// Add edges to represent voxel-voxel cost term.
+	const int transition_cost = 1;
+	for(const auto& pos : range3(dv.shape())) {
+		// Create edges toward X+, Y+, Z+ directions.
+		for(int axis : boost::irange(0, 3)) {
+			Eigen::Vector3i pos_to = pos;
+			pos_to(axis) += 1;
+			// Ignore if destination vertex is out of bounds.
+			if(!(pos_to.array() < dv.shape().array()).all()) {
+				continue;
+			}
+			create_edge(
+				pos_to_vertex(pos), pos_to_vertex(pos_to),
+				transition_cost, transition_cost);
+		}
+	}
+
+	const int maxflow = boost::boykov_kolmogorov_max_flow(g, vertex_source, vertex_sink);
+	INFO("Voxel labeling cost", maxflow);
+
+	// Collect vertices that fell on source-side by depth first search within
+	// mincut boundary.
+	std::set<int> source_side;
+	std::vector<int> frontier = {vertex_source};
+	while(!frontier.empty()) {
+		const int v = frontier.back();
+		frontier.pop_back();
+		if(source_side.find(v) != source_side.end()) {
+			continue;
+		}
+		source_side.insert(v);
+
+		auto edges_its = boost::out_edges(v, g);
+		for(auto it_edge = edges_its.first; it_edge != edges_its.second; it_edge++) {
+			// maxed out -> cannot cross this edge (because its one of mincut edges)
+			if(residual_capacity[*it_edge] != 0) {
+				frontier.push_back(boost::target(*it_edge, g));
+			}
+		}
+	}
+	source_side.erase(vertex_source);
+	DEBUG("source-side voxels", (int)source_side.size());
+
+	// Re-label based on vertices.
+	for(const auto& pos : range3(dv.shape())) {
+		if(dv[pos] != RoomVoxel::UNKNOWN) {
+			continue;
+		}
+		if(source_side.find(pos_to_vertex(pos)) != source_side.end()) {
+			dv[pos] = RoomVoxel::EMPTY;
+		} else {
+			// TODO: it's actually INTERIOR or EXTERIOR.
+			// how to resolve between these?
+			dv[pos] = RoomVoxel::INTERIOR;
+		}
+	}
+
 }
 
 Json::Value CloudBaker::showVec3i(const Eigen::Vector3i& v) {

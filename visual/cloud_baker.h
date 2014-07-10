@@ -1,5 +1,8 @@
 #pragma once
 
+#include <map>
+#include <tuple>
+
 #include <Eigen/Dense>
 #include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
@@ -8,6 +11,7 @@
 
 #include <asset.pb.h>
 #include <logging.h>
+#include <visual/dense_voxel.h>
 #include <visual/textured_mesh.h>
 #include <visual/triangle_mesh.h>
 
@@ -24,6 +28,14 @@ enum class RoomVoxel {
 	INTERIOR,
 	UNKNOWN
 };
+
+const std::map<RoomVoxel, std::string> RoomVoxelString = {
+	{RoomVoxel::EMPTY, "EMPTY"},
+	{RoomVoxel::EMPTY, "EXTERIOR"},
+	{RoomVoxel::INTERIOR, "INTERIOR"},
+	{RoomVoxel::UNKNOWN, "UNKNOWN"}
+};
+
 
 class VoxelDescription {
 public:
@@ -57,6 +69,9 @@ public:
 private:
 	void loadFromJson(const Json::Value& cloud);
 	static Json::Value showVec3i(const Eigen::Vector3i& v);
+
+	static void logVoxelCounts(const DenseVoxel<RoomVoxel>& dv);
+	static void estimateUnknownCells(DenseVoxel<RoomVoxel>& dv);
 
 	// Fill pixels with value = undefined with approximately nearest
 	// colors. Does nothing if all pixel = undefined.
