@@ -7,5 +7,5 @@ LoaderPluginCommands::LoaderPluginCommands() :	TCommands<LoaderPluginCommands>(
 }
 
 void LoaderPluginCommands::RegisterCommands() {
-	UI_COMMAND(MyButton, "My Hamad", "Displays a message in output log", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(loadButton, "Load Earthquake", "Displays a message in output log (for now)", EUserInterfaceActionType::Button, FInputGesture());
 }

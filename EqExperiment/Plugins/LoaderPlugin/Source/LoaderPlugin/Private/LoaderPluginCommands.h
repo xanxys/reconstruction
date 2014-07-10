@@ -8,5 +8,5 @@ class LoaderPluginCommands : public TCommands<LoaderPluginCommands> {
 public:
 	LoaderPluginCommands();
 	virtual void RegisterCommands() override;
-	TSharedPtr<FUICommandInfo> MyButton;
+	TSharedPtr<FUICommandInfo> loadButton;
 };
