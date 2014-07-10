@@ -3,6 +3,9 @@
 #include "LoaderPluginPrivatePCH.h"
 #include "LoaderPlugin.h"
 
+#include <fstream>
+#include <string>
+
 #include "ModuleManager.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Slate.h"
@@ -36,6 +39,12 @@ void FLoaderPlugin::StartupModule()
 
 void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
+
+	std::ifstream test("C:\\Users\\xyx\\Documents\\reconstruction\\EqExperiment\\test-data.txt");
+	std::string data;
+	std::getline(test, data);
+	UE_LOG(LoaderPlugin, Log, TEXT("Loaded: %s"), *FString(data.c_str()));
+
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {
