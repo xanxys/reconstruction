@@ -45,6 +45,9 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	std::getline(test, data);
 	UE_LOG(LoaderPlugin, Log, TEXT("Loaded: %s"), *FString(data.c_str()));
 
+	// TODO: put asset (StaticMesh) to project and scene
+
+
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {
