@@ -41,7 +41,8 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {
 #define LOCTEXT_NAMESPACE "LevelEditorToolBar"
 	UE_LOG(LoaderPlugin, Log, TEXT("Adding button"));
-	FSlateIcon IconBrush = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.ViewOptions", "LevelEditor.ViewOptions.Small");
+	FSlateIcon IconBrush = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.ViewOptions", "LevelEditor.ViewOptions.Small");
+
 	builder.AddToolBarButton(LoaderPluginCommands::Get().loadButton, NAME_None,
 		LOCTEXT("LoadButton", "Import Earthquake"),
 		LOCTEXT("LoadButton_ToolTip", "Import earthquake simulation objects from reconstruction data"), IconBrush, NAME_None);
