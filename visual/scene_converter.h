@@ -13,6 +13,10 @@ namespace visual {
 
 // Fit an orinted bounding box (with Y-axis-only rotation) to
 // given point cloud, and return (6) planes of the OBB.
+//
+// WARNING:
+// Since this code use robust estimate, instead of min/max,
+// some points will NOT be inside of the returned OBB.
 class OBBFitter {
 public:
 	OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
