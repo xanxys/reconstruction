@@ -31,7 +31,7 @@ enum class RoomVoxel {
 
 const std::map<RoomVoxel, std::string> RoomVoxelString = {
 	{RoomVoxel::EMPTY, "EMPTY"},
-	{RoomVoxel::EMPTY, "EXTERIOR"},
+	{RoomVoxel::EXTERIOR, "EXTERIOR"},
 	{RoomVoxel::INTERIOR, "INTERIOR"},
 	{RoomVoxel::UNKNOWN, "UNKNOWN"}
 };

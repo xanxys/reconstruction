@@ -195,31 +195,32 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	logVoxelCounts(dv);
 
 	// Dump debug mesh.
-	TriangleMesh<std::nullptr_t> mesh_debug;
-	for(const auto& i : range3(dv.shape())) {
-		const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
-		if(dv[i] == RoomVoxel::EXTERIOR)
-			mesh_debug.vertices.push_back(std::make_pair(pos, nullptr));
+	for(const auto state : RoomVoxelString) {
+		TriangleMesh<std::nullptr_t> mesh_debug;
+		for(const auto& i : range3(dv.shape())) {
+			const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
+			if(dv[i] == state.first) {
+				mesh_debug.vertices.push_back(std::make_pair(pos, nullptr));
+			}
+		}
+		std::ofstream f_debug("debug_voxel_" + state.second + ".ply");
+		mesh_debug.serializePLY(f_debug);
 	}
-	std::ofstream f_debug("debug_voxel.ply");
-	mesh_debug.serializePLY(f_debug);
 }
 
 void CloudBaker::logVoxelCounts(const DenseVoxel<RoomVoxel>& dv) {
-	std::map<RoomVoxel, int> count = {
-		{RoomVoxel::INTERIOR, 0},
-		{RoomVoxel::EXTERIOR, 0},
-		{RoomVoxel::EMPTY, 0},
-		{RoomVoxel::UNKNOWN, 0},
-	};
+	std::map<RoomVoxel, int> count;
+	for(const auto& state : RoomVoxelString) {
+		count[state.first] = 0;
+	}
 	for(const auto& i : range3(dv.shape())) {
 		count[dv[i]] += 1;
 	}
+
 	Json::Value stat;
-	stat["interior"] = count[RoomVoxel::INTERIOR];
-	stat["exterior"] = count[RoomVoxel::EXTERIOR];
-	stat["empty"] = count[RoomVoxel::EMPTY];
-	stat["unknown"] = count[RoomVoxel::UNKNOWN];
+	for(const auto& type_count : count) {
+		stat[RoomVoxelString.find(type_count.first)->second] = type_count.second;
+	}
 	INFO("Voxel composition", stat);
 }
 
