@@ -118,6 +118,69 @@ std::map<Tuple3i, VoxelDescription> Voxelizer::getVoxelsDetailedWithoutGuess() c
 }
 
 
+
+
+TriangleMesh<std::nullptr_t> createBox(
+		Eigen::Vector3f center,Eigen::Vector3f half_dx,
+		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz) {
+	TriangleMesh<std::nullptr_t> box;
+	for(int i : boost::irange(0, 8)) {
+		const Eigen::Vector3f vertex_pos = center +
+			((i & 0b001) ? 1 : -1) * half_dx +
+			((i & 0b010) ? 1 : -1) * half_dy +
+			((i & 0b100) ? 1 : -1) * half_dz;
+		box.vertices.push_back(std::make_pair(vertex_pos, nullptr));
+	}
+
+	// Create inward-facing triangles. (CCW is positive direction)
+	// Draw a cube with 000-111 to understand this.
+	box.triangles = {
+		// X-
+		std::make_tuple(0, 4, 2),
+		std::make_tuple(6, 2, 4),
+		// X+
+		std::make_tuple(5, 1, 7),
+		std::make_tuple(3, 7, 1),
+		// Y-
+		std::make_tuple(0, 1, 4),
+		std::make_tuple(5, 4, 1),
+		// Y+
+		std::make_tuple(6, 7, 2),
+		std::make_tuple(3, 2, 7),
+		// Z-
+		std::make_tuple(0, 2, 1),
+		std::make_tuple(3, 1, 2),
+		// Z+
+		std::make_tuple(6, 4, 7),
+		std::make_tuple(5, 7, 4)
+	};
+
+	return box;
+}
+
+TriangleMesh<std::nullptr_t> createBox(
+	Eigen::Vector3f center, float half_size) {
+	return createBox(center,
+		Eigen::Vector3f::UnitX() * half_size,
+		Eigen::Vector3f::UnitY() * half_size,
+		Eigen::Vector3f::UnitZ() * half_size);
+}
+
+TriangleMesh<std::nullptr_t> CloudBaker::extractSurface(
+		const DenseVoxel<bool>& dv,
+		const Eigen::Vector3i& imin,
+		const float voxel_size) {
+
+	TriangleMesh<std::nullptr_t> mesh;
+	for(const auto& i : range3(dv.shape())) {
+		const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
+		if(dv[i]) {
+			mesh.vertices.push_back(std::make_pair(pos, nullptr));
+		}
+	}
+	return mesh;
+}
+
 CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	loadFromJson(cloud_json);
 
@@ -186,26 +249,32 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	assert(dv.shape() == exterior_voxel.shape());
 	for(const auto& i : range3(dv.shape())) {
 		if(exterior_voxel[i]) {
-			dv[i] = RoomVoxel::EXTERIOR;
+			//dv[i] = RoomVoxel::EXTERIOR;
 		}
 	}
 
 	logVoxelCounts(dv);
+	const auto dv_before = dv.clone();
 	estimateUnknownCells(dv);
 	logVoxelCounts(dv);
 
 	// Dump debug mesh.
 	for(const auto state : RoomVoxelString) {
-		TriangleMesh<std::nullptr_t> mesh_debug;
+		DenseVoxel<bool> target(dv.shape());
 		for(const auto& i : range3(dv.shape())) {
-			const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
-			if(dv[i] == state.first) {
-				mesh_debug.vertices.push_back(std::make_pair(pos, nullptr));
-			}
+			target[i] = (dv[i] == state.first);
 		}
 		std::ofstream f_debug("debug_voxel_" + state.second + ".ply");
-		mesh_debug.serializePLY(f_debug);
+		extractSurface(target, imin, voxel_size).serializePLY(f_debug);
 	}
+
+	// Output delta.
+	DenseVoxel<bool> dv_delta(dv.shape());
+	for(const auto& i : range3(dv.shape())) {
+		dv_delta[i] = (dv[i] == RoomVoxel::INTERIOR && dv_before[i] == RoomVoxel::UNKNOWN);
+	}
+	std::ofstream f_debug("debug_voxel_delta.ply");
+	extractSurface(dv_delta, imin, voxel_size).serializePLY(f_debug);
 }
 
 void CloudBaker::logVoxelCounts(const DenseVoxel<RoomVoxel>& dv) {
@@ -252,6 +321,12 @@ void CloudBaker::estimateUnknownCells(DenseVoxel<RoomVoxel>& dv) {
 	auto pos_to_vertex = [&](const Eigen::Vector3i& pos) -> int {
 		return pos.dot(strides);
 	};
+	auto vertex_to_pos = [&](int v) -> Eigen::Vector3i {
+		return Eigen::Vector3i(
+			(v / strides(0)) % strides(1),
+			(v / dv.shape()(0)) % dv.shape()(1),
+			v / (dv.shape()(0) * dv.shape()(1)));
+	};
 
 	// Setup convenience functions.
 	Graph g(num_vertices);
@@ -280,14 +355,13 @@ void CloudBaker::estimateUnknownCells(DenseVoxel<RoomVoxel>& dv) {
 		}
 
 		if(dv[pos] == RoomVoxel::EMPTY) {
-			create_edge(vertex_source, pos_to_vertex(pos), 1000000, 0);
+			create_edge(vertex_source, pos_to_vertex(pos), 2, 0);
 		} else {
-			create_edge(pos_to_vertex(pos), vertex_sink, 1000000, 0);
+			create_edge(pos_to_vertex(pos), vertex_sink, 10000, 0);
 		}
 	}
 
 	// Add edges to represent voxel-voxel cost term.
-	const int transition_cost = 1;
 	for(const auto& pos : range3(dv.shape())) {
 		// Create edges toward X+, Y+, Z+ directions.
 		for(int axis : boost::irange(0, 3)) {
@@ -297,6 +371,8 @@ void CloudBaker::estimateUnknownCells(DenseVoxel<RoomVoxel>& dv) {
 			if(!(pos_to.array() < dv.shape().array()).all()) {
 				continue;
 			}
+
+			const int transition_cost = (axis == 1) ? 1 : 20;
 			create_edge(
 				pos_to_vertex(pos), pos_to_vertex(pos_to),
 				transition_cost, transition_cost);
@@ -329,17 +405,46 @@ void CloudBaker::estimateUnknownCells(DenseVoxel<RoomVoxel>& dv) {
 	source_side.erase(vertex_source);
 	DEBUG("source-side voxels", (int)source_side.size());
 
+	// Collect exterior cells by flooding from a voxel in a corner.
+	/*
+	std::set<int> ext_side;
+	{
+		std::vector<int> frontier = {pos_to_vertex(Eigen::Vector3i::Zero())};
+		while(!frontier.empty()) {
+			const int v = frontier.back();
+			frontier.pop_back();
+			if(ext_side.find(v) != ext_side.end()) {
+				continue;
+			}
+			ext_side.insert(v);
+
+			auto edges_its = boost::out_edges(v, g);
+			for(auto it_edge = edges_its.first; it_edge != edges_its.second; it_edge++) {
+				// Don't traverse if target is not UNKNOWN.
+				if(dv[vertex_to_pos(boost::target(*it_edge, g))] == RoomVoxel::UNKNOWN) {
+					frontier.push_back(boost::target(*it_edge, g));
+				}
+			}
+		}
+	}
+	*/
+
 	// Re-label based on vertices.
 	for(const auto& pos : range3(dv.shape())) {
 		if(dv[pos] != RoomVoxel::UNKNOWN) {
 			continue;
 		}
+		/*
+		if(ext_side.find(pos_to_vertex(pos)) != ext_side.end()) {
+			dv[pos] = RoomVoxel::EXTERIOR;
+			continue;
+		}
+		*/
+
 		if(source_side.find(pos_to_vertex(pos)) != source_side.end()) {
-			dv[pos] = RoomVoxel::EMPTY;
-		} else {
-			// TODO: it's actually INTERIOR or EXTERIOR.
-			// how to resolve between these?
 			dv[pos] = RoomVoxel::INTERIOR;
+		} else {
+			dv[pos] = RoomVoxel::EMPTY;
 		}
 	}
 

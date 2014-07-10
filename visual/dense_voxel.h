@@ -26,6 +26,16 @@ public:
 		return (*data)[offset + strides.dot(index)];
 	}
 
+	// Create a new copy of current voxel.
+	// Clone's memory will be independent of the original.
+	// (i.e. the original can be freed even if a clone is alive)
+	DenseVoxel<Cell> clone() const {
+		DenseVoxel dv(shape());
+		for(const auto& i : range3(shape())) {
+			dv[i] = (*this)[i];
+		}
+		return dv;
+	}
 
 	Eigen::Vector3i shape() const {
 		return bound;

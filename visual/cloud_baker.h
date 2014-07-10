@@ -67,6 +67,13 @@ public:
 
 	TexturedMesh generateRoomMesh();
 private:
+	// Extract voxel surface as bunch of cubes.
+	// TODO: should return real surface only.
+	static TriangleMesh<std::nullptr_t> extractSurface(
+		const DenseVoxel<bool>& dv,
+		const Eigen::Vector3i& imin,
+		const float voxel_size);
+
 	void loadFromJson(const Json::Value& cloud);
 	static Json::Value showVec3i(const Eigen::Vector3i& v);
 
