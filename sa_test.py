@@ -156,7 +156,7 @@ def concave_hull(points, k_min = 5):
 				# of turning back to previous point
 				if delta_angle > math.pi * 0.1:
 					delta_angle -= 2 * math.pi
-				print("cand: %03i %.2f %s" % (i, delta_angle, points[i]))
+			#	print("cand: %03i %.2f %s" % (i, delta_angle, points[i]))
 				return delta_angle
 			ixs.sort(key = calc_angle)
 
@@ -166,21 +166,19 @@ def concave_hull(points, k_min = 5):
 			# Reject self-intersecting points.
 			ixs = list(filter(nonintersecting, ixs))
 
-			# retry with larger k, or exit succesfully
+			# retry with larger k if there's no valid candidate
 			if len(ixs) == 0:
-				print('Retrying with k=%d' % k)
 				k = min(1 + int(k * 1.5), len(points))
 				if k == len(points):
 					raise 'Circle search exhausted; probably some bug'
 			else:
 				break
 
-
 		best_ix = ixs[0]
-		print(best_ix)
+
+		# Circle detected = (successfully) returned to the start
 		if best_ix in circle_s:
-			print('Circle detected. ending')
-			return circle
+			break
 
 		# Prepare for the next jump
 		prev_angle = complex(*(current - points[best_ix]))
