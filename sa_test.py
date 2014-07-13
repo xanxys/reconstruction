@@ -136,8 +136,11 @@ def concave_hull(points, k_min = 5):
 
 		def nonintersecting(i):
 			new_segment = (current, points[i])
+			# [1:-1]: exclude prev-current segment, because
+			# 1. it's guaranteed not intersect (they share a single point)
+			# 2. sometimes lead to false intersection when included
 			return not any(intersect2d(segment, new_segment) for segment
-				in zip(circle, circle[1:]))
+				in zip(circle, circle[1:-1]))
 
 		k = k_min
 		while True:
@@ -149,8 +152,11 @@ def concave_hull(points, k_min = 5):
 				""" Return CCW angle from prev_angle """
 				next_angle = complex(*(points[i] - current))
 				delta_angle = cmath.phase(next_angle / prev_angle)
-				if delta_angle > 0:
+				# If we use 0 here, there'll be almost degenerate case
+				# of turning back to previous point
+				if delta_angle > math.pi * 0.1:
 					delta_angle -= 2 * math.pi
+				print("cand: %03i %.2f %s" % (i, delta_angle, points[i]))
 				return delta_angle
 			ixs.sort(key = calc_angle)
 
@@ -165,8 +171,7 @@ def concave_hull(points, k_min = 5):
 				print('Retrying with k=%d' % k)
 				k = min(1 + int(k * 1.5), len(points))
 				if k == len(points):
-					print('Truly exhausted')
-					return circle
+					raise 'Circle search exhausted; probably some bug'
 			else:
 				break
 
@@ -174,7 +179,7 @@ def concave_hull(points, k_min = 5):
 		best_ix = ixs[0]
 		print(best_ix)
 		if best_ix in circle_s:
-			print('Circle detected. abort')
+			print('Circle detected. ending')
 			return circle
 
 		# Prepare for the next jump
@@ -217,7 +222,7 @@ def test_concave_wrapping():
 		ctx.fill()
 
 	# now try to solve it....
-	hull = concave_hull(points, 10)
+	hull = concave_hull(points, 20)
 	print(hull)
 	ctx.move_to(*hull[0])
 	for pt in hull[1:]:
