@@ -111,7 +111,7 @@ def seg_intersect(a1, a2, b1, b2) :
 		return False
 
 
-def concave_hull(points, k = 5):
+def concave_hull(points, k_min = 5):
 	"""
 	points: 2d points in shape [N, 2]
 	return: CCW list of points
@@ -130,23 +130,7 @@ def concave_hull(points, k = 5):
 	circle_s = set([int(start_ix)])
 	while len(circle) <= 1 or (circle[-1] != start).any():
 		current = circle[-1]
-		# Query k + 1 and drop the first (= query itself) point.
-		ixs = list(kdt.query(current, k = k + 1)[1][1:])
 
-		# Prefer the point with largest CW rotation.
-		def calc_angle(i):
-			""" Return CCW angle from prev_angle """
-			next_angle = complex(*(points[i] - current))
-			delta_angle = cmath.phase(next_angle / prev_angle)
-			if delta_angle > 0:
-				delta_angle -= 2 * math.pi
-			return delta_angle
-		ixs.sort(key = calc_angle)
-
-		# Reject already added points (start is ok, though)
-		ixs = list(filter(lambda ix: ix == start_ix or (ix not in circle_s), ixs))
-
-		# Reject self-intersecting points.
 		def intersect2d(s0, s1):
 			return seg_intersect(s0[0], s0[1], s1[0], s1[1])
 
@@ -154,11 +138,37 @@ def concave_hull(points, k = 5):
 			new_segment = (current, points[i])
 			return not any(intersect2d(segment, new_segment) for segment
 				in zip(circle, circle[1:]))
-		ixs = list(filter(nonintersecting, ixs))
 
-		if len(ixs) == 0:
-			print('Candidate exhausted')
-			break
+		k = k_min
+		while True:
+			# Query k + 1 and drop the first (= query itself) point.
+			ixs = list(kdt.query(current, k = k + 1)[1][1:])
+
+			# Prefer the point with largest CW rotation.
+			def calc_angle(i):
+				""" Return CCW angle from prev_angle """
+				next_angle = complex(*(points[i] - current))
+				delta_angle = cmath.phase(next_angle / prev_angle)
+				if delta_angle > 0:
+					delta_angle -= 2 * math.pi
+				return delta_angle
+			ixs.sort(key = calc_angle)
+
+			# Reject already added points (start is ok, though)
+			ixs = list(filter(lambda ix: ix == start_ix or (ix not in circle_s), ixs))
+
+			# Reject self-intersecting points.
+			ixs = list(filter(nonintersecting, ixs))
+
+			# retry with larger k, or exit succesfully
+			if len(ixs) == 0:
+				print('Retrying with k=%d' % k)
+				k = min(1 + int(k * 1.5), len(points))
+				if k == len(points):
+					print('Truly exhausted')
+					return circle
+			else:
+				break
 
 
 		best_ix = ixs[0]
