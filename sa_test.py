@@ -2,6 +2,7 @@
 import cairo
 import cmath
 import itertools
+import json
 import math
 import numpy as np
 import numpy.linalg as la
@@ -187,6 +188,18 @@ def concave_hull(points, k_min = 5):
 
 	return circle
 
+def downsample_grid(points, resolution):
+	"""
+	Leave only a single point by averaging all points in each tile.
+	So returned number of points = area covered by points / resolution^2.
+	"""
+	assert(resolution > 0)
+	# Bundle points in each tile.
+	tiles = {}
+	for (pt_org, pt_int) in zip(points, np.floor(points / resolution)):
+		tiles.setdefault(tuple(pt_int), []).append(pt_org)
+	# Take average
+	return np.array([np.mean(pts, axis = 0) for pts in tiles.values()])
 
 def test_concave_wrapping():
 	rects = generate_overlapping_rects(3)
@@ -230,10 +243,48 @@ def test_concave_wrapping():
 	ctx.set_line_width(0.005)
 	ctx.stroke()
 
-
 	surf.write_to_png("sa_wrap.png")
 
+def test_concave_for_real_data():
+	# Load points
+	pts_json = json.load(open('ocha_points.json', 'r'))
+	points = np.array([[pt["x"], pt["z"]] for pt in pts_json])
+	print('Shape before downsampling', points.shape)
+
+	# Subsample points.
+	points = downsample_grid(points, 0.1)
+	print('Shape after downsampling', points.shape)
+
+	# Setup a context that maps [-10,10]^2 region to an image
+	size = 1000
+	surf = cairo.ImageSurface(cairo.FORMAT_RGB24, size, size)
+	ctx = cairo.Context(surf)
+	ctx.scale(size / 20, size / 20)
+	ctx.translate(10, 10)
+	ctx.scale(1, -1)
+	ctx.set_source_rgb(1, 1, 1)
+	ctx.paint()
+
+	# visualize points
+	ctx.set_source_rgba(0, 0, 1, 0.5)
+	for pt in points:
+		ctx.arc(pt[0], pt[1], 0.05, 0, 2 * math.pi)
+		ctx.fill()
+
+	# now try to solve it....
+	hull = concave_hull(points, 20)
+	print(hull)
+	ctx.move_to(*hull[0])
+	for pt in hull[1:]:
+		ctx.line_to(*pt)
+	ctx.line_to(*hull[0])
+	ctx.set_source_rgb(0, 0, 0)
+	ctx.set_line_width(0.025)
+	ctx.stroke()
+
+	surf.write_to_png("sa_wrap_real.png")
 
 if __name__ == '__main__':
 	# compare_tsp_approx_vs_exact()
 	test_concave_wrapping()
+	test_concave_for_real_data()
