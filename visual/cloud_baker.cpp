@@ -221,7 +221,8 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 
 	// Approximate exterior by OBB.
 	const auto cloud_colorless = decolor(*cloud);
-	TriangleMesh<std::nullptr_t> mesh = OBBFitter(cloud_colorless).extract();
+	TriangleMesh<std::nullptr_t> mesh = ExtrusionFitter(cloud_colorless).extract();
+	// OBBFitter(cloud_colorless).extract();
 	exterior_mesh = mapSecond(assignUV(mesh));
 
 	// Voxelize
