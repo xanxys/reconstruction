@@ -119,7 +119,7 @@ bool ExtrusionFitter::intersectSegments(
 		// lines are parallel or some other degenerate case
 		return false;
 	} else {
-		const Eigen::Vector2f ts = dec.solve(v);
+		const Eigen::Vector2f ts = m.inverse() * v;
 		return (0 < ts(0) && ts(0) < 1) && (0 < ts(1) && ts(1) < 1);
 	}
 }
@@ -146,15 +146,11 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 			return a(1) < b(1);
 		}));
 	const Eigen::Vector2f start = points[start_ix];
-	INFO("Start Point", start(0), start(1));
 	std::complex<float> prev_angle = -1;
-
-	INFO("Concave hull of |points|=", (int)points.size());
 
 	std::vector<Eigen::Vector2f> circle = {start};
 	std::set<int> circle_s = {start_ix};
 	while(true) {
-		DEBUG("Circle size", (int)circle.size());
 		const auto current = circle.back();
 
 		auto intersecting = [&](int i) {
@@ -186,10 +182,8 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 		int k = k_min;
 		int best_ix;
 		while(true) {
-			DEBUG("k=", k);
 			// Query k + 1 and drop the first (= query itself) point.
 			const auto ixs_and_self = query_nearest(current, k + 1);
-			DEBUG("ixs_size", (int)ixs_and_self.size());
 			auto ixs = std::vector<int>(ixs_and_self.begin() + 1, ixs_and_self.end());
 
 			// Prefer the point with largest CW rotation.
@@ -204,11 +198,9 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 					continue;
 				}
 				// Reject self-intersecting points.
-				/*
-				if(!intersecting(ix)) {
+				if(intersecting(ix)) {
 					continue;
 				}
-				*/
 				candidates.push_back(ix);
 			}
 
