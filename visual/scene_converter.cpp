@@ -134,9 +134,9 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 			result.push_back(i);
 		}
 		std::sort(result.begin(), result.end(), [&](int ix_a, int ix_b) {
-			return (points[ix_a] - query).norm() > (points[ix_b] - query).norm();
+			return (points[ix_a] - query).norm() < (points[ix_b] - query).norm();
 		});
-		result.resize(k);
+		result.resize(std::min(k, static_cast<int>(points.size())));
 		return result;
 	};
 
@@ -146,6 +146,7 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 			return a(1) < b(1);
 		}));
 	const Eigen::Vector2f start = points[start_ix];
+	INFO("Start Point", start(0), start(1));
 	std::complex<float> prev_angle = -1;
 
 	INFO("Concave hull of |points|=", (int)points.size());
@@ -156,13 +157,13 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 		DEBUG("Circle size", (int)circle.size());
 		const auto current = circle.back();
 
-		auto nonintersecting = [&](int i) {
+		auto intersecting = [&](int i) {
 			const auto new_segment = std::make_pair(current, points[i]);
 			// irange(0, size() - 1): exclude prev-current segment, because
 			// 1. it's guaranteed not intersect (they share a single point)
 			// 2. sometimes lead to false intersection when included
 			auto segs = boost::irange(0, (int)circle.size() - 1);
-			return !std::any_of(segs.begin(), segs.end(), [&](int i) {
+			return std::any_of(segs.begin(), segs.end(), [&](int i) {
 				return intersectSegments(new_segment,
 					std::make_pair(circle[i], circle[i + 1]));
 			});
@@ -199,13 +200,15 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 			std::vector<int> candidates;
 			for(int ix : ixs) {
 				// Reject already added points (start is ok, though)
-				if(ix == start_ix || circle_s.find(ix) != circle_s.end()) {
+				if(ix != start_ix && circle_s.count(ix) > 0) {
 					continue;
 				}
 				// Reject self-intersecting points.
-				if(!nonintersecting(ix)) {
+				/*
+				if(!intersecting(ix)) {
 					continue;
 				}
+				*/
 				candidates.push_back(ix);
 			}
 

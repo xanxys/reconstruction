@@ -4,6 +4,98 @@
 		"selected_items":
 		[
 			[
+				"ixs_",
+				"ixs_and_self"
+			],
+			[
+				"res",
+				"resolution"
+			],
+			[
+				"candi",
+				"candidates"
+			],
+			[
+				"interse",
+				"intersectSegments"
+			],
+			[
+				"scan",
+				"scanline_range	statement"
+			],
+			[
+				"lik",
+				"zeros_like	function"
+			],
+			[
+				"colum",
+				"column_to_ix"
+			],
+			[
+				"angle",
+				"angle_column"
+			],
+			[
+				"test_c",
+				"test_concave_for_real_data"
+			],
+			[
+				"best_",
+				"best_point"
+			],
+			[
+				"delta",
+				"delta_angle"
+			],
+			[
+				"extract",
+				"extractSurface"
+			],
+			[
+				"Rom",
+				"RoomVoxelString"
+			],
+			[
+				"pos_to",
+				"pos_to_vertex"
+			],
+			[
+				"vertex_s",
+				"vertex_source"
+			],
+			[
+				"trans",
+				"transition"
+			],
+			[
+				"exte",
+				"exterior"
+			],
+			[
+				"exterior_",
+				"exterior_mesh"
+			],
+			[
+				"exteri",
+				"exterior_voxel"
+			],
+			[
+				"Voxe",
+				"VoxelState"
+			],
+			[
+				"cloud",
+				"cloud_json"
+			],
+			[
+				"exter",
+				"exterior_mesh"
+			],
+			[
+				"num",
+				"num_iteration"
+			],
+			[
 				"thr",
 				"throwErrorCode"
 			],
@@ -26,10 +118,6 @@
 			[
 				"neareset",
 				"nearestBarycentricApprox"
-			],
-			[
-				"best_",
-				"best_t_range"
 			],
 			[
 				"n",
@@ -58,10 +146,6 @@
 			[
 				"column",
 				"column_width"
-			],
-			[
-				"colum",
-				"column_height"
 			],
 			[
 				"colu",
@@ -110,10 +194,6 @@
 			[
 				"ali",
 				"vertical-align:   (property)"
-			],
-			[
-				"cloud",
-				"cloud_colorless"
 			],
 			[
 				"cra",
@@ -178,10 +258,6 @@
 			[
 				"maybe",
 				"maybePromotingPlayAt"
-			],
-			[
-				"delta",
-				"deltaMicrosec"
 			],
 			[
 				"count",
@@ -424,10 +500,6 @@
 				"EMPTY"
 			],
 			[
-				"Voxe",
-				"VoxelState"
-			],
-			[
 				"Voel",
 				"VoxelDescription"
 			],
@@ -442,83 +514,19 @@
 			[
 				"Camera",
 				"CameraParameters"
-			],
-			[
-				"narest",
-				"nearest_distance"
-			],
-			[
-				"depth",
-				"depth_time"
-			],
-			[
-				"target_ra",
-				"target_ratio_raw"
-			],
-			[
-				"DataSou",
-				"DataSourceInterface"
-			],
-			[
-				"NYU2",
-				"NYU2DataSource"
-			],
-			[
-				"DataS",
-				"DataSourceInterface"
-			],
-			[
-				"source",
-				"source_prefix"
-			],
-			[
-				"dataset",
-				"dataset_path_prefix"
-			],
-			[
-				"depthP",
-				"depthParam2"
-			],
-			[
-				"depthPara",
-				"depthParam1"
-			],
-			[
-				"CV_LOAD",
-				"CV_LOAD_IMAGE_COLOR"
-			],
-			[
-				"CV_LOAD_IMAGE_",
-				"CV_LOAD_IMAGE_GRAYSCALE"
-			],
-			[
-				"loadFrom",
-				"loadFromNYU2"
-			],
-			[
-				"data",
-				"dataset_path_prefix"
-			],
-			[
-				"maybe_",
-				"maybe_motion_id"
-			],
-			[
-				"path_",
-				"path_html"
-			],
-			[
-				"backgr",
-				"background-color"
-			],
-			[
-				"count_num_",
-				"count_num_metadata_notfound"
 			]
 		]
 	},
 	"buffers":
 	[
+		{
+			"file": "/home/xyx/devenv/capturer/assemble_capture.py",
+			"settings":
+			{
+				"buffer_size": 6031,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "Packages/User/scons.sublime-build",
 	"command_palette":
@@ -531,12 +539,36 @@
 				"Package Control: Install Package"
 			],
 			[
-				"inde",
-				"Indent JSON"
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"rust",
+				"Set Syntax: Rust"
+			],
+			[
+				"convert to",
+				"Indentation: Convert to Spaces"
+			],
+			[
+				"linter",
+				"SublimeLinter: Show All Errors"
+			],
+			[
+				"linter setti",
+				"Preferences: SublimeLinter Settings – User"
+			],
+			[
+				"rein",
+				"JSON Reindent: reindent file or selection"
 			],
 			[
 				"json",
-				"Set Syntax: JSON"
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"inde",
+				"Indent JSON"
 			],
 			[
 				"c++",
@@ -655,10 +687,6 @@
 				"Package Control: Install Package"
 			],
 			[
-				"rein",
-				"JSON Reindent: reindent file or selection"
-			],
-			[
 				"haske",
 				"Set Syntax: Haskell"
 			],
@@ -713,10 +741,6 @@
 			[
 				"beauti",
 				"HTMLBeautify"
-			],
-			[
-				"linter",
-				"SublimeLinter: Lint This View"
 			],
 			[
 				"markd",
@@ -852,9 +876,48 @@
 	},
 	"file_history":
 	[
-		"/home/xyx/devenv/capturer/firmware/json_util_test.cpp",
-		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.h",
+		"/home/xyx/devenv/capturer/firmware/capturer_server.cpp",
+		"/home/xyx/devenv/capturer/firmware/camera_parameters.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
+		"/home/xyx/devenv/reconstruction/sa_test.py",
+		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
+		"/home/xyx/devenv/reconstruction/visual/scene_converter.h",
+		"/home/xyx/devenv/reconstruction/room_box/object.obj",
+		"/home/xyx/devenv/reconstruction/sa_wrap.png",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
+		"/home/xyx/devenv/rust-test/hello.rs",
+		"/home/xyx/devenv/capturer/assemble_capture.py",
 		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.cpp",
+		"/home/xyx/devenv/capturer/test_cloud.ply",
+		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
+		"/home/xyx/devenv/capturer/assembled_cloud.json",
+		"/home/xyx/devenv/capturer/calibration.json",
+		"/home/xyx/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+		"/home/xyx/.config/sublime-text-3/Packages/User/Anaconda.sublime-settings",
+		"/home/xyx/.config/sublime-text-3/Packages/User/Sublime Settings.sublime-settings",
+		"/home/xyx/.config/sublime-text-3/Packages/User/SublimeLinter.sublime-settings",
+		"/home/xyx/devenv/capturer/data-clean.json",
+		"/home/xyx/devenv/capturer/data.json",
+		"/data-new/research/2014/capturer/201407-raw-data-from-scanner/test-20140711-16:00-gakusei1/data.json",
+		"/home/xyx/devenv/reconstruction/assemble_capture.py",
+		"/home/xyx/devenv/reconstruction/main.cpp",
+		"/home/xyx/devenv/reconstruction/visual/dense_voxel.h",
+		"/home/xyx/devenv-archive/ComputerVision-AlgApp/complete/list",
+		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.h",
+		"/home/xyx/devenv/reconstruction/launch.py",
+		"/home/xyx/devenv/reconstruction/visual/dense_voxel.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/textured_mesh.cpp",
+		"/home/xyx/devenv/reconstruction/visual/textured_mesh.h",
+		"/home/xyx/devenv/reconstruction/analyzer/manhattan_belief.cpp",
+		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.h",
+		"/home/xyx/devenv/capturer/firmware/driver/file_driver.h",
+		"/home/xyx/devenv/capturer/firmware/driver/file_driver.cpp",
+		"/home/xyx/devenv/capturer/firmware/capturer_server.h",
+		"/home/xyx/devenv/capturer/firmware/driver/driver.cpp",
+		"/home/xyx/devenv/capturer/firmware/driver/driver.h",
+		"/home/xyx/devenv/capturer/firmware/json_util_test.cpp",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/servo.h",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/servo.cpp",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib.h",
@@ -865,15 +928,11 @@
 		"/home/xyx/devenv/capturer/firmware/logging.h",
 		"/home/xyx/devenv/capturer/firmware/http_static/ffe.html",
 		"/home/xyx/devenv/capturer/firmware/http_static/ffe.js",
-		"/home/xyx/devenv/capturer/firmware/capturer_server.cpp",
 		"/home/xyx/devenv/capturer/firmware/web_server.cpp",
 		"/home/xyx/devenv/capturer/firmware/main.cpp",
 		"/home/xyx/devenv/capturer/README.md",
 		"/home/xyx/devenv/capturer/firmware/SConstruct",
-		"/home/xyx/devenv/capturer/firmware/driver/file_driver.cpp",
-		"/home/xyx/devenv/capturer/firmware/driver/file_driver.h",
 		"/home/xyx/devenv/reconstruction/SConstruct",
-		"/home/xyx/devenv/capturer/firmware/capturer_server.h",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib_matlab.h",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib_x64.def",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxmemmap.h",
@@ -881,13 +940,9 @@
 		"/home/xyx/devenv/capturer/firmware/picojson.h",
 		"/home/xyx/devenv/capturer/firmware/.gitignore",
 		"/home/xyx/devenv/capturer/firmware/raytracing.h",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
 		"/home/xyx/devenv/reconstruction/range2.cpp",
 		"/home/xyx/devenv/reconstruction/range2.h",
-		"/home/xyx/devenv/reconstruction/room_box/object.obj",
 		"/home/xyx/devenv/reconstruction/room_box/object.mtl",
-		"/home/xyx/devenv/reconstruction/main.cpp",
 		"/home/xyx/devenv/reconstruction/logging.cpp",
 		"/home/xyx/devenv/unitro/src/Core.hpp",
 		"/home/xyx/devenv/unitro/src/data/Matrix.hpp",
@@ -905,16 +960,11 @@
 		"/home/xyx/devenv/reconstruction/server/base64.cpp",
 		"/home/xyx/devenv/reconstruction/data_source.h",
 		"/home/xyx/devenv/reconstruction/visual/texture_conversion.h",
-		"/home/xyx/devenv/reconstruction/visual/scene_converter.h",
 		"/home/xyx/devenv/reconstruction/visual/marching_cubes.cpp",
 		"/home/xyx/devenv/reconstruction/visual/marching_cubes.h",
 		"/home/xyx/devenv/reconstruction/visual/mapping.cpp",
 		"/home/xyx/devenv/reconstruction/visual/mapping.h",
-		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
 		"/home/xyx/devenv/reconstruction/visual/texture_conversion.cpp",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
-		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
 		"/home/xyx/devenv/reconstruction/triangle_mesh.h",
 		"/home/xyx/devenv/reconstruction/mapping.h",
 		"/home/xyx/download/onelife.json",
@@ -953,33 +1003,7 @@
 		"/home/xyx/devenv/reconstruction/test_uv.ply",
 		"/home/xyx/devenv/reconstruction/renderer/gl.cpp",
 		"/home/xyx/devenv/reconstruction/web_server.cpp",
-		"/home/xyx/devenv/reconstruction/marching_cubes.cpp",
-		"/home/xyx/.config/sublime-text-3/Packages/User/scons.sublime-build",
-		"/home/xyx/devenv/reconstruction/triangle_mesh.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/measured_light.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/data-lights/all_data.utf8.json",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/light_spec.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/light_spec.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/arled_server.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter_test.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/arled_server.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/json_util.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/http_static/ffe.js",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/driver.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/json_util.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/math_util.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/math_util.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/json_util_test.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/SConstruct",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/world.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/world.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/old_reader.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/old_reader.h",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/file_driver.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/raytracing.h",
-		"/home/xyx/devenv/reconstruction/range3.cpp",
-		"/home/xyx/devenv/reconstruction/range3.h"
+		"/home/xyx/devenv/reconstruction/marching_cubes.cpp"
 	],
 	"find":
 	{
@@ -997,6 +1021,13 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"downsample_grid",
+			"complex",
+			"ColorCloud",
+			"5",
+			"index",
+			".0,2552.0,2538.0,2575.0,2564.0",
+			"std::tuple<int, int, int>",
 			"ReadBlockData",
 			"BlockData",
 			"TIMEOUT",
@@ -1117,14 +1148,7 @@
 			"SceneSearchTree",
 			"NewScene",
 			"SceneSearchTree",
-			"TODO:",
-			"Flaot",
-			"Int",
-			"Float",
-			"evaluateFor",
-			"Fukurou",
-			"isCheck",
-			"UArray"
+			"TODO:"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1132,6 +1156,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"Tuple3i",
 			"()",
 			"Servo",
 			"CapturerServer",
@@ -1211,14 +1236,45 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "/home/xyx/devenv/capturer/assemble_capture.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6031,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								6031,
+								6031
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1887.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 34.0
+		"height": 25.0
 	},
 	"input":
 	{
