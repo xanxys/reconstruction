@@ -12,6 +12,27 @@
 
 namespace visual {
 
+// internal functions. maybe useful elsewhere, but not well documented nor stable.
+namespace shape_fitter {
+
+// Fit an Z-extruded concave, inward-facing shape.
+//
+// WARNING:
+// Since this code use robust estimate, instead of min/max,
+// some points will NOT be inside of the returned mesh.
+TriangleMesh<std::nullptr_t> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+
+// Fit an orinted bounding box (with Y-axis-only rotation) to
+// given point cloud, and return (6) planes of the OBB.
+//
+// WARNING:
+// Since this code use robust estimate, instead of min/max,
+// some points will NOT be inside of the returned OBB.
+//
+// Return a box with 12 triangles.
+TriangleMesh<std::nullptr_t> fitOBB(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+
+
 float mean(const std::pair<float, float>& pair);
 float half(const std::pair<float, float>& pair);
 
@@ -26,57 +47,27 @@ std::pair<float, float> robustMinMax(std::vector<float>& values);
 // https://www.cs.ucsb.edu/~suri/cs235/Triangulation.pdf
 std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vector2f>& points);
 
-// Fit an Z-extruded concave, inward-facing shape.
-//
-// WARNING:
-// Since this code use robust estimate, instead of min/max,
-// some points will NOT be inside of the returned mesh.
-class ExtrusionFitter {
-public:
-	ExtrusionFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+// Extract XY 2D concave polygon. (CCW)
+std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
-	// Return Z-extended exteuded concave wall + caps.
-	TriangleMesh<std::nullptr_t> extract() const;
-private:
-	// Extract XY 2D concave polygon. (CCW)
-	static std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-	// Extract Z range
-	static std::pair<float, float> extractHeightRange(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-
-	// points: 2d points in shape [N, 2]
-	// return: CCW list of points
-
-	// Implementation of k-nearest neighbor based approach
-	// http://repositorium.sdum.uminho.pt/xmlui/bitstream/handle/1822/6429/ConcaveHull_ACM_MYS.pdf?sequence=1
-	static std::vector<Eigen::Vector2f> calculateConcaveHull(
-		const std::vector<Eigen::Vector2f>& points, int k_min);
-
-	static bool intersectSegments(
-		std::pair<Eigen::Vector2f, Eigen::Vector2f> a0,
-		std::pair<Eigen::Vector2f, Eigen::Vector2f> b0);
-private:
-	TriangleMesh<std::nullptr_t> mesh;
-};
+// Extract Z range
+std::pair<float, float> extractHeightRange(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 
-// Fit an orinted bounding box (with Y-axis-only rotation) to
-// given point cloud, and return (6) planes of the OBB.
-//
-// WARNING:
-// Since this code use robust estimate, instead of min/max,
-// some points will NOT be inside of the returned OBB.
-class OBBFitter {
-public:
-	OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+// Implementation of k-nearest neighbor based approach
+// http://repositorium.sdum.uminho.pt/xmlui/bitstream/handle/1822/6429/ConcaveHull_ACM_MYS.pdf?sequence=1
+// points: 2d points in shape [N, 2]
+// return: CCW list of points
+std::vector<Eigen::Vector2f> calculateConcaveHull(
+	const std::vector<Eigen::Vector2f>& points, int k_min);
 
-	// Return a box with 12 triangles.
-	TriangleMesh<std::nullptr_t> extract() const;
-private:
-	static TriangleMesh<std::nullptr_t> createBox(
-		Eigen::Vector3f center,Eigen::Vector3f half_dx,
-		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
-private:
-	TriangleMesh<std::nullptr_t> mesh;
-};
+bool intersectSegments(
+	std::pair<Eigen::Vector2f, Eigen::Vector2f> a0,
+	std::pair<Eigen::Vector2f, Eigen::Vector2f> b0);
 
+TriangleMesh<std::nullptr_t> createBox(
+Eigen::Vector3f center,Eigen::Vector3f half_dx,
+	Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
+
+}  // namespace
 }  // namespace

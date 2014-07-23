@@ -15,6 +15,127 @@
 #include "logging.h"
 
 namespace visual {
+namespace shape_fitter {
+
+TriangleMesh<std::nullptr_t> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+	TriangleMesh<std::nullptr_t> mesh;
+
+	const auto poly = extractPolygon2D(cloud);
+	const auto h_range = extractHeightRange(cloud);
+
+	// Create wall
+	for(int i : boost::irange(0, (int)poly.size())) {
+		const auto xy0 = poly[(i + 1) % poly.size()];
+		const auto xy1 = poly[i];
+
+		// Looked from inside, vertices are laid out like this:
+		// 3----2  -- h_range.second
+		// | \  |
+		// 0----1  -- h_range.first
+		// xy0 xy1
+		// i+1 <- i
+		TriangleMesh<std::nullptr_t> quad;
+		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.first), nullptr);
+		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.first), nullptr);
+		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.second), nullptr);
+		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.second), nullptr);
+
+		quad.triangles.push_back(std::make_tuple(0, 1, 3));
+		quad.triangles.push_back(std::make_tuple(2, 3, 1));
+
+		mesh.merge(quad);
+	}
+
+	// Create floor + ceiling.
+	// floor & ceiling are both inward facing, so
+	// when projected onto XY plane,
+	// floor looks CCW (identical to tris), ceiling CW (flipped).
+	const auto tris = triangulatePolygon(poly);
+	auto create_cap = [&](const float z, const bool flip) {
+		TriangleMesh<std::nullptr_t> cap;
+		for(const auto& pt2d : poly) {
+			const Eigen::Vector3f pt3d(pt2d(0), pt2d(1), z);
+			cap.vertices.push_back(std::make_pair(pt3d, nullptr));
+		}
+		for(const auto& tri : tris) {
+			cap.triangles.push_back(flip ?
+				std::make_tuple(tri[2], tri[1], tri[0]) :
+				std::make_tuple(tri[0], tri[1], tri[2]));
+		}
+		return cap;
+	};
+
+	mesh.merge(create_cap(h_range.first, false));  // floor
+	mesh.merge(create_cap(h_range.second, true));  // ceiling
+
+	return mesh;
+}
+
+TriangleMesh<std::nullptr_t> fitOBB(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+	const float angle_step = 0.05;
+
+	// We call two horizontal axes in OBB (s,t) to avoid confusion.
+	// when angle==0, (x,y,z) == (t,y,s)
+
+	// Find smallest 2D OBB (st projection).
+	INFO("Finding Y-rotation angle");
+	float best_area = 1e3;
+	float best_angle = -1;
+	std::pair<float, float> best_s_range, best_t_range;
+	for(float angle = 0; angle < boost::math::constants::pi<float>() / 2; angle += angle_step) {
+		// Create z and x histogram of rotated cloud.
+		std::vector<float> ss, ts;
+		Eigen::Matrix2f rot_world_to_local = Eigen::Rotation2D<float>(angle).matrix();
+		for(auto it = cloud->points.cbegin(); it != cloud->points.cend(); it++) {
+			const Eigen::Vector2f pt_zx(it->z, it->x);
+			const auto pt_st = rot_world_to_local * pt_zx;
+			ss.push_back(pt_st(0));
+			ts.push_back(pt_st(1));
+		}
+
+		// Create local AABB.
+		const auto s_range = robustMinMax(ss);
+		const auto t_range = robustMinMax(ts);
+		const float area =
+			(std::get<1>(s_range) - std::get<0>(s_range)) *
+			(std::get<1>(t_range) - std::get<0>(t_range));
+
+		DEBUG("@angle", angle, " area=", area);
+
+		if(area < best_area) {
+			best_area = area;
+			best_angle = angle;
+			best_s_range = s_range;
+			best_t_range = t_range;
+		}
+	}
+	assert(best_angle >= 0);
+
+	// Find Y range (1D AABB).
+	std::vector<float> ys;
+	for(auto it = cloud->points.cbegin(); it != cloud->points.cend(); it++) {
+		ys.push_back(it->y);
+	}
+	const auto y_range = robustMinMax(ys);
+
+	// Construct 6 faces of the best OBB.
+	const Eigen::Matrix2f local_to_world = Eigen::Rotation2D<float>(-best_angle).matrix();
+	const auto splus_zx = local_to_world * Eigen::Vector2f(1, 0);
+	const auto tplus_zx = local_to_world * Eigen::Vector2f(0, 1);
+
+	Eigen::Vector3f splus(splus_zx(1), 0, splus_zx(0));
+	Eigen::Vector3f yplus(0, 1, 0);
+	Eigen::Vector3f tplus(tplus_zx(1), 0, tplus_zx(0));
+
+	// Create box from Y,S,T axes.
+	return createBox(
+		tplus * mean(best_t_range) +
+		yplus * mean(y_range) +
+		splus * mean(best_s_range),
+		tplus * half(best_t_range),
+		yplus * half(y_range),
+		splus * half(best_s_range));
+}
 
 float mean(const std::pair<float, float>& pair) {
 	return (pair.first + pair.second) / 2;
@@ -30,7 +151,6 @@ std::pair<float, float> robustMinMax(std::vector<float>& values) {
 		values[int(values.size() * 0.01)],
 		values[int(values.size() * 0.99)]);
 }
-
 
 // Use ear-clipping to triangulate.
 // ear: a triangle formed by 3 adjacent vertices, in which
@@ -90,62 +210,7 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 	return tris;
 }
 
-
-ExtrusionFitter::ExtrusionFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-	const auto poly = extractPolygon2D(cloud);
-	const auto h_range = extractHeightRange(cloud);
-
-	// Create wall
-	for(int i : boost::irange(0, (int)poly.size())) {
-		const auto xy0 = poly[(i + 1) % poly.size()];
-		const auto xy1 = poly[i];
-
-		// Looked from inside, vertices are laid out like this:
-		// 3----2  -- h_range.second
-		// | \  |
-		// 0----1  -- h_range.first
-		// xy0 xy1
-		// i+1 <- i
-		TriangleMesh<std::nullptr_t> quad;
-		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.first), nullptr);
-		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.first), nullptr);
-		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.second), nullptr);
-		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.second), nullptr);
-
-		quad.triangles.push_back(std::make_tuple(0, 1, 3));
-		quad.triangles.push_back(std::make_tuple(2, 3, 1));
-
-		mesh.merge(quad);
-	}
-
-	// Create floor + ceiling.
-	// floor & ceiling are both inward facing, so
-	// when projected onto XY plane,
-	// floor looks CCW (identical to tris), ceiling CW (flipped).
-	const auto tris = triangulatePolygon(poly);
-	auto create_cap = [&](const float z, const bool flip) {
-		TriangleMesh<std::nullptr_t> cap;
-		for(const auto& pt2d : poly) {
-			const Eigen::Vector3f pt3d(pt2d(0), pt2d(1), z);
-			cap.vertices.push_back(std::make_pair(pt3d, nullptr));
-		}
-		for(const auto& tri : tris) {
-			cap.triangles.push_back(flip ?
-				std::make_tuple(tri[2], tri[1], tri[0]) :
-				std::make_tuple(tri[0], tri[1], tri[2]));
-		}
-		return cap;
-	};
-
-	mesh.merge(create_cap(h_range.first, false));  // floor
-	mesh.merge(create_cap(h_range.second, true));  // ceiling
-}
-
-TriangleMesh<std::nullptr_t> ExtrusionFitter::extract() const {
-	return mesh;
-}
-
-std::vector<Eigen::Vector2f> ExtrusionFitter::extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	// Squash Z-axis.
 	std::vector<Eigen::Vector2f> points;
 	for(const auto& pt : cloud->points) {
@@ -170,7 +235,7 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::extractPolygon2D(pcl::PointCloud<p
 	return calculateConcaveHull(points_downsampled, 20);
 }
 
-std::pair<float, float> ExtrusionFitter::extractHeightRange(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+std::pair<float, float> extractHeightRange(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	std::vector<float> zs;
 	for(const auto& pt : cloud->points) {
 		zs.push_back(pt.z);
@@ -178,8 +243,7 @@ std::pair<float, float> ExtrusionFitter::extractHeightRange(pcl::PointCloud<pcl:
 	return robustMinMax(zs);
 }
 
-
-bool ExtrusionFitter::intersectSegments(
+bool intersectSegments(
 	std::pair<Eigen::Vector2f, Eigen::Vector2f> a,
 	std::pair<Eigen::Vector2f, Eigen::Vector2f> b) {
 	const Eigen::Vector2f da = a.second - a.first;
@@ -203,7 +267,7 @@ bool ExtrusionFitter::intersectSegments(
 	}
 }
 
-std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
+std::vector<Eigen::Vector2f> calculateConcaveHull(
 	const std::vector<Eigen::Vector2f>& points, int k_min) {
 	// Return k-nearest neighbors in nearest-first order.
 	// TODO: rewrite with a kd-tree if it's too slow.
@@ -316,74 +380,7 @@ std::vector<Eigen::Vector2f> ExtrusionFitter::calculateConcaveHull(
 	return circle;
 }
 
-
-OBBFitter::OBBFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-	const float angle_step = 0.05;
-
-	// We call two horizontal axes in OBB (s,t) to avoid confusion.
-	// when angle==0, (x,y,z) == (t,y,s)
-
-	// Find smallest 2D OBB (st projection).
-	INFO("Finding Y-rotation angle");
-	float best_area = 1e3;
-	float best_angle = -1;
-	std::pair<float, float> best_s_range, best_t_range;
-	for(float angle = 0; angle < boost::math::constants::pi<float>() / 2; angle += angle_step) {
-		// Create z and x histogram of rotated cloud.
-		std::vector<float> ss, ts;
-		Eigen::Matrix2f rot_world_to_local = Eigen::Rotation2D<float>(angle).matrix();
-		for(auto it = cloud->points.cbegin(); it != cloud->points.cend(); it++) {
-			const Eigen::Vector2f pt_zx(it->z, it->x);
-			const auto pt_st = rot_world_to_local * pt_zx;
-			ss.push_back(pt_st(0));
-			ts.push_back(pt_st(1));
-		}
-
-		// Create local AABB.
-		const auto s_range = robustMinMax(ss);
-		const auto t_range = robustMinMax(ts);
-		const float area =
-			(std::get<1>(s_range) - std::get<0>(s_range)) *
-			(std::get<1>(t_range) - std::get<0>(t_range));
-
-		DEBUG("@angle", angle, " area=", area);
-
-		if(area < best_area) {
-			best_area = area;
-			best_angle = angle;
-			best_s_range = s_range;
-			best_t_range = t_range;
-		}
-	}
-	assert(best_angle >= 0);
-
-	// Find Y range (1D AABB).
-	std::vector<float> ys;
-	for(auto it = cloud->points.cbegin(); it != cloud->points.cend(); it++) {
-		ys.push_back(it->y);
-	}
-	const auto y_range = robustMinMax(ys);
-
-	// Construct 6 faces of the best OBB.
-	const Eigen::Matrix2f local_to_world = Eigen::Rotation2D<float>(-best_angle).matrix();
-	const auto splus_zx = local_to_world * Eigen::Vector2f(1, 0);
-	const auto tplus_zx = local_to_world * Eigen::Vector2f(0, 1);
-
-	Eigen::Vector3f splus(splus_zx(1), 0, splus_zx(0));
-	Eigen::Vector3f yplus(0, 1, 0);
-	Eigen::Vector3f tplus(tplus_zx(1), 0, tplus_zx(0));
-
-	// Create box from Y,S,T axes.
-	mesh = createBox(
-		tplus * mean(best_t_range) +
-		yplus * mean(y_range) +
-		splus * mean(best_s_range),
-		tplus * half(best_t_range),
-		yplus * half(y_range),
-		splus * half(best_s_range));
-}
-
-TriangleMesh<std::nullptr_t> OBBFitter::createBox(
+TriangleMesh<std::nullptr_t> createBox(
 		Eigen::Vector3f center,Eigen::Vector3f half_dx,
 		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz) {
 	TriangleMesh<std::nullptr_t> box;
@@ -421,8 +418,5 @@ TriangleMesh<std::nullptr_t> OBBFitter::createBox(
 	return box;
 }
 
-TriangleMesh<std::nullptr_t> OBBFitter::extract() const {
-	return mesh;
-}
-
+}  // namespace
 }  // namespace

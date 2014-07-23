@@ -10,7 +10,7 @@ TEST(triangulatePolygonTest, TrivialCase) {
 	std::vector<Eigen::Vector2f> points = {
 		{0, 0}, {1, 0}, {0, 1}};
 
-	const auto tris = visual::triangulatePolygon(points);
+	const auto tris = visual::shape_fitter::triangulatePolygon(points);
 	EXPECT_EQ(1, tris.size());
 
 	// Circular shift of {0, 1, 2}
