@@ -13,6 +13,7 @@
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
 #include <visual/scene_converter.h>
+#include <visual/scene_recognizer.h>
 #include <visual/texture_conversion.h>
 
 void testMeshIO() {
@@ -54,9 +55,25 @@ void testPointCloudMeshing() {
 	visual::CloudBaker(cloud).generateRoomMesh().writeWavefrontObject("room_box");
 }
 
+void testSceneBundleGeneration() {
+	INFO("Recognizing scene");
+	std::ifstream test("ocha_points.json");
+	Json::Value cloud;
+	Json::Reader().parse(test, cloud);
+
+	std::vector<visual::SingleScan> scans(1);
+	scans[0].old_style = cloud;
+
+	auto bundle = visual::scene_recognizer::recognizeScene(scans);
+	bundle.serializeIntoDirectory("room_bundle");
+}
+
+
 int main() {
 	testMeshIO();
 	testPointCloudMeshing();
+	testSceneBundleGeneration();
+	return 0;
 
 	INFO("Launching HTTP server");
 	server::ReconServer server;
