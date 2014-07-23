@@ -16,6 +16,8 @@
 #include <visual/scene_recognizer.h>
 #include <visual/texture_conversion.h>
 
+/* Bunch of examples on how to use codes */
+
 void testMeshIO() {
 	INFO("creating metaball");
 	const auto mesh_n = visual::extractIsosurface(

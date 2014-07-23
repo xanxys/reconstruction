@@ -4,6 +4,30 @@
 		"selected_items":
 		[
 			[
+				"elev",
+				"elev_override	param"
+			],
+			[
+				"lrf_",
+				"lrf_angle_min	statement"
+			],
+			[
+				"intensity",
+				"intensity_raw	statement"
+			],
+			[
+				"sca",
+				"scanline	forflow"
+			],
+			[
+				"rea",
+				"read_corrupt_json	function"
+			],
+			[
+				"dataset",
+				"dataset_path	forflow"
+			],
+			[
 				"ixs_",
 				"ixs_and_self"
 			],
@@ -490,40 +514,32 @@
 			[
 				"iz_m",
 				"iz_min"
-			],
-			[
-				"cou",
-				"count_maybe_filled"
-			],
-			[
-				"Em",
-				"EMPTY"
-			],
-			[
-				"Voel",
-				"VoxelDescription"
-			],
-			[
-				"unknow",
-				"unknown_indices"
-			],
-			[
-				"Geometry",
-				"THREE.GeometryUtils"
-			],
-			[
-				"Camera",
-				"CameraParameters"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"file": "/home/xyx/devenv/capturer/assemble_capture.py",
+			"file": "main.cpp",
 			"settings":
 			{
-				"buffer_size": 6031,
+				"buffer_size": 2170,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "visual/scene_recognizer.h",
+			"settings":
+			{
+				"buffer_size": 1049,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "visual/scene_recognizer.cpp",
+			"settings":
+			{
+				"buffer_size": 691,
 				"line_ending": "Unix"
 			}
 		}
@@ -531,9 +547,13 @@
 	"build_system": "Packages/User/scons.sublime-build",
 	"command_palette":
 	{
-		"height": 181.0,
+		"height": 374.0,
 		"selected_items":
 		[
+			[
+				"anacon",
+				"Anaconda: Disable linting on this file"
+			],
 			[
 				"install",
 				"Package Control: Install Package"
@@ -876,18 +896,32 @@
 	},
 	"file_history":
 	[
-		"/home/xyx/devenv/capturer/firmware/capturer_server.cpp",
-		"/home/xyx/devenv/capturer/firmware/camera_parameters.cpp",
 		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
+		"/home/xyx/devenv/reconstruction/extract_lights.py",
+		"/home/xyx/devenv/reconstruction/prototype-archive/sa_test.py",
+		"/home/xyx/devenv/reconstruction/SConstruct",
+		"/home/xyx/devenv/reconstruction/prototype-archive/README.md",
 		"/home/xyx/devenv/reconstruction/sa_test.py",
-		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF_driver.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFConverter.cpp",
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF/LRFWorld.cpp",
+		"/home/xyx/devenv/reconstruction/asset.pb.h",
+		"/home/xyx/devenv/reconstruction/asset.pb.cc",
 		"/home/xyx/devenv/reconstruction/visual/scene_converter.h",
+		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
+		"/home/xyx/devenv/reconstruction/log",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
+		"/home/xyx/devenv/capturer/firmware/capturer_server.cpp",
+		"/home/xyx/devenv/capturer/assemble_capture.py",
+		"/home/xyx/devenv/capturer/calibration-real.json",
+		"/home/xyx/devenv/capturer/calibration-home.json",
+		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.cpp",
+		"/home/xyx/devenv/capturer/firmware/camera_parameters.cpp",
 		"/home/xyx/devenv/reconstruction/room_box/object.obj",
 		"/home/xyx/devenv/reconstruction/sa_wrap.png",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
 		"/home/xyx/devenv/rust-test/hello.rs",
-		"/home/xyx/devenv/capturer/assemble_capture.py",
-		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.cpp",
 		"/home/xyx/devenv/capturer/test_cloud.ply",
 		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
 		"/home/xyx/devenv/capturer/assembled_cloud.json",
@@ -906,8 +940,6 @@
 		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.h",
 		"/home/xyx/devenv/reconstruction/launch.py",
 		"/home/xyx/devenv/reconstruction/visual/dense_voxel.cpp",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
 		"/home/xyx/devenv/reconstruction/visual/textured_mesh.cpp",
 		"/home/xyx/devenv/reconstruction/visual/textured_mesh.h",
 		"/home/xyx/devenv/reconstruction/analyzer/manhattan_belief.cpp",
@@ -932,7 +964,6 @@
 		"/home/xyx/devenv/capturer/firmware/main.cpp",
 		"/home/xyx/devenv/capturer/README.md",
 		"/home/xyx/devenv/capturer/firmware/SConstruct",
-		"/home/xyx/devenv/reconstruction/SConstruct",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib_matlab.h",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib_x64.def",
 		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxmemmap.h",
@@ -970,7 +1001,6 @@
 		"/home/xyx/download/onelife.json",
 		"/home/xyx/devenv/research-3d/Dockerfile",
 		"/home/xyx/devenv/reconstruction/cloud_baker.h",
-		"/home/xyx/devenv/reconstruction/asset.pb.cc",
 		"/home/xyx/devenv/UnrealEngine/GenerateProjectFiles.sh",
 		"/home/xyx/devenv/UnrealEngine/Engine/Shaders/VisualizeTexture.usf",
 		"/home/xyx/devenv/UnrealEngine/Engine/Shaders/SHCommon.usf",
@@ -979,7 +1009,6 @@
 		"/home/xyx/devenv/reconstruction/cloud_baker.cpp",
 		"/home/xyx/devenv/reconstruction/uv_baked.mtl",
 		"/home/xyx/devenv/reconstruction/base64.cpp",
-		"/home/xyx/devenv/reconstruction/asset.pb.h",
 		"/home/xyx/devenv/reconstruction/base64.h",
 		"/home/xyx/devenv/reconstruction/proto/asset.proto",
 		"/home/xyx/devenv/reconstruction/.gitignore",
@@ -994,16 +1023,7 @@
 		"/home/xyx/devenv/reconstruction/scene_converter.cpp",
 		"/home/xyx/devenv/reconstruction/logging.h",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.cpp",
-		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.h",
-		"/home/xyx/devenv/reconstruction/marching_cubes.h",
-		"/home/xyx/devenv/threelife/source/script/exporter.js",
-		"/home/xyx/devenv/reconstruction/test_uv.obj",
-		"/home/xyx/devenv/three.js/examples/obj/tree/tree.obj",
-		"/home/xyx/devenv/three.js/examples/obj/walt/WaltHead.obj",
-		"/home/xyx/devenv/reconstruction/test_uv.ply",
-		"/home/xyx/devenv/reconstruction/renderer/gl.cpp",
-		"/home/xyx/devenv/reconstruction/web_server.cpp",
-		"/home/xyx/devenv/reconstruction/marching_cubes.cpp"
+		"/home/xyx/research/ar-led/scanner_rt/PCLccl/scene_converter.h"
 	],
 	"find":
 	{
@@ -1021,6 +1041,9 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"CalcAngleOfLightWithProbabilisticHough",
+			"OBBFitter",
+			"1233",
 			"downsample_grid",
 			"complex",
 			"ColorCloud",
@@ -1145,10 +1168,7 @@
 			"SceneSearchView",
 			"N",
 			"SceneSearchV",
-			"SceneSearchTree",
-			"NewScene",
-			"SceneSearchTree",
-			"TODO:"
+			"SceneSearchTree"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1236,37 +1256,406 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "/home/xyx/devenv/capturer/assemble_capture.py",
+					"file": "main.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6031,
+						"buffer_size": 2170,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								6031,
-								6031
+								2170,
+								2170
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"codeintel_tooltips": "popup",
+							"sublime_auto_complete": true,
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1887.0,
+						"translation.y": 899.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "visual/scene_recognizer.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1049,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								684,
+								684
+							]
+						],
+						"settings":
+						{
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"codeintel_tooltips": "popup",
+							"sublime_auto_complete": true,
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "visual/scene_recognizer.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 691,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								528,
+								528
+							]
+						],
+						"settings":
+						{
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"codeintel_tooltips": "popup",
+							"sublime_auto_complete": true,
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
