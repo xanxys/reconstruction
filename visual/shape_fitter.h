@@ -18,6 +18,14 @@ float half(const std::pair<float, float>& pair);
 // The list will be sorted.
 std::pair<float, float> robustMinMax(std::vector<float>& values);
 
+
+// Triangulate a CCW simple polygon (no self intersecting edges, no holes)
+// into CCW triangles. N-vertex polygon always results in N-2 triangles.
+//
+// Useful course slide:
+// https://www.cs.ucsb.edu/~suri/cs235/Triangulation.pdf
+std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vector2f>& points);
+
 // Fit an Z-extruded concave, inward-facing shape.
 //
 // WARNING:
@@ -27,7 +35,7 @@ class ExtrusionFitter {
 public:
 	ExtrusionFitter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
-	// Return a box with 12 triangles.
+	// Return Z-extended exteuded concave wall + caps.
 	TriangleMesh<std::nullptr_t> extract() const;
 private:
 	// Extract XY 2D concave polygon. (CCW)

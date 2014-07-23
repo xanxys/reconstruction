@@ -16,7 +16,6 @@
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
-#include <visual/scene_converter.h>
 #include <visual/texture_conversion.h>
 
 namespace visual {

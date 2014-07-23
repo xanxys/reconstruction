@@ -24,7 +24,7 @@
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
-#include <visual/scene_converter.h>
+#include <visual/shape_fitter.h>
 #include <visual/texture_conversion.h>
 #include <visual/voxel_conversion.h>
 
@@ -235,6 +235,7 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	const float voxel_size = 0.05;
 
 	// Voxelize point cloud.
+	/*
 	Voxelizer voxelizer(cloud, voxel_size);
 	const auto vxs = voxelizer.getVoxelsDetailedWithoutGuess();
 	int num_occupied = 0;
@@ -247,6 +248,7 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 		}
 	}
 	INFO("Voxel Stat occupied", num_occupied, "empty", num_empty);
+
 
 	// Calculate min & max point.
 	const Eigen::Vector3i margin(20, 20, 20);
@@ -311,6 +313,7 @@ CloudBaker::CloudBaker(const Json::Value& cloud_json) {
 	}
 	std::ofstream f_debug("debug_voxel_delta.ply");
 	extractSurface(dv_delta, imin, voxel_size).serializePLY(f_debug);
+	*/
 }
 
 void CloudBaker::logVoxelCounts(const DenseVoxel<RoomVoxel>& dv) {

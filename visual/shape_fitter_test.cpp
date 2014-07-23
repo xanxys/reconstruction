@@ -1,4 +1,4 @@
-#include "scene_recognizer.h"
+#include "shape_fitter.h"
 
 #include <vector>
 

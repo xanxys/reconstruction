@@ -12,8 +12,8 @@
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
-#include <visual/scene_converter.h>
 #include <visual/scene_recognizer.h>
+#include <visual/shape_fitter.h>
 #include <visual/texture_conversion.h>
 
 /* Bunch of examples on how to use codes */
