@@ -1,13 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
 #include "LoaderPluginPrivatePCH.h"
 #include "LoaderPlugin.h"
 
+#include <cassert>
 #include <fstream>
 #include <string>
 
 #include "ModuleManager.h"
+#include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 #include "Slate.h"
 
 #include "LoaderPluginCommands.h"
@@ -37,6 +38,8 @@ void FLoaderPlugin::StartupModule()
 	LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(MyExtender);
 }
 
+// Very helpful answer
+// https://forums.unrealengine.com/showthread.php?22023-UE4-Automatic-Level-Builder-Construction-and-Pipeline-Scripts&p=103983&viewfull=1#post103983
 void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
 
@@ -48,6 +51,24 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	// TODO: put asset (StaticMesh) to project and scene
 
 
+	const std::string asset_path = "/Script/Engine.PointLight";
+
+	UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, _T("/Script/Engine.PointLight"));
+	if(asset == nullptr) {
+		UE_LOG(LoaderPlugin, Error, TEXT("Failed to load point light asset"));
+		return;
+	}
+	UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
+
+	const FVector location(0, 0, 0);
+	const FRotator rotation(0, 0, 0);
+	auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
+	auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
+
+	UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
+	assert(factory != nullptr);
+	assert(level != nullptr);
+	AActor* actor = factory->CreateActor(asset, level, location, &rotation);
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {

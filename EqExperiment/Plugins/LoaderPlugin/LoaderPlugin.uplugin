@@ -6,7 +6,7 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "xyx",
 	"CreatedByURL" : "https://bitbucket.org/xanxys/reconstruction",
-	"EngineVersion" : 1579795,
+	"EngineVersion" : 2092659,
 	"Description" : "This plugin loads custom room assets into editor and setup a VR expriment sequence.",
 	"Category" : "Experiment",
 	
