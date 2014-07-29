@@ -29,7 +29,9 @@ public:
 
 class SingleScan {
 public:
-	Json::Value old_style;
+	SingleScan(Json::Value& old_style);
+public:
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 };
 
 // Try avoiding classes for this kind of complex, pure operation.

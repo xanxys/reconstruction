@@ -206,9 +206,7 @@ TriangleMesh<std::nullptr_t> CloudBaker::extractSurface(
 	return mesh;
 }
 
-CloudBaker::CloudBaker(const Json::Value& cloud_json) {
-	loadFromJson(cloud_json);
-
+CloudBaker::CloudBaker(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) : cloud(cloud) {
 	// Dump raw point cloud.
 	{
 		TriangleMesh<std::nullptr_t> mesh;
@@ -495,26 +493,6 @@ Json::Value CloudBaker::showVec3i(const Eigen::Vector3i& v) {
 	m["y"] = v.y();
 	m["z"] = v.z();
 	return m;
-}
-
-void CloudBaker::loadFromJson(const Json::Value& cloud_json) {
-	Eigen::Matrix3f m;
-	m.col(0) = Eigen::Vector3f(0, 1, 0);
-	m.col(1) = Eigen::Vector3f(0, 0, 1);
-	m.col(2) = Eigen::Vector3f(1, 0, 0);
-	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-	for(const auto& point : cloud_json) {
-		pcl::PointXYZRGB pt;
-		pt.x = point["x"].asDouble();
-		pt.y = point["y"].asDouble();
-		pt.z = point["z"].asDouble();
-		pt.r = point["r"].asDouble();
-		pt.g = point["g"].asDouble();
-		pt.b = point["b"].asDouble();
-
-		pt.getVector3fMap() = m * pt.getVector3fMap();
-		cloud->points.push_back(pt);
-	}
 }
 
 TexturedMesh CloudBaker::generateRoomMesh() {

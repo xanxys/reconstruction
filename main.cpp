@@ -47,24 +47,14 @@ void testMeshIO() {
 	visual::writeObjMaterial(test_mat, "uv_3d.png");
 }
 
-
-void testPointCloudMeshing() {
-	INFO("Creating textured mesh from point cloud");
-	std::ifstream test("ocha_points.json");
-	Json::Value cloud;
-	Json::Reader().parse(test, cloud);
-
-	visual::CloudBaker(cloud).generateRoomMesh().writeWavefrontObject("room_box");
-}
-
 void testSceneBundleGeneration() {
 	INFO("Recognizing scene");
 	std::ifstream test("ocha_points.json");
 	Json::Value cloud;
 	Json::Reader().parse(test, cloud);
 
-	std::vector<visual::SingleScan> scans(1);
-	scans[0].old_style = cloud;
+	std::vector<visual::SingleScan> scans;
+	scans.emplace_back(cloud);
 
 	auto bundle = visual::scene_recognizer::recognizeScene(scans);
 	bundle.serializeIntoDirectory("room_bundle");
@@ -73,7 +63,6 @@ void testSceneBundleGeneration() {
 
 int main() {
 	testMeshIO();
-	testPointCloudMeshing();
 	testSceneBundleGeneration();
 	return 0;
 

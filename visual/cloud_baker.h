@@ -63,7 +63,7 @@ private:
 class CloudBaker {
 public:
 	// Convert json-style XYZRGB point cloud.
-	CloudBaker(const Json::Value& cloud);
+	CloudBaker(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
 	TexturedMesh generateRoomMesh();
 private:
@@ -74,7 +74,6 @@ private:
 		const Eigen::Vector3i& imin,
 		const float voxel_size);
 
-	void loadFromJson(const Json::Value& cloud);
 	static Json::Value showVec3i(const Eigen::Vector3i& v);
 
 	static void logVoxelCounts(const DenseVoxel<RoomVoxel>& dv);
