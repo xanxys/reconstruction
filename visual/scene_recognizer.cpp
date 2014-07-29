@@ -88,6 +88,7 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 	// TODO: need to discard faraway points.
 	INFO("Detecting lights at z =", z_ceiling);
 
+	// TODO: 10 here is hardcoded. remove.
 	TriangleMesh<Eigen::Vector2f> quad;
 	quad.vertices.push_back(std::make_pair(
 		Eigen::Vector3f(-10, -10, z_ceiling),
@@ -104,11 +105,33 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 	quad.triangles.push_back(std::make_tuple(0, 1, 2));
 	quad.triangles.push_back(std::make_tuple(2, 3, 0));
 
+	// Make it grayscale and remove image noise by blurring.
 	const TexturedMesh ceiling_geom = cloud_baker::bakePointsToMesh(cloud, quad);
-	ceiling_geom.writeWavefrontObject("debug_ceiling");
+	cv::Mat ceiling_gray;
+	cv::cvtColor(ceiling_geom.diffuse, ceiling_gray, cv::COLOR_BGR2GRAY);
+	cv::GaussianBlur(ceiling_gray, ceiling_gray, cv::Size(31, 31), 10);
 
+	// Detect blobs (saturated lights).
 	std::vector<Eigen::Vector3f> lights;
-	lights.emplace_back(1, 1.1, 2.5);
+	cv::SimpleBlobDetector detector;
+	std::vector<cv::KeyPoint> blobs;
+	detector.detect(ceiling_gray, blobs);
+	INFO("Blobs for ceiling image, #=", (int)blobs.size());
+	for(const auto& blob : blobs) {
+		Json::Value v;
+		v["size"] = blob.size;
+		v["pt"]["x"] = blob.pt.x;
+		v["pt"]["y"] = blob.pt.y;
+		v["angle"] = blob.angle;
+		INFO("Blob detected", v);
+
+		// TODO: 10 here is hardcoded. remove.
+		Eigen::Vector3f pt3d(
+			(float)blob.pt.x / ceiling_gray.cols * 20.0 - 10.0,
+			(float)blob.pt.y / ceiling_gray.cols * 20.0 - 10.0,
+			z_ceiling);
+		lights.push_back(pt3d);
+	}
 	return lights;
 }
 

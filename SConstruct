@@ -38,6 +38,7 @@ LIBS = [
 	'libglfw',
 	'libjsoncpp',
 	'libopencv_core',
+	'libopencv_features2d',
 	'libopencv_highgui',
 	'libopencv_imgproc',
 	'libOpenNI',
