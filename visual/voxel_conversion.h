@@ -9,8 +9,10 @@
 
 #include <range3.h>
 #include <visual/dense_voxel.h>
+#include <visual/triangle_mesh.h>
 
 namespace visual {
+namespace voxel_conversion {
 
 template<typename VertexAttrib>
 DenseVoxel<bool> meshToVoxel(
@@ -44,4 +46,12 @@ DenseVoxel<bool> meshToVoxel(
 	return voxel;
 }
 
+// Extract voxel surface as bunch of cubes.
+// TODO: should return real surface only.
+TriangleMesh<std::nullptr_t> extractVoxelSurface(
+	const DenseVoxel<bool>& dv,
+	const Eigen::Vector3i& imin,
+	const float voxel_size);
+
+}  // namespace
 }  // namespace

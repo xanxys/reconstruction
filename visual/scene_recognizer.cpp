@@ -6,6 +6,7 @@
 #include <boost/range/irange.hpp>
 
 #include <visual/cloud_baker.h>
+#include <visual/shape_fitter.h>
 
 namespace visual {
 
@@ -60,9 +61,52 @@ SingleScan::SingleScan(Json::Value& cloud_json) {
 		pt.getVector3fMap() = m * pt.getVector3fMap();
 		cloud->points.push_back(pt);
 	}
+
+	// Dump debug point cloud.
+	{
+		TriangleMesh<std::nullptr_t> mesh;
+		for(const auto& p : cloud->points) {
+			mesh.vertices.push_back(std::make_pair(p.getVector3fMap(), nullptr));
+		}
+		std::ofstream f_debug("raw_cloud.ply");
+		mesh.serializePLY(f_debug);
+	}
 }
 
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+	// Calculate approximate ceiling height.
+	std::vector<float> zs;
+	for(const auto& pt : cloud->points) {
+		zs.push_back(pt.z);
+	}
+	const auto zs_range = visual::shape_fitter::robustMinMax(zs);
+	const float z_ceiling = zs_range.second;
+
+	// Project points to ceiling quad.
+	// The quad is created in a way the texture contains
+	// non-distorted ceiling image.
+	// TODO: need to discard faraway points.
+	INFO("Detecting lights at z =", z_ceiling);
+
+	TriangleMesh<Eigen::Vector2f> quad;
+	quad.vertices.push_back(std::make_pair(
+		Eigen::Vector3f(-10, -10, z_ceiling),
+		Eigen::Vector2f(0, 0)));
+	quad.vertices.push_back(std::make_pair(
+		Eigen::Vector3f(10, -10, z_ceiling),
+		Eigen::Vector2f(1, 0)));
+	quad.vertices.push_back(std::make_pair(
+		Eigen::Vector3f(10, 10, z_ceiling),
+		Eigen::Vector2f(1, 1)));
+	quad.vertices.push_back(std::make_pair(
+		Eigen::Vector3f(-10, 10, z_ceiling),
+		Eigen::Vector2f(0, 1)));
+	quad.triangles.push_back(std::make_tuple(0, 1, 2));
+	quad.triangles.push_back(std::make_tuple(2, 3, 0));
+
+	const TexturedMesh ceiling_geom = cloud_baker::bakePointsToMesh(cloud, quad);
+	ceiling_geom.writeWavefrontObject("debug_ceiling");
+
 	std::vector<Eigen::Vector3f> lights;
 	lights.emplace_back(1, 1.1, 2.5);
 	return lights;
@@ -73,12 +117,27 @@ namespace scene_recognizer {
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	assert(scans.size() > 0);
 
+	// Approximate exterior by an extruded polygon.
+	const auto cloud_colorless = decolor(*scans[0].cloud);
+	TriangleMesh<std::nullptr_t> room_mesh = shape_fitter::fitExtrusion(cloud_colorless);
+
 	SceneAssetBundle bundle;
-	bundle.exterior_mesh = visual::CloudBaker(scans[0].cloud).generateRoomMesh();
+	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(scans[0].cloud, room_mesh);
 	bundle.point_lights = visual::recognize_lights(scans[0].cloud);
 	return bundle;
 }
 
-}  // namespace
+pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_colorless(new pcl::PointCloud<pcl::PointXYZ>());
+	for(const auto& point : cloud) {
+		pcl::PointXYZ pt;
+		pt.x = point.x;
+		pt.y = point.y;
+		pt.z = point.z;
+		cloud_colorless->points.push_back(pt);
+	}
+	return cloud_colorless;
+}
 
+}  // namespace
 }  // namespace

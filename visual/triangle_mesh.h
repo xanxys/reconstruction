@@ -113,4 +113,15 @@ public:
 	std::vector<std::pair<Eigen::Vector3f, Vertex>> vertices;
 };
 
+
+namespace triangle_mesh {
+
+TriangleMesh<std::nullptr_t> createBox(
+		Eigen::Vector3f center,Eigen::Vector3f half_dx,
+		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
+
+TriangleMesh<std::nullptr_t> createBox(
+	Eigen::Vector3f center, float half_size);
+
+}  // namespace
 }  // namespace
