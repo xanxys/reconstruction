@@ -22,8 +22,14 @@ public:
 	// TODO: erase it & re-create. just-like a single file.
 	// The directory might be nested.
 	void serializeIntoDirectory(std::string dir_path) const;
+private:
+	// Serialize relative small data that nicely fits into a JSON
+	// (e.g. <100MB).
+	// Don't store image-like things or huge triangle mesh here.
+	Json::Value serializeSmallData() const;
 public:
 	TexturedMesh exterior_mesh;
+	std::vector<Eigen::Vector3f> point_lights;
 };
 
 
@@ -33,6 +39,8 @@ public:
 public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 };
+
+std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
 // Try avoiding classes for this kind of complex, pure operation.
 namespace scene_recognizer {
