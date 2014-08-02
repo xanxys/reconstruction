@@ -67,12 +67,14 @@ int main(int argc, char** argv) {
 	using boost::program_options::options_description;
 	using boost::program_options::parse_command_line;
 	using boost::program_options::store;
+	using boost::program_options::value;
 	using boost::program_options::variables_map;
 
 	options_description desc("Reconstruct 3D scene from scans.");
 	desc.add_options()
 		("help", "show this message")
-		("test", "do experimental stuff");
+		("test", "do experimental stuff")
+		("convert", value<std::string>(), "convert given scan");
 
 	variables_map vars;
 	store(parse_command_line(argc, argv, desc), vars);
@@ -81,13 +83,15 @@ int main(int argc, char** argv) {
 	if(vars.count("help") > 0) {
 		std::cout << desc << std::endl;
 		return 0;
-	}
-	else if(vars.count("test") > 0) {
+	} else if(vars.count("test") > 0) {
 		testMeshIO();
 		testSceneBundleGeneration();
 		return 0;
-	}
-	else {
+	} else if(vars.count("convert") > 0) {
+		const auto dir_path = vars["convert"].as<std::string>();
+		INFO("Converting", dir_path);
+		return 1;
+	} else {
 		INFO("Launching HTTP server");
 		server::ReconServer server;
 		server.launch();
