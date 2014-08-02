@@ -30,6 +30,7 @@ env['ENV']['TERM'] = os.environ.get('TERM', '')
 # project specific code
 LIBS = [
 	'libboost_filesystem-mt',
+	'libboost_program_options-mt',
 	'libboost_system-mt',
 	'libboost_thread-mt',
 	'libdl',

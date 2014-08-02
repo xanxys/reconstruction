@@ -3,6 +3,7 @@
 #include <fstream>
 #include <limits>
 
+#include <boost/program_options.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -61,17 +62,39 @@ void testSceneBundleGeneration() {
 }
 
 
-int main() {
-	testMeshIO();
-	testSceneBundleGeneration();
-	return 0;
+int main(int argc, char** argv) {
+	using boost::program_options::notify;
+	using boost::program_options::options_description;
+	using boost::program_options::parse_command_line;
+	using boost::program_options::store;
+	using boost::program_options::variables_map;
 
-	INFO("Launching HTTP server");
-	server::ReconServer server;
-	server.launch();
-	while(true) {
-		std::string dummy;
-		std::cin >> dummy;
+	options_description desc("Reconstruct 3D scene from scans.");
+	desc.add_options()
+		("help", "show this message")
+		("test", "do experimental stuff");
+
+	variables_map vars;
+	store(parse_command_line(argc, argv, desc), vars);
+	notify(vars);
+
+	if(vars.count("help") > 0) {
+		std::cout << desc << std::endl;
+		return 0;
 	}
-	return 0;
+	else if(vars.count("test") > 0) {
+		testMeshIO();
+		testSceneBundleGeneration();
+		return 0;
+	}
+	else {
+		INFO("Launching HTTP server");
+		server::ReconServer server;
+		server.launch();
+		while(true) {
+			std::string dummy;
+			std::cin >> dummy;
+		}
+		return 0;
+	}
 }

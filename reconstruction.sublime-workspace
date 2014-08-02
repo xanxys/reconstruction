@@ -4,6 +4,34 @@
 		"selected_items":
 		[
 			[
+				"select",
+				"select_variant	function"
+			],
+			[
+				"lrf_",
+				"lrf_angle_min	statement"
+			],
+			[
+				"lrf",
+				"lrf_angle_min	statement"
+			],
+			[
+				"key",
+				"keys_ordered	statement"
+			],
+			[
+				"weight_",
+				"weight_mapped	statement"
+			],
+			[
+				"ceil",
+				"ceiling_gray"
+			],
+			[
+				"ce",
+				"ceiling_gray"
+			],
+			[
 				"null",
 				"nullptr_t"
 			],
@@ -14,10 +42,6 @@
 			[
 				"elev",
 				"elev_override	param"
-			],
-			[
-				"lrf_",
-				"lrf_angle_min	statement"
 			],
 			[
 				"intensity",
@@ -490,35 +514,19 @@
 			[
 				"showPiece",
 				"showPieceJapanese"
-			],
-			[
-				"log_",
-				"log_file_path"
-			],
-			[
-				"ptr_p",
-				"ptr_program_end"
-			],
-			[
-				"code",
-				"code_memory"
-			],
-			[
-				"voxels",
-				"voxels"
-			],
-			[
-				"voxel",
-				"voxel_merged"
-			],
-			[
-				"iy",
-				"iy_max"
 			]
 		]
 	},
 	"buffers":
 	[
+		{
+			"file": "/home/xyx/devenv/capturer/assemble_capture.py",
+			"settings":
+			{
+				"buffer_size": 13828,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "Packages/User/scons.sublime-build",
 	"command_palette":
@@ -526,6 +534,22 @@
 		"height": 374.0,
 		"selected_items":
 		[
+			[
+				"rein",
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"inde",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"reinde",
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"anaconda disa",
+				"Anaconda: Disable linting on this file"
+			],
 			[
 				"anacon",
 				"Anaconda: Disable linting on this file"
@@ -555,16 +579,8 @@
 				"Preferences: SublimeLinter Settings – User"
 			],
 			[
-				"rein",
-				"JSON Reindent: reindent file or selection"
-			],
-			[
 				"json",
 				"JSON Reindent: reindent file or selection"
-			],
-			[
-				"inde",
-				"Indent JSON"
 			],
 			[
 				"c++",
@@ -693,10 +709,6 @@
 			[
 				"shell",
 				"Set Syntax: Shell Script (Bash)"
-			],
-			[
-				"reinde",
-				"Indentation: Reindent Lines"
 			],
 			[
 				"rei",
@@ -851,7 +863,7 @@
 				"Package Control: Install Package"
 			]
 		],
-		"width": 534.0
+		"width": 435.0
 	},
 	"console":
 	{
@@ -872,24 +884,37 @@
 	},
 	"file_history":
 	[
+		"/home/xyx/devenv/capturer/assemble_capture.py",
+		"/home/xyx/devenv/capturer/assembled_cloud.json",
+		"/home/xyx/devenv/capturer/calibration-real.json",
+		"/home/xyx/devenv/capturer/calibration-home.json",
+		"/home/xyx/devenv/capturer/tools/calibrate.py",
 		"/home/xyx/devenv/reconstruction/visual/scene_recognizer.cpp",
 		"/home/xyx/devenv/reconstruction/visual/scene_recognizer.h",
-		"/home/xyx/devenv/reconstruction/main.cpp",
-		"/home/xyx/devenv/reconstruction/logging.cpp",
-		"/home/xyx/devenv/reconstruction/debug_voxel_delta.ply",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
-		"/home/xyx/devenv/reconstruction/visual/shape_fitter.h",
-		"/home/xyx/devenv/reconstruction/visual/shape_fitter.cpp",
-		"/home/xyx/devenv/reconstruction/visual/shape_fitter_test.cpp",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
+		"/home/xyx/devenv/capturer/test_cloud-test-20140711-16:00-gakusei1.ply",
 		"/home/xyx/devenv/reconstruction/visual/textured_mesh.h",
 		"/home/xyx/devenv/reconstruction/visual/textured_mesh.cpp",
+		"/home/xyx/devenv/reconstruction/room_bundle/small_data.json",
+		"/home/xyx/devenv/reconstruction/SConstruct",
+		"/home/xyx/devenv/reconstruction/main.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.cpp",
+		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.h",
+		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
+		"/home/xyx/devenv/reconstruction/visual/texture_conversion.h",
+		"/home/xyx/devenv/reconstruction/visual/shape_fitter.h",
+		"/home/xyx/devenv/reconstruction/logging.cpp",
+		"/home/xyx/devenv/reconstruction/debug_voxel_delta.ply",
+		"/home/xyx/devenv/reconstruction/visual/shape_fitter.cpp",
+		"/home/xyx/devenv/reconstruction/visual/shape_fitter_test.cpp",
 		"/home/xyx/devenv/reconstruction/visual/scene_converter.h",
 		"/home/xyx/devenv/reconstruction/visual/scene_recognizer_test.cpp",
 		"/home/xyx/devenv/reconstruction/analyzer/manhattan_belief_test.cpp",
 		"/home/xyx/devenv/reconstruction/extract_lights.py",
 		"/home/xyx/devenv/reconstruction/prototype-archive/sa_test.py",
-		"/home/xyx/devenv/reconstruction/SConstruct",
 		"/home/xyx/devenv/reconstruction/prototype-archive/README.md",
 		"/home/xyx/devenv/reconstruction/sa_test.py",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF_driver.cpp",
@@ -899,20 +924,14 @@
 		"/home/xyx/devenv/reconstruction/asset.pb.cc",
 		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
 		"/home/xyx/devenv/reconstruction/log",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
 		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
 		"/home/xyx/devenv/capturer/firmware/capturer_server.cpp",
-		"/home/xyx/devenv/capturer/assemble_capture.py",
-		"/home/xyx/devenv/capturer/calibration-real.json",
-		"/home/xyx/devenv/capturer/calibration-home.json",
 		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.cpp",
 		"/home/xyx/devenv/capturer/firmware/camera_parameters.cpp",
 		"/home/xyx/devenv/reconstruction/room_box/object.obj",
 		"/home/xyx/devenv/reconstruction/sa_wrap.png",
 		"/home/xyx/devenv/rust-test/hello.rs",
 		"/home/xyx/devenv/capturer/test_cloud.ply",
-		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
-		"/home/xyx/devenv/capturer/assembled_cloud.json",
 		"/home/xyx/devenv/capturer/calibration.json",
 		"/home/xyx/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
 		"/home/xyx/.config/sublime-text-3/Packages/User/Anaconda.sublime-settings",
@@ -924,7 +943,6 @@
 		"/home/xyx/devenv/reconstruction/assemble_capture.py",
 		"/home/xyx/devenv/reconstruction/visual/dense_voxel.h",
 		"/home/xyx/devenv-archive/ComputerVision-AlgApp/complete/list",
-		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.h",
 		"/home/xyx/devenv/reconstruction/launch.py",
 		"/home/xyx/devenv/reconstruction/visual/dense_voxel.cpp",
 		"/home/xyx/devenv/reconstruction/analyzer/manhattan_belief.cpp",
@@ -973,7 +991,6 @@
 		"/home/xyx/devenv/reconstruction/server/base64.h",
 		"/home/xyx/devenv/reconstruction/server/base64.cpp",
 		"/home/xyx/devenv/reconstruction/data_source.h",
-		"/home/xyx/devenv/reconstruction/visual/texture_conversion.h",
 		"/home/xyx/devenv/reconstruction/visual/marching_cubes.cpp",
 		"/home/xyx/devenv/reconstruction/visual/marching_cubes.h",
 		"/home/xyx/devenv/reconstruction/visual/mapping.cpp",
@@ -994,12 +1011,7 @@
 		"/home/xyx/devenv/reconstruction/base64.cpp",
 		"/home/xyx/devenv/reconstruction/base64.h",
 		"/home/xyx/devenv/reconstruction/proto/asset.proto",
-		"/home/xyx/devenv/reconstruction/.gitignore",
-		"/home/xyx/devenv/reconstruction/mapping.cpp",
-		"/home/xyx/devenv/reconstruction/cloud_conversion.cpp",
-		"/home/xyx/devenv/reconstruction/cloud_conversion.h",
-		"/home/xyx/devenv/reconstruction/texture_conversion.h",
-		"/home/xyx/devenv/reconstruction/texture_conversion.cpp"
+		"/home/xyx/devenv/reconstruction/.gitignore"
 	],
 	"find":
 	{
@@ -1017,6 +1029,16 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"240",
+			"480",
+			"640",
+			"fillHoles",
+			"Voxelizer",
+			"showVec3",
+			"estimateU",
+			"createBox",
+			"extractSurf",
+			"extractSurface",
 			"shape_fitter::",
 			"CalcAngleOfLightWithProbabilisticHough",
 			"OBBFitter",
@@ -1134,17 +1156,7 @@
 			"updateBo",
 			"promote",
 			"Float",
-			"H.",
-			"MSData",
-			"\"MS\"",
-			"MSDataSource",
-			"NYU2",
-			"183",
-			"data_source",
-			"handleScene",
-			"SceneSearchView",
-			"N",
-			"SceneSearchV"
+			"H."
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1233,8 +1245,38 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "/home/xyx/devenv/capturer/assemble_capture.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13828,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1911,
+								1911
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 867.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],
