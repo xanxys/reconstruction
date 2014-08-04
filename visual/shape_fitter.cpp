@@ -155,6 +155,22 @@ std::pair<float, float> robustMinMax(std::vector<float>& values) {
 		values[int(values.size() * 0.99)]);
 }
 
+bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points) {
+	auto cross2d = [](const Eigen::Vector2f& a, const Eigen::Vector2f& b) {
+		return a(0) * b(1) - a(1) * b(0);
+	};
+	// Use Shoelace formula (Green's thereom) to calculate signed area.
+	// cf. https://en.wikipedia.org/wiki/Shoelace_formula
+	const int n = points.size();
+	float area = 0;
+	for(int i : boost::irange(0, n)) {
+		area += cross2d(points[i], points[(i + 1) % n]);
+	}
+	area /= 2;
+
+	return area > 0;
+}
+
 // Use ear-clipping to triangulate.
 // ear: a triangle formed by 3 adjacent vertices, in which
 // 2 edges are part of boundary, and the other is part of inside.
@@ -168,6 +184,7 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 		return a(0) * b(1) - a(1) * b(0);
 	};
 	auto is_ear = [&](int pred, int curr, int succ) {
+		// This will only work when pred-curr-succ are in CCW order!
 		// (pred-curr, succ-curr are boundary) is always true
 		// since this is called when N>=4,
 		// pred-succ cannot be boundary; it's either outside or inside.
@@ -202,6 +219,15 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 	std::vector<std::array<int, 3>> tris;
 	while(indices.size() > 3) {
 		const int n = indices.size();
+		// Make current polygon CCW.
+		std::vector<Eigen::Vector2f> pts;
+		for(int ix : indices) {
+			pts.push_back(points[ix]);
+		}
+		if(!isPolygonCCW(pts)) {
+			std::reverse(indices.begin(), indices.end());
+		}
+
 		// finding ear: O(N)
 		bool ear_found = false;
 		for(int i : boost::irange(0, n)) {

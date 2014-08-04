@@ -39,6 +39,11 @@ float half(const std::pair<float, float>& pair);
 // The list will be sorted.
 std::pair<float, float> robustMinMax(std::vector<float>& values);
 
+// Check if given polygon is CCW.
+// Results is undefined when given polygon is degenerate.
+// runtime: O(N)
+bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points);
+
 // Check if given polygon is "sane".
 // 1. No too short segments.
 // 2. No self intersection.
