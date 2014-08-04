@@ -36,6 +36,7 @@ public:
 class SingleScan {
 public:
 	SingleScan(Json::Value& old_style);
+	SingleScan(const std::string& path);
 public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 };

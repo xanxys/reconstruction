@@ -73,6 +73,27 @@ SingleScan::SingleScan(Json::Value& cloud_json) {
 	}
 }
 
+SingleScan::SingleScan(const std::string& scan_dir) {
+	using boost::filesystem::path;
+
+	std::ifstream f_input((path(scan_dir) / path("points.json")).string());
+	Json::Value cloud_json;
+	Json::Reader().parse(f_input, cloud_json);
+
+	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGB pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		cloud->points.push_back(pt);
+	}
+}
+
+
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
 	std::vector<float> zs;

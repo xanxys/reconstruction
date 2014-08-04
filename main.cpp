@@ -61,6 +61,10 @@ void testSceneBundleGeneration() {
 	bundle.serializeIntoDirectory("room_bundle");
 }
 
+std::string guessSceneName(const std::string& scan_path) {
+	// TODO: extract from scan_path
+	return "result_bundle";
+}
 
 int main(int argc, char** argv) {
 	using boost::program_options::notify;
@@ -89,7 +93,13 @@ int main(int argc, char** argv) {
 		return 0;
 	} else if(vars.count("convert") > 0) {
 		const auto dir_path = vars["convert"].as<std::string>();
-		INFO("Converting", dir_path);
+		INFO("Loading scans", dir_path);
+		std::vector<visual::SingleScan> scans;
+		scans.emplace_back(dir_path);
+
+		INFO("Converting to a scene");
+		auto bundle = visual::scene_recognizer::recognizeScene(scans);
+		bundle.serializeIntoDirectory(guessSceneName(dir_path));
 		return 1;
 	} else {
 		INFO("Launching HTTP server");
