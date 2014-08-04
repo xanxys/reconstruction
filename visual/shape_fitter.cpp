@@ -348,6 +348,9 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 			// Query k + 1 and drop the first (= query itself) point.
 			const auto ixs_and_self = query_nearest(current, k + 1);
 			auto ixs = std::vector<int>(ixs_and_self.begin() + 1, ixs_and_self.end());
+			if(points[ixs[0]] == current) {
+				throw std::runtime_error("More than one points found at identical position. Cannot create concave hull.");
+			}
 
 			// Prefer the point with largest CW rotation.
 			std::sort(ixs.begin(), ixs.end(), [&](int a, int b) {
@@ -398,8 +401,53 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 		circle_s.insert(best_ix);
 	}
 	INFO("Concave hull completed with #vertices", (int)circle.size());
+	assert(isSaneSimplePolygon(circle));
 	return circle;
 }
+
+
+bool isSaneSimplePolygon(const std::vector<Eigen::Vector2f>& points, const float eps) {
+	const int n_vert = points.size();
+	if(n_vert < 3) {
+		return false;
+	}
+	auto mod = [&](int x) {
+		if(x >= 0) {
+			return x % n_vert;
+		} else {
+			return (x % n_vert) + n_vert;
+		}
+	};
+
+	// check for too short edge
+	for(int i : boost::irange(0, (int)points.size())) {
+		const auto v0 = points[i];
+		const auto v1 = points[(i + 1) % n_vert];
+		if((v0 - v1).norm() < eps) {
+			return false;
+		}
+	}
+
+	// Check for self-intersection.
+	for(int i : boost::irange(0, (int)points.size())) {
+		const auto seg_i = std::make_pair(
+			points[i], points[mod(i + 1)]);
+		for(int j : boost::irange(0, (int)points.size())) {
+			// exclude adjacent edges & itself from check
+			if(j == mod(i - 1) || j == i || j == mod(i + 1) || j == mod(i + 2)) {
+				continue;
+			}
+
+			const auto seg_j = std::make_pair(
+				points[j], points[mod(j + 1)]);
+			if(intersectSegments(seg_i, seg_j)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 
 TriangleMesh<std::nullptr_t> createBox(
 		Eigen::Vector3f center,Eigen::Vector3f half_dx,

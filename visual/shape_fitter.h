@@ -39,6 +39,12 @@ float half(const std::pair<float, float>& pair);
 // The list will be sorted.
 std::pair<float, float> robustMinMax(std::vector<float>& values);
 
+// Check if given polygon is "sane".
+// 1. No too short segments.
+// 2. No self intersection.
+// 3. Has enough # of vertices.
+// runtime: O(N^2)
+bool isSaneSimplePolygon(const std::vector<Eigen::Vector2f>& points, const float eps = 1e-3);
 
 // Triangulate a CCW simple polygon (no self intersecting edges, no holes)
 // into CCW triangles. N-vertex polygon always results in N-2 triangles.
