@@ -164,10 +164,11 @@ namespace scene_recognizer {
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	assert(scans.size() > 0);
 
-	// Approximate exterior by an extruded polygon.
+	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = decolor(*scans[0].cloud);
 	TriangleMesh<std::nullptr_t> room_mesh = shape_fitter::fitExtrusion(cloud_colorless);
 
+	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(scans[0].cloud, room_mesh);
 	bundle.point_lights = visual::recognize_lights(scans[0].cloud);

@@ -70,6 +70,7 @@ TriangleMesh<std::nullptr_t> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
 	mesh.merge(create_cap(h_range.first, false));  // floor
 	mesh.merge(create_cap(h_range.second, true));  // ceiling
 
+	DEBUG("Extruded polygon mesh #v=", (int)mesh.vertices.size());
 	return mesh;
 }
 
@@ -180,7 +181,15 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 		// curr    succ
 
 		// cross product = sin, positive when curr is convex.
-		return cross2d(points[succ] - points[curr], points[pred] - points[curr]) > 0;
+		auto sin_angle = cross2d(points[succ] - points[curr], points[pred] - points[curr]);
+		if(sin_angle > 0) {
+			return true;
+		} else if(sin_angle == 0) {
+			WARN("Colinear adjacent segments found. Results might contain degerate triangles.");
+			return true;
+		} else {
+			return false;
+		}
 	};
 
 	std::vector<int> indices;
@@ -189,11 +198,12 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 	}
 
 	// Removing 1 ear = removing 1 vertex
-	// O(N^2) (N+N-1+...)
+	// O(N^2) (=N + N-1 + ...)
 	std::vector<std::array<int, 3>> tris;
 	while(indices.size() > 3) {
 		const int n = indices.size();
 		// finding ear: O(N)
+		bool ear_found = false;
 		for(int i : boost::irange(0, n)) {
 			if(is_ear(indices[i], indices[(i + 1) % n], indices[(i + 2) % n])) {
 				tris.push_back(std::array<int, 3>({
@@ -201,8 +211,16 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 				// It takes O(N) times to find an ear,
 				// so don't care about deletion taking O(N) time.
 				indices.erase(indices.begin() + ((i+1) % n));
+				ear_found = true;
 				break;
 			}
+		}
+		if(!ear_found) {
+			WARN("Ear not found: remaining points: ", (int)indices.size());
+			for(int ix : indices) {
+				DEBUG("Index", ix, points[ix].x(), points[ix].y());
+			}
+			throw std::runtime_error("Ear not found when triangulating polygon. Something is wrong!");
 		}
 	}
 
@@ -262,19 +280,12 @@ bool intersectSegments(
 	m.col(1) = -db;
 	const Eigen::Vector2f v = b.first - a.first;
 
-	const auto dec = m.colPivHouseholderQr();
-
-	if(dec.rank() < 2) {
-		// lines are parallel or some other degenerate case
-		return false;
-	} else {
-		const Eigen::Vector2f ts = m.inverse() * v;
-		return (0 < ts(0) && ts(0) < 1) && (0 < ts(1) && ts(1) < 1);
-	}
+	const Eigen::Vector2f ts = m.inverse() * v;
+	return (0 < ts(0) && ts(0) < 1) && (0 < ts(1) && ts(1) < 1);
 }
 
 std::vector<Eigen::Vector2f> calculateConcaveHull(
-	const std::vector<Eigen::Vector2f>& points, int k_min) {
+	const std::vector<Eigen::Vector2f>& points, const int k_min) {
 	if(points.size() < 3) {
 		throw std::runtime_error("Points are too few to form a polygon");
 	}
@@ -305,13 +316,12 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 	std::set<int> circle_s = {start_ix};
 	while(true) {
 		const auto current = circle.back();
-
 		auto intersecting = [&](int i) {
 			const auto new_segment = std::make_pair(current, points[i]);
-			// irange(0, size() - 1): exclude prev-current segment, because
+			// irange(0, size() - 2): exclude prev-current segment, because
 			// 1. it's guaranteed not intersect (they share a single point)
 			// 2. sometimes lead to false intersection when included
-			auto segs = boost::irange(0, (int)circle.size() - 1);
+			auto segs = boost::irange(0, std::max(0, (int)circle.size() - 2));
 			return std::any_of(segs.begin(), segs.end(), [&](int i) {
 				return intersectSegments(new_segment,
 					std::make_pair(circle[i], circle[i + 1]));
@@ -360,6 +370,7 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 			// retry with larger k if there's no valid candidate
 			if(candidates.size() == 0) {
 				k = 1 + static_cast<int>(k * 1.5);
+				DEBUG("k(next)=", k);
 				if(k >= points.size()) {
 					throw std::runtime_error("Circle search exhausted; probably some bug");
 				}
@@ -375,7 +386,7 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 			break;
 		}
 		// Non-start loop found.
-		if(circle_s.find(best_ix) != circle_s.end()) {
+		if(circle_s.count(best_ix) > 0) {
 			throw std::runtime_error(
 				"Unexpected loop found in concanve hull search");
 		}
@@ -386,7 +397,7 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 		circle.push_back(points[best_ix]);
 		circle_s.insert(best_ix);
 	}
-
+	INFO("Concave hull completed with #vertices", (int)circle.size());
 	return circle;
 }
 
