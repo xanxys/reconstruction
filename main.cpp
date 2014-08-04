@@ -3,6 +3,7 @@
 #include <fstream>
 #include <limits>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -62,8 +63,15 @@ void testSceneBundleGeneration() {
 }
 
 std::string guessSceneName(const std::string& scan_path) {
-	// TODO: extract from scan_path
-	return "result_bundle";
+	std::vector<std::string> components;
+	boost::split(components, scan_path, boost::is_any_of("/"));
+	if(components.size() >= 1 && components.back() != "") {
+		return components.back();
+	} else if(components.size() >= 2 && components[components.size() - 2] != "") {
+		return components[components.size() - 2];
+	} else {
+		return "result_bundle";
+	}
 }
 
 int main(int argc, char** argv) {
