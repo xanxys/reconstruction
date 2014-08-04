@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 		return 0;
 	} else if(vars.count("convert") > 0) {
 		const auto dir_path = vars["convert"].as<std::string>();
-		INFO("Loading scans", dir_path);
+		INFO("Loading scans");
 		std::vector<visual::SingleScan> scans;
 		scans.emplace_back(dir_path);
 

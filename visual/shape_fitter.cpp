@@ -6,6 +6,8 @@
 #include <set>
 #include <stdexcept>
 
+#include <fstream>
+
 #include <boost/math/constants/constants.hpp>
 #include <boost/range/irange.hpp>
 #include <Eigen/Dense>
@@ -211,6 +213,10 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 }
 
 std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+	if(cloud->points.size() < 1000) {
+		WARN("Number of points might be too small for polygon extraction", (int)cloud->points.size());
+	}
+
 	// Squash Z-axis.
 	std::vector<Eigen::Vector2f> points;
 	for(const auto& pt : cloud->points) {
@@ -269,6 +275,10 @@ bool intersectSegments(
 
 std::vector<Eigen::Vector2f> calculateConcaveHull(
 	const std::vector<Eigen::Vector2f>& points, int k_min) {
+	if(points.size() < 3) {
+		throw std::runtime_error("Points are too few to form a polygon");
+	}
+
 	// Return k-nearest neighbors in nearest-first order.
 	// TODO: rewrite with a kd-tree if it's too slow.
 	auto query_nearest = [&](const Eigen::Vector2f& query, int k) {

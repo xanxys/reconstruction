@@ -75,8 +75,11 @@ SingleScan::SingleScan(Json::Value& cloud_json) {
 
 SingleScan::SingleScan(const std::string& scan_dir) {
 	using boost::filesystem::path;
-
+	INFO("Loading a scan from", scan_dir);
 	std::ifstream f_input((path(scan_dir) / path("points.json")).string());
+	if(!f_input.is_open()) {
+		throw std::runtime_error("Cloudn't open points.json");
+	}
 	Json::Value cloud_json;
 	Json::Reader().parse(f_input, cloud_json);
 
