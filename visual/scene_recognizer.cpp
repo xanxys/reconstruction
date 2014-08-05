@@ -185,12 +185,29 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(points_merged, room_mesh);
-	bundle.debug_points_distance = visual::cloud_baker::colorPointsByDistance(scans[0].cloud, room_mesh);
+	bundle.debug_points_distance = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh);
 	bundle.debug_points_merged = points_merged;
 	bundle.point_lights = visual::recognize_lights(points_merged);
 	return bundle;
 }
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const float grid_size) {
+	std::map<std::tuple<int, int, int>, std::vector<Eigen::Vector3f>> tiles;
+	for(const auto& pt_xyz : cloud->points) {
+		const Eigen::Vector3f pt = pt_xyz.getVector3fMap();
+		const auto pt_i = (pt / grid_size).cast<int>();
+		tiles[std::make_tuple(pt_i(0), pt_i(1), pt_i(2))].push_back(pt);
+	}
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_new(new pcl::PointCloud<pcl::PointXYZ>);
+	for(const auto& tile : tiles) {
+		pcl::PointXYZ pt;
+		pt.getVector3fMap() = std::accumulate(
+			tile.second.begin(), tile.second.end(),
+			Eigen::Vector3f(0, 0, 0)) / tile.second.size();
+		cloud_new->points.push_back(pt);
+	}
+	return cloud_new;
+}
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
@@ -198,10 +215,11 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 		return scans.front().cloud;
 	} else {
 		auto to_matrix = [](const SingleScan& scan) {
-			const int n = scan.cloud->points.size();
+			const auto cloud = downsample(decolor(*scan.cloud), 0.1);
+			const int n = cloud->points.size();
 			Eigen::Matrix3Xd mat(3, n);
 			for(int i : boost::irange(0, n)) {
-				mat.col(i) = scan.cloud->points[i].getVector3fMap().cast<double>();
+				mat.col(i) = cloud->points[i].getVector3fMap().cast<double>();
 			}
 			return mat;
 		};
@@ -213,8 +231,8 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 		// See this youtube video for quick summary of good p value.
 		// https://www.youtube.com/watch?v=ii2vHBwlmo8
 		SICP::Parameters params;
-		params.max_icp = 5;
-		params.p = 0.5;
+		params.max_icp = 100;
+		params.p = 0.7;
 
 		// The type signature do look like it allows any Scalar, but only
 		// double will work in reality.
@@ -224,13 +242,13 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 		// Recover motion.
 		const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
 			m_source_orig, m_source).cast<float>();
-		INFO("Affine", m(0, 0));
+		INFO("Affine |t|=", m.translation().norm());
 
 		// Merge color cloud.
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>);
 		for(const auto& pt : scans[0].cloud->points) {
 			pcl::PointXYZRGB pt_new = pt;
-			pt_new.getVector3fMap() = m * pt_new.getVector3fMap();
+			pt_new.getVector3fMap() = m * pt.getVector3fMap();
 			merged->points.push_back(pt_new);
 		}
 		for(const auto& pt : scans[1].cloud->points) {

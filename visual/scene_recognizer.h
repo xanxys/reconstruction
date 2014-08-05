@@ -50,6 +50,9 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 // Try avoiding classes for this kind of complex, pure operation.
 namespace scene_recognizer {
 
+// Downsample using grid filter (leave one point per voxel).
+pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float grid_size=0.05);
+
 // Takes several scans of a single room as input (in unordered way),
 // and generates a SceneAsssetBundle.
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans);
