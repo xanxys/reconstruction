@@ -18,6 +18,11 @@
 namespace visual {
 namespace cloud_baker {
 
+// Assign color to point cloud based on distance from mesh.
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorPointsByDistance(
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+	TriangleMesh<std::nullptr_t> shape);
+
 // A convenient version where UV coordinates are automatically assigned.
 TexturedMesh bakePointsToMesh(
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,

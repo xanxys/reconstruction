@@ -24,8 +24,21 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	exterior_mesh.writeWavefrontObject(
 		(dir_path / path("exterior_mesh")).string());
 
+	std::ofstream debug_points_file((dir_path / path("debug_points_distance.ply")).string());
+	serializeDebugPoints().serializePLYWithRgb(debug_points_file);
+
 	std::ofstream json_file((dir_path / path("small_data.json")).string());
 	json_file << Json::FastWriter().write(serializeSmallData());
+}
+
+TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints() const {
+	TriangleMesh<Eigen::Vector3f> mesh;
+	for(const auto& pt : debug_points_distance->points) {
+		mesh.vertices.push_back(std::make_pair(
+			pt.getVector3fMap(),
+			Eigen::Vector3f(pt.r, pt.g, pt.b)));
+	}
+	return mesh;
 }
 
 Json::Value SceneAssetBundle::serializeSmallData() const {
@@ -171,6 +184,7 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(scans[0].cloud, room_mesh);
+	bundle.debug_points_distance = visual::cloud_baker::colorPointsByDistance(scans[0].cloud, room_mesh);
 	bundle.point_lights = visual::recognize_lights(scans[0].cloud);
 	return bundle;
 }

@@ -81,6 +81,37 @@ public:
 		}
 	}
 
+	void serializePLYWithRgb(std::ostream& output) const {
+		output << "ply" << std::endl;
+		output << "format ascii 1.0" << std::endl;
+		output << "element vertex " << vertices.size() << std::endl;
+		output << "property float32 x" << std::endl;
+		output << "property float32 y" << std::endl;
+		output << "property float32 z" << std::endl;
+		output << "property uint8 red" << std::endl;
+		output << "property uint8 green" << std::endl;
+		output << "property uint8 blue" << std::endl;
+		output << "element face " << triangles.size() << std::endl;
+		output << "property list uint8 int32 vertex_indices" << std::endl;
+		output << "end_header" << std::endl;
+
+		for(const auto vertex : vertices) {
+			output <<
+				vertex.first(0) << " " <<
+				vertex.first(1) << " " <<
+				vertex.first(2) << " " <<
+				vertex.second(0) << " " <<
+				vertex.second(1) << " " <<
+				vertex.second(2) << std::endl;
+		}
+		for(const auto triangle : triangles) {
+			output << "3 " <<
+				std::get<0>(triangle) << " " <<
+				std::get<1>(triangle) << " " <<
+				std::get<2>(triangle) << std::endl;
+		}
+	}
+
 	// Serialize this mesh in ASCII PLY format.
 	// with UV coordinates.
 	// condition: Vertex = Eigen::Vector2f

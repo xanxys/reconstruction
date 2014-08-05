@@ -25,6 +25,24 @@
 namespace visual {
 namespace cloud_baker {
 
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorPointsByDistance(
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+		TriangleMesh<std::nullptr_t> shape) {
+	const auto mesh_uv = mapSecond(assignUV(shape));
+
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_new(new pcl::PointCloud<pcl::PointXYZRGB>);
+	for(auto point : cloud->points) {
+		const Eigen::Vector3f pos = point.getVector3fMap();
+		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
+		point.r = dist_and_uv.first * 255;
+		point.g = dist_and_uv.first * 255;
+		point.b = dist_and_uv.first * 255;
+		cloud_new->points.push_back(point);
+	}
+	return cloud_new;
+}
+
+
 TexturedMesh bakePointsToMesh(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
 		TriangleMesh<std::nullptr_t> shape) {
