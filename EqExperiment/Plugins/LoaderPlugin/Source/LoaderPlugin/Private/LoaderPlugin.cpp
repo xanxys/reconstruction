@@ -43,7 +43,7 @@ void FLoaderPlugin::StartupModule()
 void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
 
-	std::ifstream test("C:\\Users\\xyx\\Documents\\reconstruction\\EqExperiment\\test-data.txt");
+	std::ifstream test("\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json");
 	std::string data;
 	std::getline(test, data);
 	UE_LOG(LoaderPlugin, Log, TEXT("Loaded: %s"), *FString(data.c_str()));
