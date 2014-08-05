@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("test", "do experimental stuff")
-		("convert", value<std::string>(), "convert given scan");
+		("convert", value<std::vector<std::string>>(), "convert given scans");
 
 	variables_map vars;
 	store(parse_command_line(argc, argv, desc), vars);
@@ -100,15 +100,21 @@ int main(int argc, char** argv) {
 		testSceneBundleGeneration();
 		return 0;
 	} else if(vars.count("convert") > 0) {
-		const auto dir_path = vars["convert"].as<std::string>();
+		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
+		if(dir_paths.empty()) {
+			ERROR("Need one or more scans to proceed");
+			return 1;
+		}
 		INFO("Loading scans");
 		std::vector<visual::SingleScan> scans;
-		scans.emplace_back(dir_path);
+		for(const auto& dir_path : dir_paths) {
+			scans.emplace_back(dir_path);
+		}
 
 		INFO("Converting to a scene");
 		auto bundle = visual::scene_recognizer::recognizeScene(scans);
-		bundle.serializeIntoDirectory(guessSceneName(dir_path));
-		return 1;
+		bundle.serializeIntoDirectory(guessSceneName(dir_paths.front()));
+		return 0;
 	} else {
 		INFO("Launching HTTP server");
 		server::ReconServer server;

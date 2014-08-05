@@ -9,6 +9,7 @@
 #define INFO(...) logJson("INFO", __FILE__, __LINE__, __VA_ARGS__)
 #define DEBUG(...) logJson("DEBUG", __FILE__, __LINE__, __VA_ARGS__)
 #define WARN(...) logJson("WARN", __FILE__, __LINE__, __VA_ARGS__)
+#define ERROR(...) logJson("ERROR", __FILE__, __LINE__, __VA_ARGS__)
 
 void logJsonRaw(std::string level, std::string path, int line, Json::Value& msg);
 

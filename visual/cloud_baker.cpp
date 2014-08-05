@@ -34,10 +34,13 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorPointsByDistance(
 	for(auto point : cloud->points) {
 		const Eigen::Vector3f pos = point.getVector3fMap();
 		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
-		point.r = dist_and_uv.first * 255;
-		point.g = dist_and_uv.first * 255;
-		point.b = dist_and_uv.first * 255;
-		cloud_new->points.push_back(point);
+		const float dist = dist_and_uv.first;
+		if(dist > 0.2) {
+			point.r = dist * 255;
+			point.g = dist * 255;
+			point.b = dist * 255;
+			cloud_new->points.push_back(point);
+		}
 	}
 	return cloud_new;
 }
