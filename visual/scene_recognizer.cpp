@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/range/irange.hpp>
 
+#include <third/ICP.h>
 #include <visual/cloud_baker.h>
 #include <visual/shape_fitter.h>
 
