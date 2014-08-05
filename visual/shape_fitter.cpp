@@ -402,7 +402,10 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 				k = 1 + static_cast<int>(k * 1.5);
 				DEBUG("k(next)=", k);
 				if(k >= points.size()) {
-					throw std::runtime_error("Circle search exhausted; probably some bug");
+					DEBUG("circle.size", (int)circle.size());
+					WARN("Circle search exhausted; probably some bug; exiting prematurely");
+					return circle;
+					//throw std::runtime_error("Circle search exhausted; probably some bug");
 				}
 			}
 			else {
