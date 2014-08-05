@@ -148,11 +148,12 @@ float half(const std::pair<float, float>& pair) {
 	return (pair.second - pair.first) / 2;
 }
 
-std::pair<float, float> robustMinMax(std::vector<float>& values) {
+std::pair<float, float> robustMinMax(std::vector<float>& values, const float tile) {
+	assert(0 <= tile && tile <= 1);
 	std::sort(values.begin(), values.end());
 	return std::make_pair(
-		values[int(values.size() * 0.01)],
-		values[int(values.size() * 0.99)]);
+		values[int(values.size() * tile)],
+		values[int(values.size() * (1 - tile))]);
 }
 
 bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points) {
@@ -290,7 +291,7 @@ std::pair<float, float> extractHeightRange(pcl::PointCloud<pcl::PointXYZ>::Ptr c
 	for(const auto& pt : cloud->points) {
 		zs.push_back(pt.z);
 	}
-	return robustMinMax(zs);
+	return robustMinMax(zs, 0.001);
 }
 
 bool intersectSegments(

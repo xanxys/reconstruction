@@ -37,7 +37,7 @@ float mean(const std::pair<float, float>& pair);
 float half(const std::pair<float, float>& pair);
 
 // The list will be sorted.
-std::pair<float, float> robustMinMax(std::vector<float>& values);
+std::pair<float, float> robustMinMax(std::vector<float>& values, float tile=0.01);
 
 // Check if given polygon is CCW.
 // Results is undefined when given polygon is degenerate.
