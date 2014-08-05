@@ -3,11 +3,13 @@
 
 #include <cassert>
 #include <fstream>
+#include <sstream>
 #include <string>
 
-#include "ModuleManager.h"
-#include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "Editor/UnrealEd/Public/AssetSelection.h"
+#include "ModuleManager.h"
+#include "picojson.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 #include "Slate.h"
 
@@ -42,14 +44,20 @@ void FLoaderPlugin::StartupModule()
 // https://forums.unrealengine.com/showthread.php?22023-UE4-Automatic-Level-Builder-Construction-and-Pipeline-Scripts&p=103983&viewfull=1#post103983
 void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
-
-	std::ifstream test("\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json");
-	std::string data;
-	std::getline(test, data);
+	
+	const std::string file_path = "\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json";
+	std::ifstream test(file_path);
+	picojson::value small_data;
+	test >> small_data;
+	
+	std::stringstream ss;
+	ss << small_data;
+	std::string data = ss.str();
 	UE_LOG(LoaderPlugin, Log, TEXT("Loaded: %s"), *FString(data.c_str()));
+	auto lights = small_data.get<picojson::object>()["lights"].get<picojson::array>();
+	UE_LOG(LoaderPlugin, Log, TEXT("* Number of Lights: %d"), lights.size());
 
 	// TODO: put asset (StaticMesh) to project and scene
-
 
 	const std::string asset_path = "/Script/Engine.PointLight";
 
@@ -60,15 +68,22 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	}
 	UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
 
-	const FVector location(0, 0, 0);
-	const FRotator rotation(0, 0, 0);
 	auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
 	auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
 
 	UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
 	assert(factory != nullptr);
 	assert(level != nullptr);
-	AActor* actor = factory->CreateActor(asset, level, location, &rotation);
+	
+	const float uu_per_meter = 100;
+	for (auto& light : lights) {
+		auto pos = light.get<picojson::object>()["pos"].get<picojson::object>();
+		FVector location(pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
+		location *= uu_per_meter;
+		const FRotator rotation(0, 0, 0);
+		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Light at %s"), *location.ToString());
+		AActor* actor = factory->CreateActor(asset, level, location, &rotation);
+	}
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {

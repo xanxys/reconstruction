@@ -14,7 +14,7 @@ namespace UnrealBuildTool.Rules
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
-					"Developer/LoaderPlugin/Private",
+					"Developer/LoaderPlugin/Private"
 					// ... add other private include paths required here ...
 				}
 				);
