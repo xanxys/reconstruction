@@ -224,6 +224,14 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 			return mat;
 		};
 
+		Eigen::Matrix3f rot_test;
+		rot_test.col(0) = Eigen::Vector3f(-1, 0, 0);
+		rot_test.col(1) = Eigen::Vector3f(0, -1, 0);
+		rot_test.col(2) = Eigen::Vector3f(0, 0, 1);
+		for(auto& pt : scans[0].cloud->points) {
+			pt.getVector3fMap() = rot_test * pt.getVector3fMap();
+		}
+
 		auto m_source = to_matrix(scans[0]);
 		auto m_target = to_matrix(scans[1]);
 
@@ -231,7 +239,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 		// See this youtube video for quick summary of good p value.
 		// https://www.youtube.com/watch?v=ii2vHBwlmo8
 		SICP::Parameters params;
-		params.max_icp = 100;
+		params.max_icp = 500;
 		params.p = 0.7;
 
 		// The type signature do look like it allows any Scalar, but only
