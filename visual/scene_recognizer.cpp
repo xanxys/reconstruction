@@ -172,20 +172,74 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 namespace scene_recognizer {
 
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
-	assert(scans.size() > 0);
+	assert(!scans.empty());
+
+	INFO("Merging points in multiple scans");
+	const auto points_merged = mergePoints(scans);
+	INFO("# of points after merge:", (int)points_merged->points.size());
 
 	INFO("Approximating exterior shape by an extruded polygon");
-	const auto cloud_colorless = decolor(*scans[0].cloud);
+	const auto cloud_colorless = decolor(*points_merged);
 	TriangleMesh<std::nullptr_t> room_mesh = shape_fitter::fitExtrusion(cloud_colorless);
 
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
-	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(scans[0].cloud, room_mesh);
+	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(points_merged, room_mesh);
 	bundle.debug_points_distance = visual::cloud_baker::colorPointsByDistance(scans[0].cloud, room_mesh);
-	bundle.debug_points_merged = scans[0].cloud;
-	bundle.point_lights = visual::recognize_lights(scans[0].cloud);
+	bundle.debug_points_merged = points_merged;
+	bundle.point_lights = visual::recognize_lights(points_merged);
 	return bundle;
 }
+
+
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>& scans) {
+	assert(!scans.empty());
+	if(scans.size() == 1) {
+		return scans.front().cloud;
+	} else {
+		auto to_matrix = [](const SingleScan& scan) {
+			const int n = scan.cloud->points.size();
+			Eigen::Matrix3Xd mat(3, n);
+			for(int i : boost::irange(0, n)) {
+				mat.col(i) = scan.cloud->points[i].getVector3fMap().cast<double>();
+			}
+			return mat;
+		};
+
+		auto m_source = to_matrix(scans[0]);
+		auto m_target = to_matrix(scans[1]);
+
+		INFO("Running Sparse ICP");
+		// See this youtube video for quick summary of good p value.
+		// https://www.youtube.com/watch?v=ii2vHBwlmo8
+		SICP::Parameters params;
+		params.max_icp = 5;
+		params.p = 0.5;
+
+		// The type signature do look like it allows any Scalar, but only
+		// double will work in reality.
+		Eigen::Matrix3Xd m_source_orig = m_source;
+		SICP::point_to_point(m_source, m_target, params);
+
+		// Recover motion.
+		const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
+			m_source_orig, m_source).cast<float>();
+		INFO("Affine", m(0, 0));
+
+		// Merge color cloud.
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>);
+		for(const auto& pt : scans[0].cloud->points) {
+			pcl::PointXYZRGB pt_new = pt;
+			pt_new.getVector3fMap() = m * pt_new.getVector3fMap();
+			merged->points.push_back(pt_new);
+		}
+		for(const auto& pt : scans[1].cloud->points) {
+			merged->points.push_back(pt);
+		}
+		return merged;
+	}
+}
+
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_colorless(new pcl::PointCloud<pcl::PointXYZ>());

@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
 			ERROR("Need one or more scans to proceed");
 			return 1;
 		}
-		INFO("Loading scans");
+		INFO("Loading scans, #scans=", (int)dir_paths.size());
 		std::vector<visual::SingleScan> scans;
 		for(const auto& dir_path : dir_paths) {
 			scans.emplace_back(dir_path);

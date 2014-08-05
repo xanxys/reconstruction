@@ -54,6 +54,9 @@ namespace scene_recognizer {
 // and generates a SceneAsssetBundle.
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans);
 
+// Merge point clouds in several scans into a single point cloud.
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>& scans);
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 
 }  // namespace
