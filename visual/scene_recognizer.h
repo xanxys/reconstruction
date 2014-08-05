@@ -27,12 +27,13 @@ private:
 	// (e.g. <100MB).
 	// Don't store image-like things or huge triangle mesh here.
 	Json::Value serializeSmallData() const;
-	TriangleMesh<Eigen::Vector3f> serializeDebugPoints() const;
+	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 public:
 	TexturedMesh exterior_mesh;
 	std::vector<Eigen::Vector3f> point_lights;
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_distance;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_merged;
 };
 
 

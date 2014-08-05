@@ -24,17 +24,23 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	create_directory(dir_path);
 	exterior_mesh.writeWavefrontObject(
 		(dir_path / path("exterior_mesh")).string());
-
-	std::ofstream debug_points_file((dir_path / path("debug_points_distance.ply")).string());
-	serializeDebugPoints().serializePLYWithRgb(debug_points_file);
-
-	std::ofstream json_file((dir_path / path("small_data.json")).string());
-	json_file << Json::FastWriter().write(serializeSmallData());
+	{
+		std::ofstream debug_points_file((dir_path / path("debug_points_distance.ply")).string());
+		serializeDebugPoints(debug_points_distance).serializePLYWithRgb(debug_points_file);
+	}
+	{
+		std::ofstream debug_points_file((dir_path / path("debug_points_merged.ply")).string());
+		serializeDebugPoints(debug_points_merged).serializePLYWithRgb(debug_points_file);
+	}
+	{
+		std::ofstream json_file((dir_path / path("small_data.json")).string());
+		json_file << Json::FastWriter().write(serializeSmallData());
+	}
 }
 
-TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints() const {
+TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const {
 	TriangleMesh<Eigen::Vector3f> mesh;
-	for(const auto& pt : debug_points_distance->points) {
+	for(const auto& pt : cloud->points) {
 		mesh.vertices.push_back(std::make_pair(
 			pt.getVector3fMap(),
 			Eigen::Vector3f(pt.r, pt.g, pt.b)));
@@ -74,16 +80,6 @@ SingleScan::SingleScan(Json::Value& cloud_json) {
 
 		pt.getVector3fMap() = m * pt.getVector3fMap();
 		cloud->points.push_back(pt);
-	}
-
-	// Dump debug point cloud.
-	{
-		TriangleMesh<std::nullptr_t> mesh;
-		for(const auto& p : cloud->points) {
-			mesh.vertices.push_back(std::make_pair(p.getVector3fMap(), nullptr));
-		}
-		std::ofstream f_debug("raw_cloud.ply");
-		mesh.serializePLY(f_debug);
 	}
 }
 
@@ -186,6 +182,7 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	SceneAssetBundle bundle;
 	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(scans[0].cloud, room_mesh);
 	bundle.debug_points_distance = visual::cloud_baker::colorPointsByDistance(scans[0].cloud, room_mesh);
+	bundle.debug_points_merged = scans[0].cloud;
 	bundle.point_lights = visual::recognize_lights(scans[0].cloud);
 	return bundle;
 }
