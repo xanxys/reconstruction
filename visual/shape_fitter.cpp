@@ -275,13 +275,22 @@ std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Pt
 		const auto pt_i = (pt / resolution).cast<int>();
 		tiles[std::make_pair(pt_i(0), pt_i(1))].push_back(pt);
 	}
+	const int n_thresh = 0.1 * points.size() / tiles.size();
+	INFO("2D downsampler: rejection thresh", n_thresh);
+	int n_reject = 0;
 	std::vector<Eigen::Vector2f> points_downsampled;
 	for(const auto& tile : tiles) {
+		// Ignore tile with too few points.
+		if(tile.second.size() < n_thresh) {
+			n_reject++;
+			continue;
+		}
 		points_downsampled.push_back(
 			std::accumulate(
 				tile.second.begin(), tile.second.end(),
 				Eigen::Vector2f(0, 0)) / tile.second.size());
 	}
+	INFO("Rejected tiles:", n_reject, "of", (int)tiles.size());
 
 	return calculateConcaveHull(points_downsampled, 20);
 }

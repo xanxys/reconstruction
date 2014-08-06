@@ -184,6 +184,9 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	const auto cloud_colorless = decolor(*points_merged);
 	TriangleMesh<std::nullptr_t> room_mesh = shape_fitter::fitExtrusion(cloud_colorless);
 
+	INFO("Modeling boxes along wall");
+	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh);
+
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(points_merged, room_mesh);
