@@ -26,8 +26,12 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	exterior_mesh.writeWavefrontObject(
 		(dir_path / path("exterior_mesh")).string());
 	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_distance.ply")).string());
-		serializeDebugPoints(debug_points_distance).serializePLYWithRgb(debug_points_file);
+		std::ofstream debug_points_file((dir_path / path("debug_points_interior.ply")).string());
+		serializeDebugPoints(debug_points_interior).serializePLYWithRgb(debug_points_file);
+	}
+	{
+		std::ofstream debug_points_file((dir_path / path("debug_points_interior_distance.ply")).string());
+		serializeDebugPoints(debug_points_interior_distance).serializePLYWithRgb(debug_points_file);
 	}
 	{
 		std::ofstream debug_points_file((dir_path / path("debug_points_merged.ply")).string());
@@ -36,6 +40,11 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	{
 		std::ofstream json_file((dir_path / path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
+	}
+	int count = 0;
+	for(const auto& interior : interior_objects) {
+		const std::string name = "interior_" + std::to_string(count++);
+		interior.writeWavefrontObject((dir_path / name).string());
 	}
 }
 
@@ -184,24 +193,60 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = decolor(*points_merged);
 	const auto extrusion = shape_fitter::fitExtrusion(cloud_colorless);
-	const auto room_mesh = extrusion.first;
-	const auto room_polygon = extrusion.second;
+	const auto room_mesh = std::get<0>(extrusion);
+	const auto room_polygon = std::get<1>(extrusion);
 
 	INFO("Modeling boxes along wall");
-	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh);
+	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh, true);
+	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh, false);
 	const auto box_ticks = decomposeWallBoxes(decolor(*cloud_interior), room_polygon);
 	INFO("Box candidates found", (int)box_ticks.size());
+	std::vector<TexturedMesh> boxes;
+	for(const auto& tick_range : box_ticks) {
+		const auto maybe_box = createWallBox(room_polygon, std::get<2>(extrusion), tick_range, cloud_interior);
+		if(maybe_box) {
+			boxes.push_back(*maybe_box);
+		}
+	}
+	INFO("Box actually created", (int)boxes.size());
 
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
-	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(points_merged, room_mesh);
-	bundle.debug_points_distance = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh);
-	bundle.debug_points_merged = points_merged;
 	bundle.point_lights = visual::recognize_lights(points_merged);
+	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(points_merged, room_mesh);
+	bundle.interior_objects = boxes;
+	bundle.debug_points_interior = cloud_interior;
+	bundle.debug_points_interior_distance = cloud_interior_dist;
+	bundle.debug_points_merged = points_merged;
 	return bundle;
 }
 
-std::vector<std::pair<float, float>> decomposeWallBoxes(
+boost::optional<TexturedMesh> createWallBox(
+		const std::vector<Eigen::Vector2f>& polygon,
+		std::pair<float, float> z_range,
+		std::pair<int, int> ticks,
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+	auto p0 = polygon[ticks.first];
+	auto p1 = polygon[ticks.second];
+	const float depth = 0.4;
+	const float height = 0.5;
+	const Eigen::Vector2f edge_d = p1 - p0;
+	const Eigen::Vector2f edge_n = Eigen::Vector2f(-edge_d(1), edge_d(0)).normalized();
+	const Eigen::Vector2f center_2d = (p0 + p1) / 2 + edge_n * (depth * 0.5);
+
+	const Eigen::Vector3f center = append(center_2d, height / 2 + z_range.first);
+
+	const auto box_mesh = shape_fitter::createBox(
+		center,
+		append(edge_d, 0) / 2,
+		append(edge_n, 0) * (depth / 2),
+		Eigen::Vector3f(0, 0, height / 2));
+
+	const auto box = visual::cloud_baker::bakePointsToMesh(cloud, box_mesh);
+	return boost::optional<TexturedMesh>(box);
+}
+
+std::vector<std::pair<int, int>> decomposeWallBoxes(
 		pcl::PointCloud<pcl::PointXYZ>::Ptr interior_cloud,
 		const std::vector<Eigen::Vector2f>& polygon) {
 	std::vector<int> counts;
@@ -244,7 +289,7 @@ std::vector<std::pair<float, float>> decomposeWallBoxes(
 		of << Json::FastWriter().write(wall_histogram);
 	}
 
-	std::vector<std::pair<float, float>> ticks;
+	std::vector<std::pair<int, int>> ticks;
 	const int thresh = 10;
 	boost::optional<int> start_ix;
 	for(int i : boost::irange(0, n + 1)) {

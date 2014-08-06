@@ -20,7 +20,10 @@ namespace shape_fitter {
 // WARNING:
 // Since this code use robust estimate, instead of min/max,
 // some points will NOT be inside of the returned mesh.
-std::pair<TriangleMesh<std::nullptr_t>, std::vector<Eigen::Vector2f>> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+std::tuple<
+	TriangleMesh<std::nullptr_t>,
+	std::vector<Eigen::Vector2f>,
+	std::pair<float, float>> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 // Fit an orinted bounding box (with Y-axis-only rotation) to
 // given point cloud, and return (6) planes of the OBB.
@@ -77,7 +80,7 @@ bool intersectSegments(
 	std::pair<Eigen::Vector2f, Eigen::Vector2f> b0);
 
 TriangleMesh<std::nullptr_t> createBox(
-Eigen::Vector3f center,Eigen::Vector3f half_dx,
+	Eigen::Vector3f center, Eigen::Vector3f half_dx,
 	Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
 
 }  // namespace

@@ -27,7 +27,8 @@ namespace cloud_baker {
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorPointsByDistance(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
-		TriangleMesh<std::nullptr_t> shape) {
+		TriangleMesh<std::nullptr_t> shape,
+		bool dont_color) {
 	const auto mesh_uv = mapSecond(assignUV(shape));
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_new(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -36,9 +37,11 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorPointsByDistance(
 		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
 		const float dist = dist_and_uv.first;
 		if(dist > 0.2) {
-			point.r = dist * 255;
-			point.g = dist * 255;
-			point.b = dist * 255;
+			if(!dont_color) {
+				point.r = dist * 255;
+				point.g = dist * 255;
+				point.b = dist * 255;
+			}
 			cloud_new->points.push_back(point);
 		}
 	}
