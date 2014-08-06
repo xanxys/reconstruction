@@ -225,10 +225,36 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 				pt.getVector3fMap() = pre_rot * pt.getVector3fMap();
 			}
 		}
+
+		// Apply translation to match 2D centroid.
+		// Since the scanner can scan 360 degree,
+		// it's expected that scan contains most part of 2D XY slice
+		// of the room, while height range can vary by occlusion.
+		std::vector<Eigen::Vector2f> centroids;
+		for(auto& scan : scans) {
+			std::vector<float> xs;
+			std::vector<float> ys;
+			for(auto& pt : scan.cloud->points) {
+				xs.push_back(pt.x);
+				ys.push_back(pt.y);
+			}
+			centroids.emplace_back(
+				shape_fitter::mean(shape_fitter::robustMinMax(xs, 0.01)),
+				shape_fitter::mean(shape_fitter::robustMinMax(ys, 0.01)));
+		}
+		for(int i : boost::irange(1, (int)scans.size())) {
+			auto dp = centroids[0] - centroids[i];
+			const Eigen::Vector3f trans(dp(0), dp(1), 0);
+			INFO("Pre-aligning scan by centroid", i, trans(0), trans(1));
+			for(auto& pt : scans[i].cloud->points) {
+				pt.getVector3fMap() += trans;
+			}
+		}
+
 		// 0: target
 		// 1,2,..: source
 		auto to_matrix = [](const SingleScan& scan) {
-			const auto cloud = downsample(decolor(*scan.cloud), 0.1);
+			const auto cloud = downsample(decolor(*scan.cloud), 0.05);
 			const int n = cloud->points.size();
 			Eigen::Matrix3Xd mat(3, n);
 			for(int i : boost::irange(0, n)) {
@@ -251,8 +277,9 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 			// See this youtube video for quick summary of good p value.
 			// https://www.youtube.com/watch?v=ii2vHBwlmo8
 			SICP::Parameters params;
-			params.max_icp = 1000;
+			params.max_icp = 250;
 			params.p = 0.7;
+			params.stop = 0;
 
 			// The type signature do look like it allows any Scalar, but only
 			// double will work in reality.
