@@ -60,6 +60,11 @@ namespace scene_recognizer {
 // Downsample using grid filter (leave one point per voxel).
 pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float grid_size=0.05);
 
+// Calculate ranges (both ends of box) on wall polygon by analyzing interior point cloud.
+std::vector<std::pair<float, float>> decomposeWallBoxes(
+	pcl::PointCloud<pcl::PointXYZ>::Ptr interior_cloud,
+	const std::vector<Eigen::Vector2f>& polygon);
+
 // Takes several scans of a single room as input (in unordered way),
 // and generates a SceneAsssetBundle.
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans);

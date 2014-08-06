@@ -19,7 +19,7 @@
 namespace visual {
 namespace shape_fitter {
 
-TriangleMesh<std::nullptr_t> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+std::pair<TriangleMesh<std::nullptr_t>, std::vector<Eigen::Vector2f>> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	TriangleMesh<std::nullptr_t> mesh;
 
 	const auto poly = extractPolygon2D(cloud);
@@ -71,7 +71,7 @@ TriangleMesh<std::nullptr_t> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
 	mesh.merge(create_cap(h_range.second, true));  // ceiling
 
 	DEBUG("Extruded polygon mesh #v=", (int)mesh.vertices.size());
-	return mesh;
+	return std::make_pair(mesh, poly);
 }
 
 TriangleMesh<std::nullptr_t> fitOBB(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {

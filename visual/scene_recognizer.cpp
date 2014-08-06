@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
 
 #include <third/ICP.h>
@@ -182,10 +183,14 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = decolor(*points_merged);
-	TriangleMesh<std::nullptr_t> room_mesh = shape_fitter::fitExtrusion(cloud_colorless);
+	const auto extrusion = shape_fitter::fitExtrusion(cloud_colorless);
+	const auto room_mesh = extrusion.first;
+	const auto room_polygon = extrusion.second;
 
 	INFO("Modeling boxes along wall");
 	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh);
+	const auto box_ticks = decomposeWallBoxes(decolor(*cloud_interior), room_polygon);
+	INFO("Box candidates found", (int)box_ticks.size());
 
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
@@ -194,6 +199,70 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	bundle.debug_points_merged = points_merged;
 	bundle.point_lights = visual::recognize_lights(points_merged);
 	return bundle;
+}
+
+std::vector<std::pair<float, float>> decomposeWallBoxes(
+		pcl::PointCloud<pcl::PointXYZ>::Ptr interior_cloud,
+		const std::vector<Eigen::Vector2f>& polygon) {
+	std::vector<int> counts;
+	// Project points to edges of polygon.
+	const int n = polygon.size();
+	for(int i : boost::irange(0, n)) {
+		const Eigen::Vector2f v0 = polygon[i];
+		const Eigen::Vector2f edge_d = polygon[(i + 1) % n] - polygon[i];
+		const float edge_len = edge_d.norm();
+		const Eigen::Vector2f edge_d_norm = edge_d / edge_len;
+		const Eigen::Vector2f edge_n = Eigen::Vector2f(-edge_d(1), edge_d(0)).normalized();
+		const float max_distance = 0.5;
+		// Count points that falls in this region. (*counted .ignored)
+		// .  .   . distance
+		//  | *  |
+		// .|   *|
+		// -+----+-> edge_d
+		//  v0
+		counts.push_back(0);
+		for(const auto& pt : interior_cloud->points) {
+			const Eigen::Vector2f pt2d = pt.getVector3fMap().head(2);
+			auto dp = pt2d - v0;
+			const float distance = dp.dot(edge_n);
+			if(distance < 0 || distance > max_distance) {
+				continue;
+			}
+			const float t = dp.dot(edge_d_norm);
+			if(t < 0 || t > edge_len) {
+				continue;
+			}
+			counts[i] ++;
+		}
+	}
+	Json::Value wall_histogram;
+	for(const auto val : counts) {
+		wall_histogram.append(val);
+	}
+	{
+		std::ofstream of("wall_histogram.json");
+		of << Json::FastWriter().write(wall_histogram);
+	}
+
+	std::vector<std::pair<float, float>> ticks;
+	const int thresh = 10;
+	boost::optional<int> start_ix;
+	for(int i : boost::irange(0, n + 1)) {
+		const bool ir = (counts[i % n] > thresh);
+		if(start_ix) {
+			if(!ir) {
+				ticks.push_back(std::make_pair(
+					*start_ix, i % n));
+				start_ix = boost::none;
+			}
+		} else {
+			if(ir) {
+				start_ix = i % n;
+			}
+		}
+	}
+
+	return ticks;
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const float grid_size) {
