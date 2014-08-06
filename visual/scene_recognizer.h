@@ -40,9 +40,15 @@ public:
 class SingleScan {
 public:
 	SingleScan(Json::Value& old_style);
-	SingleScan(const std::string& path);
+
+	SingleScan(const std::string& path, float pre_rotation = 0);
 public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
+
+	// Hack to make sparse ICP work.
+	// TODO: guess this internally and remove this field,
+	// or replace with magnetometer measurement.
+	const float pre_rotation;
 };
 
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);

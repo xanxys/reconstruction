@@ -61,7 +61,8 @@ Json::Value SceneAssetBundle::serializeSmallData() const {
 }
 
 
-SingleScan::SingleScan(Json::Value& cloud_json) {
+SingleScan::SingleScan(Json::Value& cloud_json) :
+		pre_rotation(0) {
 	// Convert input coords. space to make Z+ up.
 	// Only required for old dataset which was Y+ up.
 	Eigen::Matrix3f m;
@@ -83,7 +84,8 @@ SingleScan::SingleScan(Json::Value& cloud_json) {
 	}
 }
 
-SingleScan::SingleScan(const std::string& scan_dir) {
+SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
+		pre_rotation(pre_rotation) {
 	using boost::filesystem::path;
 	INFO("Loading a scan from", scan_dir);
 	std::ifstream f_input((path(scan_dir) / path("points.json")).string());
@@ -214,6 +216,17 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 	if(scans.size() == 1) {
 		return scans.front().cloud;
 	} else {
+		// TODO: remove this!!!!
+		// Apply pre rotation.
+		for(auto& scan : scans) {
+			Eigen::Matrix3f pre_rot;
+			pre_rot = Eigen::AngleAxisf(scan.pre_rotation, Eigen::Vector3f::UnitZ());
+			for(auto& pt : scan.cloud->points) {
+				pt.getVector3fMap() = pre_rot * pt.getVector3fMap();
+			}
+		}
+		// 0: target
+		// 1,2,..: source
 		auto to_matrix = [](const SingleScan& scan) {
 			const auto cloud = downsample(decolor(*scan.cloud), 0.1);
 			const int n = cloud->points.size();
@@ -224,43 +237,39 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 			return mat;
 		};
 
-		Eigen::Matrix3f rot_test;
-		rot_test.col(0) = Eigen::Vector3f(-1, 0, 0);
-		rot_test.col(1) = Eigen::Vector3f(0, -1, 0);
-		rot_test.col(2) = Eigen::Vector3f(0, 0, 1);
-		for(auto& pt : scans[0].cloud->points) {
-			pt.getVector3fMap() = rot_test * pt.getVector3fMap();
-		}
-
-		auto m_source = to_matrix(scans[0]);
-		auto m_target = to_matrix(scans[1]);
-
-		INFO("Running Sparse ICP");
-		// See this youtube video for quick summary of good p value.
-		// https://www.youtube.com/watch?v=ii2vHBwlmo8
-		SICP::Parameters params;
-		params.max_icp = 500;
-		params.p = 0.7;
-
-		// The type signature do look like it allows any Scalar, but only
-		// double will work in reality.
-		Eigen::Matrix3Xd m_source_orig = m_source;
-		SICP::point_to_point(m_source, m_target, params);
-
-		// Recover motion.
-		const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
-			m_source_orig, m_source).cast<float>();
-		INFO("Affine |t|=", m.translation().norm());
-
-		// Merge color cloud.
+		// Merge scans[0]
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>);
 		for(const auto& pt : scans[0].cloud->points) {
-			pcl::PointXYZRGB pt_new = pt;
-			pt_new.getVector3fMap() = m * pt.getVector3fMap();
-			merged->points.push_back(pt_new);
-		}
-		for(const auto& pt : scans[1].cloud->points) {
 			merged->points.push_back(pt);
+		}
+		// Merge others.
+		for(int i : boost::irange(1, (int)scans.size())) {
+			auto m_source = to_matrix(scans[i]);
+			auto m_target = to_matrix(scans[0]);
+
+			INFO("Running Sparse ICP", i);
+			// See this youtube video for quick summary of good p value.
+			// https://www.youtube.com/watch?v=ii2vHBwlmo8
+			SICP::Parameters params;
+			params.max_icp = 1000;
+			params.p = 0.7;
+
+			// The type signature do look like it allows any Scalar, but only
+			// double will work in reality.
+			Eigen::Matrix3Xd m_source_orig = m_source;
+			SICP::point_to_point(m_source, m_target, params);
+
+			// Recover motion.
+			const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
+				m_source_orig, m_source).cast<float>();
+			INFO("Affine |t|=", m.translation().norm());
+
+			// Merge color cloud.
+			for(const auto& pt : scans[i].cloud->points) {
+				pcl::PointXYZRGB pt_new = pt;
+				pt_new.getVector3fMap() = m * pt.getVector3fMap();
+				merged->points.push_back(pt_new);
+			}
 		}
 		return merged;
 	}

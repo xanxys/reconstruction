@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <map>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -107,8 +108,27 @@ int main(int argc, char** argv) {
 		}
 		INFO("Loading scans, #scans=", (int)dir_paths.size());
 		std::vector<visual::SingleScan> scans;
+		// HACK ALERT!
+		// TODO: remove this table
+		// Make Y+ north.
+		std::map<std::string, float> pre_rot = {
+			{"scan-20140801-18:41-gakusei-large", 0.2 * 3.14},
+			{"test-20140801-15:24-gakusei-table", 0.6 * 3.14},
+			{"scan-20140801-18:44", -0.7 * 3.14},
+			{"scan-20140801-18:47", 1.2 * 3.14},
+			{"scan-20140801-18:50-ocha-2", -0.6 * 3.14},
+			{"scan-20140801-18:54-gakusei-small-1", 0.4 * 3.14},
+			{"scan-20140801-18:57-gakusei-small-2", -0.4 * 3.14},
+			{"scan-20140801-19:00-gakusei-small-3", 0.2 * 3.14}
+		};
 		for(const auto& dir_path : dir_paths) {
-			scans.emplace_back(dir_path);
+			auto it = pre_rot.find(guessSceneName(dir_path));
+			float pr = 0;
+			if(it != pre_rot.end()) {
+				WARN("Using hard-coded pre-rotation table", it->second);
+				pr = it->second;
+			}
+			scans.emplace_back(dir_path, pr);
 		}
 
 		INFO("Converting to a scene");
