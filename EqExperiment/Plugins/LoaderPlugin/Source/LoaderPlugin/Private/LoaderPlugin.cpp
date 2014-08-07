@@ -46,9 +46,15 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
 	
 	const std::string file_path = "\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json";
-	std::ifstream test(file_path);
 	picojson::value small_data;
-	test >> small_data;
+	try {
+		std::ifstream test(file_path);
+		test >> small_data;
+	}
+	catch (...) {
+		UE_LOG(LoaderPlugin, Warning, TEXT("Failed to load text; aborting import"));
+		return;
+	}
 	
 	std::stringstream ss;
 	ss << small_data;
