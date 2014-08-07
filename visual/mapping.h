@@ -84,7 +84,16 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 			std::sqrt((vs[ix_topleft] - vs[ix_bottom]).squaredNorm() - std::pow(height, 2)),
 			height);
 
-		uv_sizes.emplace_back(width, height);
+		// Crete padding to avoid color breeding
+		//  +----------+----------+  <---
+		//  | orig     |          |   | height
+		//  | rect     |          |   |
+		//  |----------+----------|  <---
+		//  |          |          |
+		//  |          |          |
+		//  +----------+----------+
+		//  <--width-->
+		uv_sizes.emplace_back(width * 2, height * 2);
 		local_uvs.emplace_back(uvs[0], uvs[1], uvs[2]);
 	}
 
