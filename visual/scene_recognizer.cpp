@@ -226,14 +226,37 @@ boost::optional<TexturedMesh> createWallBox(
 		std::pair<float, float> z_range,
 		std::pair<int, int> ticks,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	auto p0 = polygon[ticks.first];
-	auto p1 = polygon[ticks.second];
-	const float depth = 0.4;
-	const float height = 0.5;
+	const auto p0 = polygon[ticks.first];
+	const auto p1 = polygon[ticks.second];
 	const Eigen::Vector2f edge_d = p1 - p0;
+	const Eigen::Vector2f edge_d_norm = edge_d.normalized();
+	const float edge_len = edge_d.norm();
 	const Eigen::Vector2f edge_n = Eigen::Vector2f(-edge_d(1), edge_d(0)).normalized();
-	const Eigen::Vector2f center_2d = (p0 + p1) / 2 + edge_n * (depth * 0.5);
 
+	// Collect points.
+	const float max_distance = 0.8;
+	std::vector<float> heights;
+	std::vector<float> depths;
+	for(const auto& pt : cloud->points) {
+		const Eigen::Vector2f pt2d = pt.getVector3fMap().head(2);
+		auto dp = pt2d - p0;
+		const float distance = dp.dot(edge_n);
+		if(distance < 0 || distance > max_distance) {
+			continue;
+		}
+		const float t = dp.dot(edge_d_norm);
+		if(t < 0 || t > edge_len) {
+			continue;
+		}
+
+		heights.push_back(pt.z - z_range.first);
+		depths.push_back(distance);
+	}
+
+	const float depth = shape_fitter::robustMinMax(depths, 0.2).second;
+	const float height = shape_fitter::robustMinMax(heights, 0.2).second;
+
+	const Eigen::Vector2f center_2d = (p0 + p1) / 2 + edge_n * (depth * 0.5);
 	const Eigen::Vector3f center = append(center_2d, height / 2 + z_range.first);
 
 	const auto box_mesh = shape_fitter::createBox(
