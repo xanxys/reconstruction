@@ -72,6 +72,10 @@ std::pair<float, std::vector<Eigen::Vector2f>>
 				column_width = std::max(*column_width, rect(0));
 			}
 		}
+		// Did the last column fit?
+		if(column_width && column_left + *column_width >= size) {
+			failed = true;
+		}
 		if(!failed) {
 			return std::make_pair(size, offsets);
 		}
