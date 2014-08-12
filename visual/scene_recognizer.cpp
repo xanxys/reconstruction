@@ -116,6 +116,11 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 		pt.b = point["b"].asDouble();
 		cloud->points.push_back(pt);
 	}
+
+	INFO("Loading equirectangular images");
+	er_rgb = cv::imread((path(scan_dir) / path("rgb")).string());
+	er_intensity = cv::imread((path(scan_dir) / path("intensity")).string());
+	er_depth = cv::imread((path(scan_dir) / path("depth")).string());
 }
 
 

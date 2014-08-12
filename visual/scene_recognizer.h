@@ -52,6 +52,10 @@ public:
 	// TODO: guess this internally and remove this field,
 	// or replace with magnetometer measurement.
 	const float pre_rotation;
+
+	cv::Mat er_rgb;
+	cv::Mat er_depth;
+	cv::Mat er_intensity;
 };
 
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
