@@ -4,6 +4,70 @@
 		"selected_items":
 		[
 			[
+				"cons",
+				"consts"
+			],
+			[
+				"cop",
+				"copied_bin_path"
+			],
+			[
+				"wall",
+				"wall_histogram"
+			],
+			[
+				"cloud_",
+				"cloud_interior"
+			],
+			[
+				"empty",
+				"empty_like	statement"
+			],
+			[
+				"th",
+				"theta_thresh	statement"
+			],
+			[
+				"Poin",
+				"PointCloud"
+			],
+			[
+				"V",
+				"getVector3fMap"
+			],
+			[
+				"debug_poi",
+				"debug_points_merged"
+			],
+			[
+				"debug",
+				"debug_points_file"
+			],
+			[
+				"cloud",
+				"cloud_new"
+			],
+			[
+				"cp",
+				"components"
+			],
+			[
+				"rgb",
+				"rgb_merged	statement"
+			],
+			[
+				"points",
+				"points_downsampled"
+			],
+			[
+				"exec",
+				"execute_subcommand"
+			],
+			[
+				"ones",
+				"ones_like	function"
+			],
+			[
 				"select",
 				"select_variant	function"
 			],
@@ -138,10 +202,6 @@
 			[
 				"Voxe",
 				"VoxelState"
-			],
-			[
-				"cloud",
-				"cloud_json"
 			],
 			[
 				"exter",
@@ -454,86 +514,26 @@
 			[
 				"Bo",
 				"BoardState"
-			],
-			[
-				"fil",
-				"filterRun"
-			],
-			[
-				"Pl",
-				"Play"
-			],
-			[
-				"Play",
-				"PlayerSide"
-			],
-			[
-				"enemy",
-				"enemyTerritory"
-			],
-			[
-				"block",
-				"blockerSide"
-			],
-			[
-				"pote",
-				"potentialDestinationsInfinite"
-			],
-			[
-				"poten",
-				"potentialPositions"
-			],
-			[
-				"getPl",
-				"getPlayFromPlayer"
-			],
-			[
-				"CUI",
-				"CUIPlayer"
-			],
-			[
-				"ini",
-				"initialBoardState"
-			],
-			[
-				"create",
-				"createPlayer"
-			],
-			[
-				"Pla",
-				"PlayerSide"
-			],
-			[
-				"showDi",
-				"showDigitInKanji"
-			],
-			[
-				"showDigitI",
-				"showDigitInZenkakuArabic"
-			],
-			[
-				"showPiece",
-				"showPieceJapanese"
 			]
 		]
 	},
 	"buffers":
 	[
-		{
-			"file": "/home/xyx/devenv/capturer/assemble_capture.py",
-			"settings":
-			{
-				"buffer_size": 13828,
-				"line_ending": "Unix"
-			}
-		}
 	],
 	"build_system": "Packages/User/scons.sublime-build",
 	"command_palette":
 	{
-		"height": 374.0,
+		"height": 301.0,
 		"selected_items":
 		[
+			[
+				"reinde",
+				"JSON Reindent: reindent file or selection"
+			],
+			[
+				"trailin",
+				"Trailing Spaces: Delete Trailing Spaces"
+			],
 			[
 				"rein",
 				"JSON Reindent: reindent file or selection"
@@ -541,10 +541,6 @@
 			[
 				"inde",
 				"Indentation: Reindent Lines"
-			],
-			[
-				"reinde",
-				"JSON Reindent: reindent file or selection"
 			],
 			[
 				"anaconda disa",
@@ -597,10 +593,6 @@
 			[
 				"update",
 				"Package Control: Upgrade/Overwrite All Packages"
-			],
-			[
-				"trailin",
-				"Trailing Spaces: Delete Trailing Spaces"
 			],
 			[
 				"trail",
@@ -863,7 +855,7 @@
 				"Package Control: Install Package"
 			]
 		],
-		"width": 435.0
+		"width": 532.0
 	},
 	"console":
 	{
@@ -884,37 +876,96 @@
 	},
 	"file_history":
 	[
-		"/home/xyx/devenv/capturer/assemble_capture.py",
-		"/home/xyx/devenv/capturer/assembled_cloud.json",
-		"/home/xyx/devenv/capturer/calibration-real.json",
-		"/home/xyx/devenv/capturer/calibration-home.json",
-		"/home/xyx/devenv/capturer/tools/calibrate.py",
-		"/home/xyx/devenv/reconstruction/visual/scene_recognizer.cpp",
-		"/home/xyx/devenv/reconstruction/visual/scene_recognizer.h",
-		"/home/xyx/devenv/capturer/test_cloud-test-20140711-16:00-gakusei1.ply",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
+		"/home/xyx/devenv/reconstruction/visual/mapping.cpp",
+		"/home/xyx/devenv/reconstruction/visual/mapping.h",
+		"/home/xyx/devenv/reconstruction/visual/mapping_test.cpp",
+		"/home/xyx/devenv/reconstruction/visual/shape_fitter_test.cpp",
+		"/home/xyx/devenv/reconstruction/visual/mapping_test.h",
+		"/home/xyx/devenv/reconstruction/scan-20140801-18:44/exterior_mesh/object.obj",
+		"/home/xyx/devenv/reconstruction/visual/marching_cubes.cpp",
+		"/home/xyx/devenv/reconstruction/visual/texture_conversion.h",
+		"/home/xyx/devenv/cargo/tests/test_cargo.rs",
+		"/home/xyx/devenv/cargo/src/bin/cargo-run.rs",
+		"/home/xyx/devenv/cargo/tests/support/paths.rs",
+		"/home/xyx/devenv/cargo/src/bin/cargo.rs",
+		"/home/xyx/devenv/cargo/tests/support/mod.rs",
+		"/home/xyx/devenv/cargo/Cargo.toml",
+		"/home/xyx/devenv/reconstruction/visual/texture_conversion.cpp",
 		"/home/xyx/devenv/reconstruction/visual/textured_mesh.h",
 		"/home/xyx/devenv/reconstruction/visual/textured_mesh.cpp",
-		"/home/xyx/devenv/reconstruction/room_bundle/small_data.json",
-		"/home/xyx/devenv/reconstruction/SConstruct",
+		"/home/xyx/devenv/reconstruction/visual/scene_recognizer.cpp",
+		"/home/xyx/devenv/reconstruction/visual/scene_recognizer.h",
+		"/home/xyx/devenv/cargo/src/bin/cargo-build.rs",
+		"/home/xyx/devenv/reconstruction/scan-20140801-18:44/interior_0/object.obj",
+		"/home/xyx/devenv/cargo/Makefile",
+		"/home/xyx/devenv/cargo/tests/check-style.sh",
+		"/home/xyx/devenv/cargo/tests/test_cargo_compile_git_deps.rs",
+		"/home/xyx/devenv/cargo/src/cargo/util/process_builder.rs",
+		"/home/xyx/devenv/cargo/src/cargo/util/errors.rs",
+		"/home/xyx/devenv/cargo/tests/test_cargo_test.rs",
+		"/home/xyx/devenv/cargo/tests/test_cargo_doc.rs",
+		"/home/xyx/devenv/cargo/src/bin/cargo-verify-project.rs",
+		"/home/xyx/devenv/cargo/src/bin/cargo-new.rs",
+		"/home/xyx/devenv/cargo/tests/test_cargo_compile.rs",
+		"/home/xyx/devenv/cargo/tests/test_cargo_new.rs",
+		"/home/xyx/devenv/cargo/src/bin/cargo-test.rs",
+		"/home/xyx/devenv/cargo/src/bin/cargo-clean.rs",
 		"/home/xyx/devenv/reconstruction/main.cpp",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.h",
-		"/home/xyx/devenv/reconstruction/visual/cloud_baker.cpp",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/shape_fitter.h",
+		"/home/xyx/devenv/reconstruction/visual/shape_fitter.cpp",
+		"/home/xyx/devenv/reconstruction/wall_histogram.csv",
+		"/home/xyx/devenv/reconstruction/csv.h",
+		"/home/xyx/devenv/reconstruction/logging.h",
+		"/home/xyx/devenv/reconstruction/logging.cpp",
+		"/home/xyx/devenv/reconstruction/third/ICP.h",
+		"/home/xyx/devenv/reconstruction/test_recognize_3rooms.sh",
+		"/home/xyx/devenv/reconstruction/pre_rotation.json",
+		"/home/xyx/devenv/capturer/assemble_capture.py",
+		"/home/xyx/devenv/reconstruction/correlate_horizontal.py",
+		"/home/xyx/devenv/reconstruction/prototype-archive/sa_test.py",
+		"/home/xyx/devenv/cargo/tests/tests.rs",
+		"/home/xyx/devenv/cargo/tests/test_cargo_version.rs",
+		"/home/xyx/devenv/cargo/tests/test_cargo_clean.rs",
+		"/home/xyx/devenv/cargo/tests/test_shell.rs",
+		"/home/xyx/devenv/capturer/calibration-real.json",
+		"/home/xyx/devenv/capturer/calibration-home.json",
+		"/home/xyx/devenv/reconstruction/third/nanoflann.hpp",
 		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.cpp",
+		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.cpp",
+		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
+		"/data/research/2014/reconstruction/reconstruction-generated-c082e271/test-20140801-1524-gakusei-table/small_data.json",
+		"/data/research/2014/reconstruction/reconstruction-generated-c082e271/test-20140801-15:24-gakusei-table/small_data.json",
+		"/data/research/2014/reconstruction/reconstruction-generated-c082e271/scan-20140801-1847/small_data.json",
+		"/home/xyx/devenv/capturer/scan-20140801-18:41-gakusei-large/points.json",
+		"/home/xyx/devenv/capturer/scan-20140801-18:57-gakusei-small-2/points.json",
+		"/home/xyx/devenv/cargo/tests/test_cargo_cross_compile.rs",
+		"/home/xyx/devenv/cargo/src/cargo/core/resolver.rs",
+		"/home/xyx/devenv/bonsai/genesis/src/main.rs",
+		"/home/xyx/devenv/cargo/src/cargo/lib.rs",
+		"/home/xyx/devenv/cargo/configure",
+		"/home/xyx/devenv/cargo/src/cargo/core/shell.rs",
+		"/home/xyx/devenv/reconstruction/raw_cloud.ply",
+		"/home/xyx/devenv/capturer/scan-20140801-18:47/points.ply",
+		"/home/xyx/devenv/reconstruction/SConstruct",
+		"/home/xyx/devenv/cargo/src/cargo/core/package_id.rs",
+		"/home/xyx/devenv/cargo/README.md",
+		"/home/xyx/devenv/capturer/scan-20140801-18:41-gakusei-large/points.ply",
+		"/home/xyx/devenv/capturer/scan-20140801-19:00-gakusei-small-3/points.ply",
+		"/home/xyx/devenv/reconstruction/room_bundle/small_data.json",
+		"/home/xyx/devenv/reconstruction/visual/marching_cubes.h",
+		"/home/xyx/devenv/capturer/assembled_cloud.json",
+		"/home/xyx/devenv/capturer/tools/calibrate.py",
+		"/home/xyx/devenv/capturer/test_cloud-test-20140711-16:00-gakusei1.ply",
 		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.h",
 		"/home/xyx/devenv/reconstruction/visual/voxel_conversion.cpp",
-		"/home/xyx/devenv/reconstruction/visual/triangle_mesh.h",
-		"/home/xyx/devenv/reconstruction/visual/texture_conversion.h",
-		"/home/xyx/devenv/reconstruction/visual/shape_fitter.h",
-		"/home/xyx/devenv/reconstruction/logging.cpp",
 		"/home/xyx/devenv/reconstruction/debug_voxel_delta.ply",
-		"/home/xyx/devenv/reconstruction/visual/shape_fitter.cpp",
-		"/home/xyx/devenv/reconstruction/visual/shape_fitter_test.cpp",
 		"/home/xyx/devenv/reconstruction/visual/scene_converter.h",
 		"/home/xyx/devenv/reconstruction/visual/scene_recognizer_test.cpp",
 		"/home/xyx/devenv/reconstruction/analyzer/manhattan_belief_test.cpp",
 		"/home/xyx/devenv/reconstruction/extract_lights.py",
-		"/home/xyx/devenv/reconstruction/prototype-archive/sa_test.py",
 		"/home/xyx/devenv/reconstruction/prototype-archive/README.md",
 		"/home/xyx/devenv/reconstruction/sa_test.py",
 		"/home/xyx/research/ar-led/scanner_rt/PCLccl/driver/LRF_driver.cpp",
@@ -924,7 +975,6 @@
 		"/home/xyx/devenv/reconstruction/asset.pb.cc",
 		"/home/xyx/devenv/reconstruction/visual/scene_converter.cpp",
 		"/home/xyx/devenv/reconstruction/log",
-		"/home/xyx/devenv/reconstruction/visual/cloud_conversion.h",
 		"/home/xyx/devenv/capturer/firmware/capturer_server.cpp",
 		"/home/xyx/devenv/capturer/firmware/driver/LRF_driver.cpp",
 		"/home/xyx/devenv/capturer/firmware/camera_parameters.cpp",
@@ -953,65 +1003,7 @@
 		"/home/xyx/devenv/capturer/firmware/driver/driver.cpp",
 		"/home/xyx/devenv/capturer/firmware/driver/driver.h",
 		"/home/xyx/devenv/capturer/firmware/json_util_test.cpp",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/servo.h",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/servo.cpp",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib.h",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib.cpp",
-		"/home/xyx/devenv/capturer/firmware/driver/hokuyo/hokuyo.cpp",
-		"/home/xyx/devenv/capturer/firmware/driver/hokuyo/hokuyo.h",
-		"/home/xyx/devenv/capturer/firmware/logging.cpp",
-		"/home/xyx/devenv/capturer/firmware/logging.h",
-		"/home/xyx/devenv/capturer/firmware/http_static/ffe.html",
-		"/home/xyx/devenv/capturer/firmware/http_static/ffe.js",
-		"/home/xyx/devenv/capturer/firmware/web_server.cpp",
-		"/home/xyx/devenv/capturer/firmware/main.cpp",
-		"/home/xyx/devenv/capturer/README.md",
-		"/home/xyx/devenv/capturer/firmware/SConstruct",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib_matlab.h",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxlib_x64.def",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/dxmemmap.h",
-		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/makedll.bat",
-		"/home/xyx/devenv/capturer/firmware/picojson.h",
-		"/home/xyx/devenv/capturer/firmware/.gitignore",
-		"/home/xyx/devenv/capturer/firmware/raytracing.h",
-		"/home/xyx/devenv/reconstruction/range2.cpp",
-		"/home/xyx/devenv/reconstruction/range2.h",
-		"/home/xyx/devenv/reconstruction/room_box/object.mtl",
-		"/home/xyx/devenv/unitro/src/Core.hpp",
-		"/home/xyx/devenv/unitro/src/data/Matrix.hpp",
-		"/home/xyx/devenv/reconstruction/server/web_server.cpp",
-		"/home/xyx/devenv/reconstruction/analyzer/scene_belief_test.cpp",
-		"/home/xyx/devenv/reconstruction/server/job_pool.cpp",
-		"/home/xyx/devenv/reconstruction/server/web_server.h",
-		"/home/xyx/devenv/reconstruction/server/recon_server.h",
-		"/home/xyx/devenv/reconstruction/server/recon_server.cpp",
-		"/home/xyx/devenv/reconstruction/server/job_pool.h",
-		"/home/xyx/devenv/reconstruction/server/data_source.h",
-		"/home/xyx/devenv/reconstruction/server/data_source.cpp",
-		"/home/xyx/devenv/reconstruction/server/base64.h",
-		"/home/xyx/devenv/reconstruction/server/base64.cpp",
-		"/home/xyx/devenv/reconstruction/data_source.h",
-		"/home/xyx/devenv/reconstruction/visual/marching_cubes.cpp",
-		"/home/xyx/devenv/reconstruction/visual/marching_cubes.h",
-		"/home/xyx/devenv/reconstruction/visual/mapping.cpp",
-		"/home/xyx/devenv/reconstruction/visual/mapping.h",
-		"/home/xyx/devenv/reconstruction/visual/texture_conversion.cpp",
-		"/home/xyx/devenv/reconstruction/triangle_mesh.h",
-		"/home/xyx/devenv/reconstruction/mapping.h",
-		"/home/xyx/download/onelife.json",
-		"/home/xyx/devenv/research-3d/Dockerfile",
-		"/home/xyx/devenv/reconstruction/cloud_baker.h",
-		"/home/xyx/devenv/UnrealEngine/GenerateProjectFiles.sh",
-		"/home/xyx/devenv/UnrealEngine/Engine/Shaders/VisualizeTexture.usf",
-		"/home/xyx/devenv/UnrealEngine/Engine/Shaders/SHCommon.usf",
-		"/home/xyx/devenv/UnrealEngine/Engine/Shaders/AtmospherePrecompute.usf",
-		"/home/xyx/devenv/UnrealEngine/Engine/Source/Developer/Android/AndroidDeviceDetection/AndroidDeviceDetection.Build.cs",
-		"/home/xyx/devenv/reconstruction/cloud_baker.cpp",
-		"/home/xyx/devenv/reconstruction/uv_baked.mtl",
-		"/home/xyx/devenv/reconstruction/base64.cpp",
-		"/home/xyx/devenv/reconstruction/base64.h",
-		"/home/xyx/devenv/reconstruction/proto/asset.proto",
-		"/home/xyx/devenv/reconstruction/.gitignore"
+		"/home/xyx/devenv/capturer/firmware/driver/dynamixel/servo.h"
 	],
 	"find":
 	{
@@ -1029,6 +1021,49 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"windows",
+			"-run=cook",
+			"mkdir_recursive",
+			"Builder",
+			"Install",
+			"with_output",
+			"home(",
+			"Could not execute process",
+			"with_err_msg",
+			"output",
+			".assert",
+			"try!",
+			"mkdir_recursive",
+			"ProcessError",
+			"for ProcessEr",
+			"impl",
+			"as",
+			"Result",
+			"mkdir_recursive",
+			"process",
+			"root()",
+			"cargo_dir()",
+			"root()",
+			"cargo_",
+			"FileBuilder",
+			"execs",
+			"project",
+			"append",
+			"Parameters",
+			"point_to_point",
+			"SICP",
+			"robustMinMax",
+			"extractH",
+			"ear",
+			"robustMinMax",
+			"extractPolygon2D",
+			"calculateConcaveHull",
+			"exists",
+			"calculateConcaveHull",
+			"help",
+			"version",
+			"git",
+			"cloud",
 			"240",
 			"480",
 			"640",
@@ -1113,50 +1148,7 @@
 			"Compiler",
 			"ic",
 			", -1}",
-			"-1, ",
-			"regin",
-			"simulation",
-			"localize",
-			"base_photo",
-			"points",
-			"NondirectionalPlane",
-			"lights",
-			"//,",
-			"init_data",
-			"patternFromString",
-			"patternToString",
-			"OBB",
-			"cross",
-			"ref",
-			"layer_scene",
-			"/scene",
-			"p",
-			"$('#eca')",
-			"generateRepetition",
-			"replicate",
-			"setRuleFromUI",
-			"setInitialStateFromUI",
-			"this.patternToString",
-			"this.patternFromString",
-			"patternFromString",
-			"setInitialStateFromUI",
-			"Tracker",
-			"bootstrap",
-			"Ceiling",
-			"update",
-			"->update()",
-			"refine",
-			"ModelCoe",
-			"PointIndices",
-			"shared_ptr",
-			"handleUploadPhoto",
-			"winningSide",
-			"('+')",
-			"isPromotable",
-			"updateBo",
-			"promote",
-			"Float",
-			"H."
+			"-1, "
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1245,38 +1237,8 @@
 	"groups":
 	[
 		{
-			"selected": 0,
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "/home/xyx/devenv/capturer/assemble_capture.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 13828,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1911,
-								1911
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 867.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				}
 			]
 		}
 	],
