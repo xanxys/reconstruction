@@ -1,4 +1,3 @@
-#pragma once
 #include "mapping.h"
 
 #include <vector>

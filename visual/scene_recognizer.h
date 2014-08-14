@@ -68,6 +68,8 @@ Eigen::Vector3f append(Eigen::Vector2f v, Scalar x) {
 	return Eigen::Vector3f(v(0), v(1), x);
 }
 
+TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr_t>& shape);
+
 // Downsample using grid filter (leave one point per voxel).
 pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float grid_size=0.05);
 

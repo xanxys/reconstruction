@@ -8,9 +8,14 @@
 
 #include <third/ICP.h>
 #include <visual/cloud_baker.h>
+#include <visual/mapping.h>
+#include <visual/mesh_intersecter.h>
 #include <visual/shape_fitter.h>
+#include <visual/texture_conversion.h>
 
 namespace visual {
+
+const double pi = 3.14159265359;
 
 void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	using boost::filesystem::create_directory;
@@ -218,12 +223,45 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.point_lights = visual::recognize_lights(points_merged);
-	bundle.exterior_mesh = visual::cloud_baker::bakePointsToMesh(points_merged, room_mesh);
+	// TODO: Fix Index by getting proper scanner pose!
+	bundle.exterior_mesh = bakeTexture(scans[1], room_mesh);
 	bundle.interior_objects = boxes;
 	bundle.debug_points_interior = cloud_interior;
 	bundle.debug_points_interior_distance = cloud_interior_dist;
 	bundle.debug_points_merged = points_merged;
 	return bundle;
+}
+
+TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
+	const int tex_size = 2048;
+	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
+	diffuse = cv::Scalar(0, 0, 0);
+
+	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
+	MeshIntersecter intersecter(shape_wo_uv);
+	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
+	for(int y : boost::irange(0, scan.er_rgb.rows)) {
+		for(int x : boost::irange(0, scan.er_rgb.cols)) {
+			const float theta = (float)y / scan.er_rgb.rows * pi;
+			const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
+			Ray ray(
+				Eigen::Vector3f::Zero(),
+				Eigen::Vector3f(
+					std::sin(theta) * std::cos(phi),
+					std::sin(theta) * std::sin(phi),
+					std::cos(theta)));
+			const auto isect = intersecter.intersect(ray);
+			if(isect) {
+				DEBUG("Ray Hit");
+			}
+		}
+	}
+
+	// pack everything.
+	TexturedMesh tm;
+	tm.diffuse = diffuse;
+	tm.mesh = shape;
+	return tm;
 }
 
 boost::optional<TexturedMesh> createWallBox(
