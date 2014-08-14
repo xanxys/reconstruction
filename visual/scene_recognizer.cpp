@@ -456,6 +456,33 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>
 			auto m_source = to_matrix(scans[i]);
 			auto m_target = to_matrix(scans[0]);
 
+			{
+				Json::Value vs;
+				for(int i : boost::irange(0, (int)m_source.cols())) {
+					const auto& p = m_source.col(i);
+					Json::Value pt;
+					pt["x"] = p(0);
+					pt["y"] = p(1);
+					pt["z"] = p(2);
+					vs.append(pt);
+				}
+				std::ofstream f("source.json");
+				f << Json::FastWriter().write(vs);
+			}
+			{
+				Json::Value vs;
+				for(int i : boost::irange(0, (int)m_target.cols())) {
+					const auto& p = m_target.col(i);
+					Json::Value pt;
+					pt["x"] = p(0);
+					pt["y"] = p(1);
+					pt["z"] = p(2);
+					vs.append(pt);
+				}
+				std::ofstream f("target.json");
+				f << Json::FastWriter().write(vs);
+			}
+
 			INFO("Running Sparse ICP", i);
 			// See this youtube video for quick summary of good p value.
 			// https://www.youtube.com/watch?v=ii2vHBwlmo8
