@@ -23,9 +23,9 @@ boost::optional<std::tuple<int, Eigen::Vector2f>>
 
 		float t;
 		Eigen::Vector3f normal;
-		if(geom.intersect(ray, t, normal)) {
-			ray.at(t);
-			return boost::make_optional(std::make_tuple(i, Eigen::Vector2f(0, 0)));
+		Eigen::Vector2f bary;
+		if(geom.intersect(ray, t, normal, bary)) {
+			return boost::make_optional(std::make_tuple(i, bary));
 		}
 	}
 	return boost::none;

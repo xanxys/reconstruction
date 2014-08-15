@@ -182,6 +182,38 @@ bool Triangle::intersect(const Ray& ray, float& t, Eigen::Vector3f& normal) {
 	return true;
 }
 
+bool Triangle::intersect(const Ray& ray, float& t, Eigen::Vector3f& normal, Eigen::Vector2f& bary) {
+	Eigen::Vector3f s1 = ray.dir.cross(d2);
+	float divisor = s1.dot(d1);
+	if(divisor ==0.){
+		return false;
+	}
+	float invDivisor = 1.0/divisor;
+
+	Eigen::Vector3f s  = ray.org - v0;
+	float a = s.dot(s1) * invDivisor;
+	if(a<0 || a>1)// if(!(0<=a && a<=1))
+		return false;
+
+	Eigen::Vector3f s2 = s.cross(d1);
+	float b = ray.dir.dot(s2) * invDivisor;
+
+	if(b<0 || a+b>1)
+		return false;
+
+	t = d2.dot(s2) * invDivisor;
+	if(t < 0)
+		return false;
+
+	if(divisor < 0)
+		normal = _normal; // front
+	else
+		normal = -_normal; // back
+
+	bary = Eigen::Vector2f(a, b);
+	return true;
+}
+
 
 std::vector<std::pair<Eigen::Vector3f, Color>> Light::emittingTo(Eigen::Vector3f to) {
 	return std::vector<std::pair<Eigen::Vector3f, Color>>();

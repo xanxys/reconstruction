@@ -89,7 +89,8 @@ private:
 class Triangle : public Object {
 public:
 	Triangle(Eigen::Vector3f _v0 , Eigen::Vector3f _v1, Eigen::Vector3f _v2 , Material _material);
-	bool intersect(const Ray& ray, float& t, Eigen::Vector3f& normal);
+	bool intersect(const Ray& ray, float& t, Eigen::Vector3f& normal) override;
+	bool intersect(const Ray& ray, float& t, Eigen::Vector3f& normal, Eigen::Vector2f& bary);
 private:
 	Eigen::Vector3f v0,v1,v2;
 	Eigen::Vector3f d1,d2;
