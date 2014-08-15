@@ -123,9 +123,17 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	}
 
 	INFO("Loading equirectangular images");
-	er_rgb = cv::imread((path(scan_dir) / path("rgb")).string());
-	er_intensity = cv::imread((path(scan_dir) / path("intensity")).string());
-	er_depth = cv::imread((path(scan_dir) / path("depth")).string());
+	er_rgb = cv::imread((path(scan_dir) / path("rgb.png")).string());
+	er_intensity = cv::imread((path(scan_dir) / path("intensity.png")).string());
+	er_depth = cv::imread((path(scan_dir) / path("depth.png")).string());
+
+	if(er_rgb.size() == cv::Size(0, 0)) {
+		WARN("Image was not loaded properly");
+		throw std::runtime_error("Couldn't load ER RGB image");
+	}
+	if(er_rgb.size() != er_intensity.size() || er_rgb.size() != er_depth.size()) {
+		throw std::runtime_error("Inconsistent image sizes");
+	}
 }
 
 
@@ -240,6 +248,8 @@ TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr
 	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
 	MeshIntersecter intersecter(shape_wo_uv);
 	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
+	int n_hits = 0;
+	int n_all = 0;
 	for(int y : boost::irange(0, scan.er_rgb.rows)) {
 		for(int x : boost::irange(0, scan.er_rgb.cols)) {
 			const float theta = (float)y / scan.er_rgb.rows * pi;
@@ -252,10 +262,22 @@ TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr
 					std::cos(theta)));
 			const auto isect = intersecter.intersect(ray);
 			if(isect) {
-				DEBUG("Ray Hit");
+				const auto tri = shape.triangles[std::get<0>(*isect)];
+				const auto uv0 = shape.vertices[std::get<0>(tri)].second;
+				const auto uv1 = shape.vertices[std::get<1>(tri)].second;
+				const auto uv2 = shape.vertices[std::get<2>(tri)].second;
+				const auto uv = std::get<1>(*isect)(0) * (uv1 - uv0) + std::get<1>(*isect)(1) * (uv2 - uv0) + uv0;
+
+				const auto xy = (swapY(uv) * tex_size).cast<int>();
+				if(xy(0) >= 0 && xy(1) >= 0 && xy(0) < tex_size && xy(1) < tex_size) {
+					diffuse.at<cv::Vec3b>(xy(1), xy(0)) = scan.er_rgb.at<cv::Vec3b>(y, x);
+				}
+				n_hits++;
 			}
+			n_all++;
 		}
 	}
+	INFO("Baking Hits/All", n_hits, n_all);
 
 	// pack everything.
 	TexturedMesh tm;
