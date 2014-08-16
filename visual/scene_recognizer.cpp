@@ -199,13 +199,120 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 	return lights;
 }
 
+
+AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
+	assert(!scans.empty());
+
+	// TODO: remove this!!!!
+	// Apply pre rotation.
+	for(auto& scan : scans) {
+		Eigen::Matrix3f pre_rot;
+		pre_rot = Eigen::AngleAxisf(scan.pre_rotation, Eigen::Vector3f::UnitZ());
+		for(auto& pt : scan.cloud->points) {
+			pt.getVector3fMap() = pre_rot * pt.getVector3fMap();
+		}
+	}
+
+	// scan[0]'s local coordinates after pre-rot == world coordinates.
+	merged.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+	for(const auto& pt : scans[0].cloud->points) {
+		merged->points.push_back(pt);
+	}
+	scans_with_pose.push_back(std::make_pair(
+		scans[0],
+		Eigen::Affine3f(Eigen::AngleAxisf(scans[0].pre_rotation, Eigen::Vector3f::UnitZ()))));
+
+	if(scans.size() > 1) {
+		// Apply translation to match 2D centroid.
+		// Since the scanner can scan 360 degree,
+		// it's expected that scan contains most part of 2D XY slice
+		// of the room, while height range can vary by occlusion.
+		std::vector<Eigen::Vector2f> centroids;
+		for(auto& scan : scans) {
+			std::vector<float> xs;
+			std::vector<float> ys;
+			for(auto& pt : scan.cloud->points) {
+				xs.push_back(pt.x);
+				ys.push_back(pt.y);
+			}
+			centroids.emplace_back(
+				shape_fitter::mean(shape_fitter::robustMinMax(xs, 0.01)),
+				shape_fitter::mean(shape_fitter::robustMinMax(ys, 0.01)));
+		}
+		for(int i : boost::irange(1, (int)scans.size())) {
+			auto dp = centroids[0] - centroids[i];
+			const Eigen::Vector3f trans(dp(0), dp(1), 0);
+			INFO("Pre-aligning scan by centroid", i, trans(0), trans(1));
+			for(auto& pt : scans[i].cloud->points) {
+				pt.getVector3fMap() += trans;
+			}
+		}
+
+		// 0: target
+		// 1,2,..: source
+		auto to_matrix = [](const SingleScan& scan) {
+			const auto cloud = scene_recognizer::downsample(scene_recognizer::decolor(*scan.cloud), 0.05);
+			const int n = cloud->points.size();
+			Eigen::Matrix3Xd mat(3, n);
+			for(int i : boost::irange(0, n)) {
+				mat.col(i) = cloud->points[i].getVector3fMap().cast<double>();
+			}
+			return mat;
+		};
+
+		// Merge others.
+		for(int i : boost::irange(1, (int)scans.size())) {
+			auto m_source = to_matrix(scans[i]);
+			auto m_target = to_matrix(scans[0]);
+
+			INFO("Running Sparse ICP", i);
+			// See this youtube video for quick summary of good p value.
+			// https://www.youtube.com/watch?v=ii2vHBwlmo8
+			SICP::Parameters params;
+			params.max_icp = 250;
+			params.p = 0.7;
+			params.stop = 0;
+
+			// The type signature do look like it allows any Scalar, but only
+			// double will work in reality.
+			Eigen::Matrix3Xd m_source_orig = m_source;
+			SICP::point_to_point(m_source, m_target, params);
+
+			// Recover motion.
+			const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
+				m_source_orig, m_source).cast<float>();
+			INFO("Affine |t|=", m.translation().norm());
+
+			// Merge color cloud.
+			for(const auto& pt : scans[i].cloud->points) {
+				pcl::PointXYZRGB pt_new = pt;
+				pt_new.getVector3fMap() = m * pt.getVector3fMap();
+				merged->points.push_back(pt_new);
+			}
+			scans_with_pose.push_back(std::make_pair(scans[i], m));
+		}
+	}
+
+	assert(scans_with_pose.size() == scans.size());
+}
+
+std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPose() const {
+	return scans_with_pose;
+}
+
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
+	return merged;
+}
+
+
 namespace scene_recognizer {
 
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
 	INFO("Merging points in multiple scans");
-	const auto points_merged = mergePoints(scans);
+	const AlignedScans scans_aligned(scans);
+	const auto points_merged = scans_aligned.getMergedPoints();
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
 	INFO("Approximating exterior shape by an extruded polygon");
@@ -231,8 +338,7 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.point_lights = visual::recognize_lights(points_merged);
-	// TODO: Fix Index by getting proper scanner pose!
-	bundle.exterior_mesh = bakeTexture(scans[1], room_mesh);
+	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
 	bundle.debug_points_interior = cloud_interior;
 	bundle.debug_points_interior_distance = cloud_interior_dist;
@@ -240,7 +346,11 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	return bundle;
 }
 
-TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
+TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
+	const auto scan0 = scans.getScansWithPose()[0];
+	const auto scan = scan0.first;
+	const auto l_to_w = scan0.second;
+
 	const int tex_size = 2048;
 	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
 	diffuse = cv::Scalar(0, 0, 0);
@@ -254,12 +364,15 @@ TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr
 		for(int x : boost::irange(0, scan.er_rgb.cols)) {
 			const float theta = (float)y / scan.er_rgb.rows * pi;
 			const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
+
+			const auto org_local = Eigen::Vector3f::Zero();
+			const auto dir_local = Eigen::Vector3f(
+				std::sin(theta) * std::cos(phi),
+				std::sin(theta) * std::sin(phi),
+				std::cos(theta));
 			Ray ray(
-				Eigen::Vector3f::Zero(),
-				Eigen::Vector3f(
-					std::sin(theta) * std::cos(phi),
-					std::sin(theta) * std::sin(phi),
-					std::cos(theta)));
+				l_to_w * org_local,
+				l_to_w.rotation() * dir_local);
 			const auto isect = intersecter.intersect(ray);
 			if(isect) {
 				const auto tri = shape.triangles[std::get<0>(*isect)];
@@ -415,98 +528,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::P
 	}
 	return cloud_new;
 }
-
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>& scans) {
-	assert(!scans.empty());
-	if(scans.size() == 1) {
-		return scans.front().cloud;
-	} else {
-		// TODO: remove this!!!!
-		// Apply pre rotation.
-		for(auto& scan : scans) {
-			Eigen::Matrix3f pre_rot;
-			pre_rot = Eigen::AngleAxisf(scan.pre_rotation, Eigen::Vector3f::UnitZ());
-			for(auto& pt : scan.cloud->points) {
-				pt.getVector3fMap() = pre_rot * pt.getVector3fMap();
-			}
-		}
-
-		// Apply translation to match 2D centroid.
-		// Since the scanner can scan 360 degree,
-		// it's expected that scan contains most part of 2D XY slice
-		// of the room, while height range can vary by occlusion.
-		std::vector<Eigen::Vector2f> centroids;
-		for(auto& scan : scans) {
-			std::vector<float> xs;
-			std::vector<float> ys;
-			for(auto& pt : scan.cloud->points) {
-				xs.push_back(pt.x);
-				ys.push_back(pt.y);
-			}
-			centroids.emplace_back(
-				shape_fitter::mean(shape_fitter::robustMinMax(xs, 0.01)),
-				shape_fitter::mean(shape_fitter::robustMinMax(ys, 0.01)));
-		}
-		for(int i : boost::irange(1, (int)scans.size())) {
-			auto dp = centroids[0] - centroids[i];
-			const Eigen::Vector3f trans(dp(0), dp(1), 0);
-			INFO("Pre-aligning scan by centroid", i, trans(0), trans(1));
-			for(auto& pt : scans[i].cloud->points) {
-				pt.getVector3fMap() += trans;
-			}
-		}
-
-		// 0: target
-		// 1,2,..: source
-		auto to_matrix = [](const SingleScan& scan) {
-			const auto cloud = downsample(decolor(*scan.cloud), 0.05);
-			const int n = cloud->points.size();
-			Eigen::Matrix3Xd mat(3, n);
-			for(int i : boost::irange(0, n)) {
-				mat.col(i) = cloud->points[i].getVector3fMap().cast<double>();
-			}
-			return mat;
-		};
-
-		// Merge scans[0]
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>);
-		for(const auto& pt : scans[0].cloud->points) {
-			merged->points.push_back(pt);
-		}
-		// Merge others.
-		for(int i : boost::irange(1, (int)scans.size())) {
-			auto m_source = to_matrix(scans[i]);
-			auto m_target = to_matrix(scans[0]);
-
-			INFO("Running Sparse ICP", i);
-			// See this youtube video for quick summary of good p value.
-			// https://www.youtube.com/watch?v=ii2vHBwlmo8
-			SICP::Parameters params;
-			params.max_icp = 250;
-			params.p = 0.7;
-			params.stop = 0;
-
-			// The type signature do look like it allows any Scalar, but only
-			// double will work in reality.
-			Eigen::Matrix3Xd m_source_orig = m_source;
-			SICP::point_to_point(m_source, m_target, params);
-
-			// Recover motion.
-			const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
-				m_source_orig, m_source).cast<float>();
-			INFO("Affine |t|=", m.translation().norm());
-
-			// Merge color cloud.
-			for(const auto& pt : scans[i].cloud->points) {
-				pcl::PointXYZRGB pt_new = pt;
-				pt_new.getVector3fMap() = m * pt.getVector3fMap();
-				merged->points.push_back(pt_new);
-			}
-		}
-		return merged;
-	}
-}
-
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_colorless(new pcl::PointCloud<pcl::PointXYZ>());

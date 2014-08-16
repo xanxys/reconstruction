@@ -46,6 +46,7 @@ public:
 
 	SingleScan(const std::string& path, float pre_rotation = 0);
 public:
+	// TODO: make this immutable.
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 
 	// Hack to make sparse ICP work.
@@ -58,6 +59,22 @@ public:
 	cv::Mat er_intensity;
 };
 
+// All scans succesfully aligned.
+class AlignedScans {
+public:
+	// Create aligned scan from unaligned scans. (slow, takes a few minutes)
+	AlignedScans(const std::vector<SingleScan>& scans);
+
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
+	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
+private:
+	// [(original scan, local_to_world)]
+	std::vector<std::pair<SingleScan, Eigen::Affine3f>> scans_with_pose;
+
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged;
+};
+
+
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
 // Try avoiding classes for this kind of complex, pure operation.
@@ -68,7 +85,7 @@ Eigen::Vector3f append(Eigen::Vector2f v, Scalar x) {
 	return Eigen::Vector3f(v(0), v(1), x);
 }
 
-TexturedMesh bakeTexture(const SingleScan& scan, const TriangleMesh<std::nullptr_t>& shape);
+TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape);
 
 // Downsample using grid filter (leave one point per voxel).
 pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float grid_size=0.05);
@@ -89,9 +106,6 @@ boost::optional<TexturedMesh> createWallBox(
 // Takes several scans of a single room as input (in unordered way),
 // and generates a SceneAsssetBundle.
 SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans);
-
-// Merge point clouds in several scans into a single point cloud.
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr mergePoints(const std::vector<SingleScan>& scans);
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 
