@@ -17,7 +17,7 @@ FilmRGB8U::FilmRGB8U(int width, int height, float sigma) :
 	assert(sigma > 0);
 	INFO("Creating film of size", width, height);
 
-	kernel_margin = static_cast<int>((3 * sigma) / 2);
+	kernel_margin = static_cast<int>((5 * sigma) / 2);
 	INFO("Calculated kernel margin=", kernel_margin);
 
 	const int kernel_size = 2 * kernel_margin + 1;

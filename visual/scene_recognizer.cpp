@@ -353,7 +353,7 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 	const auto l_to_w = scan0.second;
 
 	const int tex_size = 4096;
-	FilmRGB8U film(tex_size, tex_size, 2.0);
+	FilmRGB8U film(tex_size, tex_size, 1.0);
 
 	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
 	MeshIntersecter intersecter(shape_wo_uv);
