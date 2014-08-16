@@ -8,6 +8,7 @@
 
 #include <third/ICP.h>
 #include <visual/cloud_baker.h>
+#include <visual/film.h>
 #include <visual/mapping.h>
 #include <visual/mesh_intersecter.h>
 #include <visual/shape_fitter.h>
@@ -351,9 +352,8 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 	const auto scan = scan0.first;
 	const auto l_to_w = scan0.second;
 
-	const int tex_size = 2048;
-	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
-	diffuse = cv::Scalar(0, 0, 0);
+	const int tex_size = 4096;
+	FilmRGB8U film(tex_size, tex_size, 2.0);
 
 	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
 	MeshIntersecter intersecter(shape_wo_uv);
@@ -381,10 +381,7 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 				const auto uv2 = shape.vertices[std::get<2>(tri)].second;
 				const auto uv = std::get<1>(*isect)(0) * (uv1 - uv0) + std::get<1>(*isect)(1) * (uv2 - uv0) + uv0;
 
-				const auto xy = (swapY(uv) * tex_size).cast<int>();
-				if(xy(0) >= 0 && xy(1) >= 0 && xy(0) < tex_size && xy(1) < tex_size) {
-					diffuse.at<cv::Vec3b>(xy(1), xy(0)) = scan.er_rgb.at<cv::Vec3b>(y, x);
-				}
+				film.record(swapY(uv) * tex_size, scan.er_rgb.at<cv::Vec3b>(y, x));
 				n_hits++;
 			}
 			n_all++;
@@ -394,7 +391,7 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 
 	// pack everything.
 	TexturedMesh tm;
-	tm.diffuse = diffuse;
+	tm.diffuse = film.extract();
 	tm.mesh = shape;
 	return tm;
 }
