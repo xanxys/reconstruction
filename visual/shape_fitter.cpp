@@ -204,14 +204,37 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 
 		// cross product = sin, positive when curr is convex.
 		auto sin_angle = cross2d(points[succ] - points[curr], points[pred] - points[curr]);
-		if(sin_angle > 0) {
-			return true;
-		} else if(sin_angle == 0) {
-			WARN("Colinear adjacent segments found. Results might contain degerate triangles.");
-			return true;
-		} else {
+		if(sin_angle < 0) {
 			return false;
 		}
+		if(sin_angle == 0) {
+			WARN("Colinear adjacent segments found. Results might contain degerate triangles.");
+		}
+		// Reject this non-ear condition.
+		// (vertex present in pred-curr-succ triangle)
+		// pred
+		//  |    /
+		//  |   /-------
+		//  |-------
+		// curr    succ
+		const Eigen::Vector2f d_pred = points[pred] - points[curr];
+		const Eigen::Vector2f d_succ = points[succ] - points[curr];
+		// p[i] = p[c] + d_pred * s + d_succ * t
+		Eigen::Matrix2f m;
+		m.col(0) = d_pred;
+		m.col(1) = d_succ;
+		const Eigen::Matrix2f m_inv = m.inverse();
+		for(int i : boost::irange(0, (int)points.size())) {
+			if(i == pred || i == curr || i == succ) {
+				continue;
+			}
+			const Eigen::Vector2f v = points[i] - points[curr];
+			const Eigen::Vector2f st = m_inv * v;
+			if(st(0) >= 0 && st(1) >= 0 && st.sum() <= 1) {
+				return false;
+			}
+		}
+		return true;
 	};
 
 	std::vector<int> indices;
@@ -229,9 +252,7 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 		for(int ix : indices) {
 			pts.push_back(points[ix]);
 		}
-		if(!isPolygonCCW(pts)) {
-			std::reverse(indices.begin(), indices.end());
-		}
+		assert(isPolygonCCW(pts));
 
 		// finding ear: O(N)
 		bool ear_found = false;
