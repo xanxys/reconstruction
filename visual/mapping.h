@@ -34,6 +34,9 @@ std::pair<float, std::vector<Eigen::Vector2f>>
 // (originally represented by a single vertex).
 template<typename Vertex>
 TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Vertex>& mesh) {
+	// How much space between AABB (in uv space).
+	const float packing_margin = 0.02;
+
 	// Wrap all triangles in rectangles.
 	std::vector<Eigen::Vector2f> uv_sizes;
 	std::vector<std::tuple<
@@ -93,7 +96,7 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 		//  |          |          |
 		//  +----------+----------+
 		//  <--width-->
-		uv_sizes.emplace_back(width * 2, height * 2);
+		uv_sizes.emplace_back(width + packing_margin, height + packing_margin);
 		local_uvs.emplace_back(uvs[0], uvs[1], uvs[2]);
 	}
 
