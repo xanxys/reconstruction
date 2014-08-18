@@ -9,21 +9,10 @@
 #include <boost/range/irange.hpp>
 #include <Eigen/Dense>
 
-#include "triangle_mesh.h"
+#include <geom/packing.h>
+#include <visual/triangle_mesh.h>
 
 namespace visual {
-
-// Try to find packing of rectangles in a (minimum) square region.
-// Obviously, it's NP-hard problem, so don't expect near-optimal result.
-// This function is optimized for horizontally-long rectangles.
-//
-// rectangles: size of each rectangle ((0,0) is assumed to be origins)
-// return: (size of square, offset of rectangle)
-// returned offset is such that all rectangles will fit in [0,square]^2
-// without any overlaps.
-std::pair<float, std::vector<Eigen::Vector2f>>
-	packRectangles(std::vector<Eigen::Vector2f> rectangles);
-
 
 // Create a new TriangleMesh with automatically generated UV coordinates.
 // UV is represented as Eigen::Vector2f, and will span [0,1]^2.
@@ -101,7 +90,7 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 	}
 
 	// Map local UV to global UV using rectangle packing result.
-	const auto result = packRectangles(uv_sizes);
+	const auto result = geom::packing::packRectangles(uv_sizes);
 	const float scale = 1 / std::get<0>(result);
 	const auto offsets = std::get<1>(result);
 

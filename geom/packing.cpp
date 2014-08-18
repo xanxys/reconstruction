@@ -1,8 +1,13 @@
-#include "mapping.h"
+#include "packing.h"
 
-#include "logging.h"
+#include <algorithm>
 
-namespace visual {
+#include <boost/optional.hpp>
+
+#include <logging.h>
+
+namespace geom {
+namespace packing {
 
 std::pair<float, std::vector<Eigen::Vector2f>>
 	packRectangles(std::vector<Eigen::Vector2f> rectangles) {
@@ -83,4 +88,5 @@ std::pair<float, std::vector<Eigen::Vector2f>>
 	}
 }
 
+}  // namespace
 }  // namespace
