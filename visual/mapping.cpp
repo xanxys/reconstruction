@@ -77,6 +77,7 @@ std::pair<float, std::vector<Eigen::Vector2f>>
 			failed = true;
 		}
 		if(!failed) {
+			INFO("Rectangle packing: efficiency=", min_area / area);
 			return std::make_pair(size, offsets);
 		}
 	}
