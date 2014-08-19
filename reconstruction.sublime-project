@@ -8,10 +8,6 @@
 		{
 			"follow_symlinks": true,
 			"path": "/home/xyx/devenv/capturer"
-		},
-		{
-			"follow_symlinks": true,
-			"path": "/home/xyx/devenv/cargo"
 		}
 	]
 }

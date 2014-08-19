@@ -371,6 +371,14 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 		const auto l_to_w = scan_and_pose.second;
 		for(int y : boost::irange(0, scan.er_rgb.rows)) {
 			for(int x : boost::irange(0, scan.er_rgb.cols)) {
+				// Ignore N/A samples.
+				// TODO: 0,0,0 rarely occurs naturaly, but when it does,
+				// consider migration to RGBA image.
+				const cv::Vec3b color = scan.er_rgb.at<cv::Vec3b>(y, x);
+				if(color == cv::Vec3b(0, 0, 0)) {
+					continue;
+				}
+
 				const float theta = (float)y / scan.er_rgb.rows * pi;
 				const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
 
@@ -390,7 +398,7 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 					const auto uv2 = shape.vertices[std::get<2>(tri)].second;
 					const auto uv = std::get<1>(*isect)(0) * (uv1 - uv0) + std::get<1>(*isect)(1) * (uv2 - uv0) + uv0;
 
-					film.record(swapY(uv) * tex_size, scan.er_rgb.at<cv::Vec3b>(y, x));
+					film.record(swapY(uv) * tex_size, color);
 					n_hits++;
 				}
 				n_all++;
