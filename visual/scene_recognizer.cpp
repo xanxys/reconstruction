@@ -214,7 +214,11 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 		}
 	}
 
-	// scan[0]'s local coordinates after pre-rot == world coordinates.
+	// Transforms between coordinates:
+	// <S0 coord> --S0pre----------> <S0' coord == World coord>
+	//                                                          ^
+	//                                                          | m1
+	// <S1 coord> --S1pre--> <coord> --trans(centroid) --> <S1' coord>
 	merged.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
 	for(const auto& pt : scans[0].cloud->points) {
 		merged->points.push_back(pt);
@@ -240,6 +244,8 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 				shape_fitter::mean(shape_fitter::robustMinMax(xs, 0.01)),
 				shape_fitter::mean(shape_fitter::robustMinMax(ys, 0.01)));
 		}
+		std::vector<Eigen::Vector3f> transes;
+		transes.push_back(Eigen::Vector3f::Zero());
 		for(int i : boost::irange(1, (int)scans.size())) {
 			auto dp = centroids[0] - centroids[i];
 			const Eigen::Vector3f trans(dp(0), dp(1), 0);
@@ -247,7 +253,9 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 			for(auto& pt : scans[i].cloud->points) {
 				pt.getVector3fMap() += trans;
 			}
+			transes.push_back(trans);
 		}
+		assert(transes.size() == scans.size());
 
 		// 0: target
 		// 1,2,..: source
@@ -290,7 +298,9 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 				pt_new.getVector3fMap() = m * pt.getVector3fMap();
 				merged->points.push_back(pt_new);
 			}
-			scans_with_pose.push_back(std::make_pair(scans[i], m));
+			scans_with_pose.push_back(std::make_pair(
+				scans[i],
+				m * Eigen::Translation3f(transes[i]) * Eigen::AngleAxisf(scans[i].pre_rotation, Eigen::Vector3f::UnitZ())));
 		}
 	}
 
@@ -348,10 +358,6 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 }
 
 TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
-	const auto scan0 = scans.getScansWithPose()[0];
-	const auto scan = scan0.first;
-	const auto l_to_w = scan0.second;
-
 	const int tex_size = 4096;
 	FilmRGB8U film(tex_size, tex_size, 1.0);
 
@@ -360,32 +366,41 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
 	int n_hits = 0;
 	int n_all = 0;
-	for(int y : boost::irange(0, scan.er_rgb.rows)) {
-		for(int x : boost::irange(0, scan.er_rgb.cols)) {
-			const float theta = (float)y / scan.er_rgb.rows * pi;
-			const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
+	for(const auto& scan_and_pose : scans.getScansWithPose()) {
+		const auto scan = scan_and_pose.first;
+		const auto l_to_w = scan_and_pose.second;
+		for(int y : boost::irange(0, scan.er_rgb.rows)) {
+			for(int x : boost::irange(0, scan.er_rgb.cols)) {
+				const float theta = (float)y / scan.er_rgb.rows * pi;
+				const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
 
-			const auto org_local = Eigen::Vector3f::Zero();
-			const auto dir_local = Eigen::Vector3f(
-				std::sin(theta) * std::cos(phi),
-				std::sin(theta) * std::sin(phi),
-				std::cos(theta));
-			Ray ray(
-				l_to_w * org_local,
-				l_to_w.rotation() * dir_local);
-			const auto isect = intersecter.intersect(ray);
-			if(isect) {
-				const auto tri = shape.triangles[std::get<0>(*isect)];
-				const auto uv0 = shape.vertices[std::get<0>(tri)].second;
-				const auto uv1 = shape.vertices[std::get<1>(tri)].second;
-				const auto uv2 = shape.vertices[std::get<2>(tri)].second;
-				const auto uv = std::get<1>(*isect)(0) * (uv1 - uv0) + std::get<1>(*isect)(1) * (uv2 - uv0) + uv0;
+				const auto org_local = Eigen::Vector3f::Zero();
+				const auto dir_local = Eigen::Vector3f(
+					std::sin(theta) * std::cos(phi),
+					std::sin(theta) * std::sin(phi),
+					std::cos(theta));
+				Ray ray(
+					l_to_w * org_local,
+					l_to_w.rotation() * dir_local);
+				const auto isect = intersecter.intersect(ray);
+				if(isect) {
+					const auto tri = shape.triangles[std::get<0>(*isect)];
+					const auto uv0 = shape.vertices[std::get<0>(tri)].second;
+					const auto uv1 = shape.vertices[std::get<1>(tri)].second;
+					const auto uv2 = shape.vertices[std::get<2>(tri)].second;
+					const auto uv = std::get<1>(*isect)(0) * (uv1 - uv0) + std::get<1>(*isect)(1) * (uv2 - uv0) + uv0;
 
-				film.record(swapY(uv) * tex_size, scan.er_rgb.at<cv::Vec3b>(y, x));
-				n_hits++;
+					film.record(swapY(uv) * tex_size, scan.er_rgb.at<cv::Vec3b>(y, x));
+					n_hits++;
+				}
+				n_all++;
 			}
-			n_all++;
 		}
+		// Exit with only one scan, since currently multiple-scan fusion
+		// results in
+		// 1. ghosting due to misalignment (or calibration error)
+		// 2. color artifact (exposure / color balance difference)
+		break;
 	}
 	INFO("Baking Hits/All", n_hits, n_all);
 
