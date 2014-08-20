@@ -22,6 +22,11 @@ void FLoaderPlugin::StartupModule()
 	UE_LOG(LoaderPlugin, Log, TEXT("EqExperiment asset loader plugin initializing"));
 
 	LoaderPluginCommands::Register();
+	if (!FModuleManager::Get().IsModuleLoaded("LevelEditor")) {
+		// don't try to modify UI when editor is not available (e.g. when cooking project)
+		UE_LOG(LoaderPlugin, Log, TEXT("Not adding commands since LevelEditor is not loaded"));
+		return;
+	}
 
 	commands = MakeShareable(new FUICommandList());
 	commands->MapAction(
@@ -30,7 +35,7 @@ void FLoaderPlugin::StartupModule()
 		FCanExecuteAction());
 
 
-	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<FExtender> Extenders = LevelEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders();
 
 	TSharedPtr<FExtender> MyExtender = MakeShareable(new FExtender);
