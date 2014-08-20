@@ -99,23 +99,7 @@ SingleScan::SingleScan(Json::Value& cloud_json) :
 		pt.getVector3fMap() = m * pt.getVector3fMap();
 		cloud->points.push_back(pt);
 	}
-
-	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-	for(const auto& point : cloud_json) {
-		pcl::PointXYZRGBNormal pt;
-		pt.x = point["x"].asDouble();
-		pt.y = point["y"].asDouble();
-		pt.z = point["z"].asDouble();
-		pt.r = point["r"].asDouble();
-		pt.g = point["g"].asDouble();
-		pt.b = point["b"].asDouble();
-		pt.normal_x = point["nx"].asDouble();
-		pt.normal_y = point["ny"].asDouble();
-		pt.normal_z = point["nz"].asDouble();
-
-		pt.getVector3fMap() = m * pt.getVector3fMap();
-		cloud_w_normal->points.push_back(pt);
-	}
+	WARN("Since SingleScan Json constructor is no longer supported, program might crash when newer feature is used; consider migration");
 }
 
 SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
@@ -139,6 +123,20 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 		pt.g = point["g"].asDouble();
 		pt.b = point["b"].asDouble();
 		cloud->points.push_back(pt);
+	}
+	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGBNormal pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		pt.normal_x = point["nx"].asDouble();
+		pt.normal_y = point["ny"].asDouble();
+		pt.normal_z = point["nz"].asDouble();
+		cloud_w_normal->points.push_back(pt);
 	}
 
 	INFO("Loading equirectangular images");
@@ -224,11 +222,16 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 
 	// TODO: remove this!!!!
 	// Apply pre rotation.
+	INFO("Applying pre-rotation");
 	for(auto& scan : scans) {
 		Eigen::Matrix3f pre_rot;
 		pre_rot = Eigen::AngleAxisf(scan.pre_rotation, Eigen::Vector3f::UnitZ());
 		for(auto& pt : scan.cloud->points) {
 			pt.getVector3fMap() = pre_rot * pt.getVector3fMap();
+		}
+		for(auto& pt : scan.cloud_w_normal->points) {
+			pt.getVector3fMap() = pre_rot * pt.getVector3fMap();
+			pt.getNormalVector3fMap() = pre_rot * pt.getNormalVector3fMap();
 		}
 	}
 
@@ -271,20 +274,26 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 			for(auto& pt : scans[i].cloud->points) {
 				pt.getVector3fMap() += trans;
 			}
+			for(auto& pt : scans[i].cloud_w_normal->points) {
+				pt.getVector3fMap() += trans;
+			}
 			transes.push_back(trans);
 		}
 		assert(transes.size() == scans.size());
 
 		// 0: target
 		// 1,2,..: source
+		// return: (position matrix, normal matrix)
 		auto to_matrix = [](const SingleScan& scan) {
-			const auto cloud = scene_recognizer::downsample(scene_recognizer::decolor(*scan.cloud), 0.05);
+			const auto cloud = scene_recognizer::downsample<pcl::PointXYZRGBNormal>(scan.cloud_w_normal, 0.05);
 			const int n = cloud->points.size();
 			Eigen::Matrix3Xd mat(3, n);
+			Eigen::Matrix3Xd mat_n(3, n);
 			for(int i : boost::irange(0, n)) {
 				mat.col(i) = cloud->points[i].getVector3fMap().cast<double>();
+				mat_n.col(i) = cloud->points[i].getNormalVector3fMap().cast<double>();
 			}
-			return mat;
+			return std::make_pair(mat, mat_n);
 		};
 
 		// Merge others.
@@ -297,17 +306,17 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 			// https://www.youtube.com/watch?v=ii2vHBwlmo8
 			SICP::Parameters params;
 			params.max_icp = 250;
-			params.p = 0.7;
+			params.p = 0.4;
 			params.stop = 0;
 
 			// The type signature do look like it allows any Scalar, but only
 			// double will work in reality.
-			Eigen::Matrix3Xd m_source_orig = m_source;
-			SICP::point_to_point(m_source, m_target, params);
+			Eigen::Matrix3Xd m_source_orig = m_source.first;
+			SICP::point_to_plane(m_source.first, m_target.first, m_target.second, params);
 
 			// Recover motion.
 			const Eigen::Affine3f m = RigidMotionEstimator::point_to_point(
-				m_source_orig, m_source).cast<float>();
+				m_source_orig, m_source.first).cast<float>();
 			INFO("Affine |t|=", m.translation().norm());
 
 			// Merge color cloud.
@@ -549,31 +558,11 @@ std::vector<std::pair<int, int>> decomposeWallBoxes(
 	return ticks;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const float grid_size) {
-	std::map<std::tuple<int, int, int>, std::vector<Eigen::Vector3f>> tiles;
-	for(const auto& pt_xyz : cloud->points) {
-		const Eigen::Vector3f pt = pt_xyz.getVector3fMap();
-		const auto pt_i = (pt / grid_size).cast<int>();
-		tiles[std::make_tuple(pt_i(0), pt_i(1), pt_i(2))].push_back(pt);
-	}
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_new(new pcl::PointCloud<pcl::PointXYZ>);
-	for(const auto& tile : tiles) {
-		pcl::PointXYZ pt;
-		pt.getVector3fMap() = std::accumulate(
-			tile.second.begin(), tile.second.end(),
-			Eigen::Vector3f(0, 0, 0)) / tile.second.size();
-		cloud_new->points.push_back(pt);
-	}
-	return cloud_new;
-}
-
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_colorless(new pcl::PointCloud<pcl::PointXYZ>());
 	for(const auto& point : cloud) {
 		pcl::PointXYZ pt;
-		pt.x = point.x;
-		pt.y = point.y;
-		pt.z = point.z;
+		pt.getVector3fMap() = point.getVector3fMap();
 		cloud_colorless->points.push_back(pt);
 	}
 	return cloud_colorless;
