@@ -85,6 +85,7 @@ SingleScan::SingleScan(Json::Value& cloud_json) :
 	m.col(0) = Eigen::Vector3f(0, 1, 0);
 	m.col(1) = Eigen::Vector3f(0, 0, 1);
 	m.col(2) = Eigen::Vector3f(1, 0, 0);
+
 	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGB pt;
@@ -97,6 +98,23 @@ SingleScan::SingleScan(Json::Value& cloud_json) :
 
 		pt.getVector3fMap() = m * pt.getVector3fMap();
 		cloud->points.push_back(pt);
+	}
+
+	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGBNormal pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		pt.normal_x = point["nx"].asDouble();
+		pt.normal_y = point["ny"].asDouble();
+		pt.normal_z = point["nz"].asDouble();
+
+		pt.getVector3fMap() = m * pt.getVector3fMap();
+		cloud_w_normal->points.push_back(pt);
 	}
 }
 
