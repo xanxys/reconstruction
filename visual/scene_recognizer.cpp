@@ -1,6 +1,7 @@
 #include "scene_recognizer.h"
 
 #include <fstream>
+#include <random>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
@@ -256,7 +257,7 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 		// See this youtube video for quick summary of good p value.
 		// https://www.youtube.com/watch?v=ii2vHBwlmo8
 		SICP::Parameters params;
-		params.max_icp = 50;
+		params.max_icp = 0;
 		params.p = 0.4;
 		//params.stop = 0;
 
@@ -404,7 +405,52 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	assert(scans_with_pose.size() == scans.size());
 }
 
+// Use simulated annealing to minimize cloudDistance.
 Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleScan& source) {
+	std::mt19937_64 randomness;
+	auto perturbate = [&](const Eigen::Affine3f& from) {
+		return
+			Eigen::Translation3f(Eigen::Vector3f(
+				std::uniform_real_distribution<float>(-0.1, 0.1)(randomness),
+				std::uniform_real_distribution<float>(-0.1, 0.1)(randomness),
+				std::uniform_real_distribution<float>(-0.01, 0.01)(randomness))) *
+			Eigen::AngleAxisf(
+				std::uniform_real_distribution<float>(-0.1, 0.1)(randomness),
+				Eigen::Vector3f::UnitZ()) *
+			from;
+	};
+
+	auto evaluate = [&](const Eigen::Affine3f& trans) {
+		return scene_recognizer::cloudDistance(
+			target.cloud_w_normal,
+			scene_recognizer::applyTransform(source.cloud_w_normal, trans));
+	};
+
+	float temperature = 1;
+	Eigen::Affine3f current = Eigen::Affine3f::Identity();
+	Eigen::Affine3f best = current;
+	float best_score = 1e3;
+	for(int i : boost::irange(0, 2500)) {
+		const float current_score = evaluate(current);
+		if((i % 100) == 0) {
+			DEBUG("Simulated Annealing: current score=", current_score, i);
+		}
+		if(current_score < best_score) {
+			best_score = current_score;
+			best = current;
+		}
+
+		const Eigen::Affine3f next = perturbate(current);
+		const float next_score = evaluate(next);
+		const float prob_next = std::min(1.0f, std::exp((current_score - next_score) / temperature));
+
+		if(std::bernoulli_distribution(prob_next)(randomness)) {
+			current = next;
+		}
+		temperature *= 0.998;
+	}
+	return best;
+
 	std::vector<Eigen::Affine3f> seeds;
 	const int n_rot = 60;
 	for(int i : boost::irange(0, n_rot)) {
