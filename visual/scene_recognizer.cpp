@@ -226,10 +226,6 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
-	merged.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-	for(const auto& pt : scans[0].cloud->points) {
-		merged->points.push_back(pt);
-	}
 	scans_with_pose.push_back(std::make_pair(
 		scans[0],
 		Eigen::Affine3f::Identity()));
@@ -276,22 +272,29 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 			m_source_orig, m_source_pa.first).cast<float>();
 		INFO("Fine Affine |t|=", fine_align.translation().norm());
 
-		const Eigen::Affine3f trans = fine_align * pre_align;
-		// Merge color cloud.
-		for(const auto& pt : scans[i].cloud->points) {
-			pcl::PointXYZRGB pt_new = pt;
-			pt_new.getVector3fMap() = trans * pt.getVector3fMap();
-			merged->points.push_back(pt_new);
-		}
 		scans_with_pose.push_back(std::make_pair(
-			scans[i],
-			trans));
+			scans[i], fine_align * pre_align));
 	}
 
 	applyLeveling();
 }
 
 void AlignedScans::applyLeveling() {
+	// Extract upper points (possible and ceiling).
+	const auto merged = getMergedPoints();
+	const float margin = 0.5;
+	float max_z = -1e3;
+	for(const auto& pt : merged->points) {
+		max_z = std::max(max_z, pt.z);
+	}
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr edges(new pcl::PointCloud<pcl::PointXYZRGB>);
+	for(const auto& pt : merged->points) {
+		if(pt.z > max_z - margin) {
+			edges->points.push_back(pt);
+		}
+	}
+
+	// Fit plane
 	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
@@ -301,7 +304,7 @@ void AlignedScans::applyLeveling() {
 	seg.setMethodType(pcl::SAC_RANSAC);
 	seg.setDistanceThreshold(0.01);
 
-	seg.setInputCloud(merged);
+	seg.setInputCloud(edges);
 	seg.segment(*inliers, *coefficients);
 
 	if(inliers->indices.size() == 0) {
@@ -312,6 +315,34 @@ void AlignedScans::applyLeveling() {
 	INFO("Leveling plane:",
 		coefficients->values[0], coefficients->values[1],
 		coefficients->values[2], coefficients->values[3]);
+	const float angle_thresh = 10.0 / 180 * pi;
+	auto target_normal = Eigen::Vector3f::UnitZ();
+	auto normal = Eigen::Vector3f(
+		coefficients->values[0], coefficients->values[1], coefficients->values[2]).normalized();
+	if(normal.dot(target_normal) < 0) {
+		normal *= -1;
+	}
+	// If it's ceiling, adjust it. Otherwise, ignore it.
+	if(normal.dot(target_normal) < std::cos(angle_thresh)) {
+		return;
+	}
+	INFO("Adjusting rotation");
+	const auto rot = normal.cross(target_normal);
+	if(rot.norm() < 1e-3) {
+		INFO("Rotation too small; keeping as is");
+		return;
+	}
+	const float rot_angle = std::asin(rot.norm());
+	INFO("Rotating by", rot_angle);
+	const Eigen::Affine3f trans(
+		Eigen::AngleAxisf(rot_angle, rot.normalized()));
+	std::vector<std::pair<SingleScan, Eigen::Affine3f>> new_scans_with_pose;
+	for(auto& scan_w_pose : scans_with_pose) {
+		new_scans_with_pose.push_back(std::make_pair(
+			scan_w_pose.first,
+			trans * scan_w_pose.second));
+	}
+	scans_with_pose = std::move(new_scans_with_pose);
 }
 
 Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleScan& source) {
@@ -360,6 +391,14 @@ std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPo
 }
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>());
+	for(const auto& s_w_p : scans_with_pose) {
+		for(const auto& pt : s_w_p.first.cloud->points) {
+			pcl::PointXYZRGB pt_new = pt;
+			pt_new.getVector3fMap() = s_w_p.second * pt.getVector3fMap();
+			merged->points.push_back(pt_new);
+		}
+	}
 	return merged;
 }
 

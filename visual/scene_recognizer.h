@@ -80,8 +80,6 @@ private:
 private:
 	// [(original scan, local_to_world)]
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> scans_with_pose;
-
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged;
 };
 
 
