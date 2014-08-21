@@ -256,8 +256,8 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 		// See this youtube video for quick summary of good p value.
 		// https://www.youtube.com/watch?v=ii2vHBwlmo8
 		SICP::Parameters params;
-		params.max_icp = 50;
-		params.p = 0.4;
+		params.max_icp = 200;
+		params.p = 0.6;
 		//params.stop = 0;
 
 		// The type signature do look like it allows any Scalar, but only
@@ -573,7 +573,7 @@ float cloudDistance(
 	if(n_bins == 0) {
 		throw std::runtime_error("similarity() is not defined for empty point clouds");
 	}
-	return accum_distance / (n_bins * std::sqrt(n_bins));  // More bins == more similar
+	return 1.0 / n_bins; //accum_distance / (n_bins * std::sqrt(n_bins));  // More bins == more similar
 }
 
 TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
