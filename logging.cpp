@@ -9,3 +9,7 @@ void logJsonRaw(std::string level, std::string path, int line, Json::Value& msg)
 	entry["loc"]["line"] = line;
 	std::cout << Json::FastWriter().write(entry);
 }
+
+Json::Value packMessageReversed() {
+	return Json::arrayValue;
+}
