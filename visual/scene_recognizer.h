@@ -40,6 +40,7 @@ public:
 };
 
 
+// Immutable data that holds a single scan.
 class SingleScan {
 public:
 	SingleScan(Json::Value& old_style);
@@ -60,6 +61,7 @@ public:
 	cv::Mat er_intensity;
 };
 
+
 // All scans succesfully aligned.
 class AlignedScans {
 public:
@@ -68,10 +70,13 @@ public:
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
-
 private:
 	// Calculate a rough transform from source to target by heuristics.
 	static Eigen::Affine3f prealign(const SingleScan& target, const SingleScan& source);
+
+	// Mkae large near-horizontal planar segment (most likely ceiling) completely level
+	// by slight rotation.
+	void applyLeveling();
 private:
 	// [(original scan, local_to_world)]
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> scans_with_pose;
