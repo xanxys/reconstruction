@@ -272,6 +272,7 @@ std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vect
 			for(int ix : indices) {
 				DEBUG("Index", ix, points[ix].x(), points[ix].y());
 			}
+			return tris;
 			throw std::runtime_error("Ear not found when triangulating polygon. Something is wrong!");
 		}
 	}

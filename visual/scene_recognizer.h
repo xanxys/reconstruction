@@ -68,6 +68,10 @@ public:
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
+
+private:
+	// Calculate a rough transform from source to target by heuristics.
+	static Eigen::Affine3f prealign(const SingleScan& target, const SingleScan& source);
 private:
 	// [(original scan, local_to_world)]
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> scans_with_pose;
@@ -80,6 +84,8 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 
 // Try avoiding classes for this kind of complex, pure operation.
 namespace scene_recognizer {
+
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud, const Eigen::Affine3f& trans);
 
 template<typename Scalar>
 Eigen::Vector3f append(Eigen::Vector2f v, Scalar x) {
@@ -115,6 +121,12 @@ typename pcl::PointCloud<Point>::Ptr downsample(typename pcl::PointCloud<Point>:
 	}
 	return cloud_new;
 }
+
+// Calculate distance between two point clouds by
+// RGB and normal similarity.
+float cloudDistance(
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c1,
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c2);
 
 // Calculate ranges (both ends of box) on wall polygon by analyzing interior point cloud.
 // Indices of polygon vertices are used to indicate position on the primeter.

@@ -220,6 +220,76 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
+	merged.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+	for(const auto& pt : scans[0].cloud->points) {
+		merged->points.push_back(pt);
+	}
+	scans_with_pose.push_back(std::make_pair(
+		scans[0],
+		Eigen::Affine3f::Identity()));
+
+	// 0: target
+	// 1,2,..: source
+	// return: (position matrix, normal matrix)
+	auto to_matrix = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+		const auto ds_cloud = scene_recognizer::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+		const int n = ds_cloud->points.size();
+		Eigen::Matrix3Xd mat(3, n);
+		Eigen::Matrix3Xd mat_n(3, n);
+		for(int i : boost::irange(0, n)) {
+			mat.col(i) = ds_cloud->points[i].getVector3fMap().cast<double>();
+			mat_n.col(i) = ds_cloud->points[i].getNormalVector3fMap().cast<double>();
+		}
+		return std::make_pair(mat, mat_n);
+	};
+
+	// Merge others.
+	for(int i : boost::irange(1, (int)scans.size())) {
+		INFO("Calculating best pre-alignment between", 0, i);
+		const auto pre_align = prealign(scans[0], scans[i]);
+		INFO("Prealign Affine |t|=", pre_align.translation().norm());
+
+		auto m_source_pa = to_matrix(scene_recognizer::applyTransform(scans[i].cloud_w_normal, pre_align));
+		auto m_target = to_matrix(scans[0].cloud_w_normal);
+
+		INFO("Running Sparse ICP", i);
+		// See this youtube video for quick summary of good p value.
+		// https://www.youtube.com/watch?v=ii2vHBwlmo8
+		SICP::Parameters params;
+		params.max_icp = 50;
+		params.p = 0.4;
+		//params.stop = 0;
+
+		// The type signature do look like it allows any Scalar, but only
+		// double will work in reality.
+		Eigen::Matrix3Xd m_source_orig = m_source_pa.first;
+		SICP::point_to_plane(m_source_pa.first, m_target.first, m_target.second, params);
+
+		// Recover motion.
+		const Eigen::Affine3f fine_align = RigidMotionEstimator::point_to_point(
+			m_source_orig, m_source_pa.first).cast<float>();
+		INFO("Fine Affine |t|=", fine_align.translation().norm());
+
+		const Eigen::Affine3f trans = fine_align * pre_align;
+		// Merge color cloud.
+		for(const auto& pt : scans[i].cloud->points) {
+			pcl::PointXYZRGB pt_new = pt;
+			pt_new.getVector3fMap() = trans * pt.getVector3fMap();
+			merged->points.push_back(pt_new);
+		}
+		scans_with_pose.push_back(std::make_pair(
+			scans[i],
+			trans));
+	}
+
+	/*
+	for(int i : boost::irange(1, (int)scans.size())) {
+		INFO("Calculating best pre-alignment between", 0, i);
+		const auto trans = prealign(scans[0], scans[i]);
+	}
+	*/
+	return;
+
 	// TODO: remove this!!!!
 	// Apply pre rotation.
 	INFO("Applying pre-rotation");
@@ -334,6 +404,47 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	assert(scans_with_pose.size() == scans.size());
 }
 
+Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleScan& source) {
+	std::vector<Eigen::Affine3f> seeds;
+	const int n_rot = 60;
+	for(int i : boost::irange(0, n_rot)) {
+		seeds.push_back(
+			Eigen::Affine3f(Eigen::AngleAxisf(
+				(float)i / n_rot * 2 * pi,
+				Eigen::Vector3f::UnitZ())));
+	}
+
+	auto extract_centroid = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+		std::vector<float> xs;
+		std::vector<float> ys;
+		for(auto& pt : cloud->points) {
+			xs.push_back(pt.x);
+			ys.push_back(pt.y);
+		}
+		return Eigen::Vector2f(
+			shape_fitter::mean(shape_fitter::robustMinMax(xs, 0.01)),
+			shape_fitter::mean(shape_fitter::robustMinMax(ys, 0.01)));
+	};
+
+	// source --seed--> source' --centroid-align--> source'' ==? target
+	float best_dist = 1e6;
+	Eigen::Affine3f best_trans;
+	for(const auto& seed_trans : seeds) {
+		const auto cloud_seeded = scene_recognizer::applyTransform(source.cloud_w_normal, seed_trans);
+		const auto dp = extract_centroid(target.cloud_w_normal) - extract_centroid(cloud_seeded);
+		const Eigen::Affine3f trans_centroid(Eigen::Translation3f(Eigen::Vector3f(dp(0), dp(1), 0)));
+
+		const float dist = scene_recognizer::cloudDistance(scene_recognizer::applyTransform(cloud_seeded, trans_centroid), target.cloud_w_normal);
+		DEBUG("Dist(angle)", dist);
+		if(dist < best_dist) {
+			best_dist = dist;
+			best_trans = trans_centroid * seed_trans;
+		}
+	}
+	INFO("Pre-align: best dist=", best_dist);
+	return best_trans;
+}
+
 std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPose() const {
 	return scans_with_pose;
 }
@@ -382,6 +493,87 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	bundle.debug_points_interior_distance = cloud_interior_dist;
 	bundle.debug_points_merged = points_merged;
 	return bundle;
+}
+
+// Apply affine transform to given XYZ+RGB+Normal point cloud,
+// and return new transformed cloud.
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud, const Eigen::Affine3f& trans) {
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr new_cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	for(auto& pt : cloud->points) {
+		pcl::PointXYZRGBNormal pt_new = pt;
+		pt_new.getVector3fMap() = trans * pt.getVector3fMap();
+		pt_new.getNormalVector3fMap() = trans * pt.getNormalVector3fMap();
+		new_cloud->points.push_back(pt_new);
+	}
+	return new_cloud;
+}
+
+// This function will be called several times for pre-alignment:
+// focus on speed rather than accurancy.
+float cloudDistance(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c1,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c2) {
+	// Collect single smaple per each bin.
+	const float res = 0.3;
+	const float weight_normal_cos = 5;
+	const float weight_color_l2 = 0.01;
+	// PosIndex -> (Normal, RGB)
+	std::map<
+		std::tuple<int, int, int>,
+		std::pair<
+			std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>,
+			std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>>> cells;
+	for(const auto& pt : c1->points) {
+		const auto ix = (pt.getVector3fMap() / res).cast<int>();
+		const auto tix = std::make_tuple(ix(0), ix(1), ix(2));
+		cells[tix].first.push_back(std::make_tuple(
+			pt.getNormalVector3fMap(),
+			pt.getRGBVector3i().cast<float>()));
+	}
+	for(const auto& pt : c2->points) {
+		const auto ix = (pt.getVector3fMap() / res).cast<int>();
+		const auto tix = std::make_tuple(ix(0), ix(1), ix(2));
+		cells[tix].second.push_back(std::make_tuple(
+			pt.getNormalVector3fMap(),
+			pt.getRGBVector3i().cast<float>()));
+	}
+
+	// Compare each bin's score.
+	auto calc_stat = [](const std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>& samples) {
+		const int n = samples.size();
+		if(n == 0) {
+			return boost::optional<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>();
+		}
+		Eigen::Vector3f accum_n = Eigen::Vector3f::Zero();
+		Eigen::Vector3f accum_c = Eigen::Vector3f::Zero();
+		for(const auto& sample : samples) {
+			accum_n += std::get<0>(sample);
+			accum_c += std::get<1>(sample);
+		}
+		return boost::optional<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>(std::make_tuple(
+			(accum_n / n).normalized(),
+			accum_c / n));
+	};
+	int n_bins = 0;
+	float accum_distance = 0;
+	for(const auto& bin : cells) {
+		const auto& samples = bin.second;
+		const auto stat1 = calc_stat(samples.first);
+		const auto stat2 = calc_stat(samples.second);
+		if(!stat1 || !stat2) {
+			continue;
+		}
+
+		const float dist =
+			weight_normal_cos * (std::get<0>(*stat1) - std::get<0>(*stat2)).norm() +
+			weight_color_l2 * (std::get<1>(*stat1) - std::get<1>(*stat2)).norm();
+		accum_distance += dist;
+		n_bins++;
+	}
+	if(n_bins == 0) {
+		throw std::runtime_error("similarity() is not defined for empty point clouds");
+	}
+	return accum_distance / (n_bins * std::sqrt(n_bins));  // More bins == more similar
 }
 
 TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
