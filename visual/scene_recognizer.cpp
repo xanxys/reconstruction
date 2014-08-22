@@ -147,8 +147,8 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 
 	INFO("Loading equirectangular images");
 	er_rgb = cv::imread((path(scan_dir) / path("rgb.png")).string());
-	er_intensity = cv::imread((path(scan_dir) / path("intensity.png")).string());
-	er_depth = cv::imread((path(scan_dir) / path("depth.png")).string());
+	er_intensity = cv::imread((path(scan_dir) / path("intensity.png")).string(), CV_LOAD_IMAGE_ANYDEPTH);
+	er_depth = cv::imread((path(scan_dir) / path("depth.png")).string(), CV_LOAD_IMAGE_ANYDEPTH);
 
 	if(er_rgb.size() == cv::Size(0, 0)) {
 		WARN("Image was not loaded properly");
@@ -157,6 +157,14 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	if(er_rgb.size() != er_intensity.size() || er_rgb.size() != er_depth.size()) {
 		throw std::runtime_error("Inconsistent image sizes");
 	}
+	if(er_rgb.type() != CV_8UC3 || er_depth.type() != CV_16U || er_intensity.type() != CV_16U) {
+		throw std::runtime_error("Invalid image type");
+	}
+	// Convert u16 depth(mm) back to float depth(m).
+	cv::Mat er_depth_meter;
+	er_depth.convertTo(er_depth_meter, CV_32F, 1e-3);
+	er_depth = er_depth_meter;
+	assert(er_depth.type() == CV_32F);
 }
 
 
