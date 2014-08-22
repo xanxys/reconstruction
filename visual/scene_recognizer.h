@@ -56,9 +56,9 @@ public:
 	// or replace with magnetometer measurement.
 	const float pre_rotation;
 
-	cv::Mat er_rgb;
-	cv::Mat er_depth;
-	cv::Mat er_intensity;
+	cv::Mat_<cv::Vec3b> er_rgb;
+	cv::Mat_<float> er_depth;
+	cv::Mat_<uint16_t> er_intensity;
 };
 
 

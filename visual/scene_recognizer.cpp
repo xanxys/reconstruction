@@ -148,22 +148,22 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	INFO("Loading equirectangular images");
 	er_rgb = cv::imread((path(scan_dir) / path("rgb.png")).string());
 	er_intensity = cv::imread((path(scan_dir) / path("intensity.png")).string(), CV_LOAD_IMAGE_ANYDEPTH);
-	er_depth = cv::imread((path(scan_dir) / path("depth.png")).string(), CV_LOAD_IMAGE_ANYDEPTH);
+	cv::Mat er_depth_mm = cv::imread((path(scan_dir) / path("depth.png")).string(), CV_LOAD_IMAGE_ANYDEPTH);
 
 	if(er_rgb.size() == cv::Size(0, 0)) {
 		WARN("Image was not loaded properly");
 		throw std::runtime_error("Couldn't load ER RGB image");
 	}
-	if(er_rgb.size() != er_intensity.size() || er_rgb.size() != er_depth.size()) {
+	if(er_rgb.size() != er_intensity.size() || er_rgb.size() != er_depth_mm.size()) {
 		throw std::runtime_error("Inconsistent image sizes");
 	}
-	if(er_rgb.type() != CV_8UC3 || er_depth.type() != CV_16U || er_intensity.type() != CV_16U) {
+	if(er_rgb.type() != CV_8UC3 || er_depth_mm.type() != CV_16U || er_intensity.type() != CV_16U) {
+		INFO("correct types", CV_8UC3, CV_16U, CV_16U);
+		INFO("found types", er_rgb.type(), er_depth_mm.type(), er_intensity.type());
 		throw std::runtime_error("Invalid image type");
 	}
 	// Convert u16 depth(mm) back to float depth(m).
-	cv::Mat er_depth_meter;
-	er_depth.convertTo(er_depth_meter, CV_32F, 1e-3);
-	er_depth = er_depth_meter;
+	er_depth_mm.convertTo(er_depth, CV_32F, 1e-3);
 	assert(er_depth.type() == CV_32F);
 }
 
@@ -550,10 +550,11 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 				// Ignore N/A samples.
 				// TODO: 0,0,0 rarely occurs naturaly, but when it does,
 				// consider migration to RGBA image.
-				const cv::Vec3b color = scan.er_rgb.at<cv::Vec3b>(y, x);
+				const cv::Vec3b color = scan.er_rgb(y, x);
 				if(color == cv::Vec3b(0, 0, 0)) {
 					continue;
 				}
+				n_all++;
 
 				const float theta = (float)y / scan.er_rgb.rows * pi;
 				const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
@@ -566,8 +567,14 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 				Ray ray(
 					l_to_w * org_local,
 					l_to_w.rotation() * dir_local);
+
+				const float accept_dist = 0.1;
 				const auto isect = intersecter.intersect(ray);
 				if(isect) {
+					const float t = std::get<2>(*isect);
+					if(std::abs(t - scan.er_depth(y, x)) >= accept_dist) {
+						continue;
+					}
 					const auto tri = shape.triangles[std::get<0>(*isect)];
 					const auto uv0 = shape.vertices[std::get<0>(tri)].second;
 					const auto uv1 = shape.vertices[std::get<1>(tri)].second;
@@ -577,7 +584,6 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 					film.record(swapY(uv) * tex_size, color);
 					n_hits++;
 				}
-				n_all++;
 			}
 		}
 		// Exit with only one scan, since currently multiple-scan fusion
