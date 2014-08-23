@@ -1,0 +1,19 @@
+[
+    {
+        "height": 800,
+        "lines_on_plane": [
+            {
+                "p0": {
+                    "x": 705,
+                    "y": 313
+                },
+                "p1": {
+                    "x": 1056,
+                    "y": 340
+                }
+            }
+        ],
+        "path": "../capturer/scan-20140801-18:57-gakusei-small-2",
+        "width": 1600
+    }
+]
