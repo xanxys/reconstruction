@@ -50,7 +50,7 @@ def process(data):
             depths = [depth[pt[1], pt[0]] for pt in points]
             intens = [inten[pt[1], pt[0]] for pt in points]
             plt.scatter(depths, intens)
-        plt.show()
+    plt.show()
 
 if __name__ == '__main__':
     data = json.load(open('wall_annotations.json'))
