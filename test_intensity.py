@@ -8,7 +8,7 @@ import scipy.linalg as la
 import json
 import os.path
 import matplotlib.pyplot as plt
-
+import itertools
 
 def points_on_segment(p0, p1):
     """
@@ -42,14 +42,15 @@ def process(data):
             print("Unexpected depth type")
             continue
 
-        for line in annotated_image["lines_on_plane"]:
+        for (line, color) in zip(annotated_image["lines_on_plane"], itertools.cycle(['r', 'g', 'b', 'o', 'b', 'y'])):
             p0 = np.array([line["p0"]["x"], line["p0"]["y"]])
             p1 = np.array([line["p1"]["x"], line["p1"]["y"]])
             points = points_on_segment(p0, p1)
             print("Line between %s - %s (%d samples)" % (p0, p1, len(points)))
-            depths = [depth[pt[1], pt[0]] for pt in points]
-            intens = [inten[pt[1], pt[0]] for pt in points]
-            plt.scatter(depths, intens)
+            depths = np.array([depth[pt[1], pt[0]] for pt in points])
+            intens = np.array([inten[pt[1], pt[0]] for pt in points])
+            plt.scatter(depths, intens, c=color)
+    plt.grid()
     plt.show()
 
 if __name__ == '__main__':
