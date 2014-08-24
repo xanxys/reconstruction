@@ -42,6 +42,10 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 		serializeDebugPoints(debug_points_interior).serializePLYWithRgb(debug_points_file);
 	}
 	{
+		std::ofstream debug_points_file((dir_path / path("debug_points_interior_2d.ply")).string());
+		serializeDebugPoints(debug_points_interior_2d).serializePLYWithRgb(debug_points_file);
+	}
+	{
 		std::ofstream debug_points_file((dir_path / path("debug_points_interior_distance.ply")).string());
 		serializeDebugPoints(debug_points_interior_distance).serializePLYWithRgb(debug_points_file);
 	}
@@ -441,12 +445,31 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	}
 	INFO("Box actually created", (int)boxes.size());
 
+	INFO("Projecting to 2d");
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_interior_2d(new pcl::PointCloud<pcl::PointXYZRGB>);
+	const float ceiling_reject = 0.5;
+	const float floor_reject = 0.3;
+	for(const auto& pt : cloud_interior->points) {
+		// Reject points too near, or above ceiling.
+		if(pt.z > std::get<2>(extrusion).second - ceiling_reject) {
+			continue;
+		}
+		// Reject floor points.
+		if(pt.z < std::get<2>(extrusion).first + floor_reject) {
+			continue;
+		}
+		pcl::PointXYZRGB new_pt = pt;
+		new_pt.z = 0;
+		cloud_interior_2d->points.push_back(new_pt);
+	}
+
 	INFO("Creating assets");
 	SceneAssetBundle bundle;
 	bundle.point_lights = visual::recognize_lights(points_merged);
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
 	bundle.debug_points_interior = cloud_interior;
+	bundle.debug_points_interior_2d = cloud_interior_2d;
 	bundle.debug_points_interior_distance = cloud_interior_dist;
 	bundle.debug_points_merged = points_merged;
 	return bundle;

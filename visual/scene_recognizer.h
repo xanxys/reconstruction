@@ -35,6 +35,7 @@ public:
 	std::vector<TexturedMesh> interior_objects;
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_2d;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_distance;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_merged;
 };
