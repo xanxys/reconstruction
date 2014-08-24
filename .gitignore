@@ -6,3 +6,4 @@ data/
 archive/
 *.pb.cc
 *.pb.h
+*.sublime-workspace

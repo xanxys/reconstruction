@@ -13,38 +13,26 @@
 
 void logJsonRaw(std::string level, std::string path, int line, Json::Value& msg);
 
-template<typename MessageType>
-void logJson(std::string level, std::string path, int line, MessageType msg) {
-	Json::Value message = msg;
-	logJsonRaw(level, path, line, message);
+Json::Value packMessageReversed();
+
+template<typename MessageType0, typename... MessageTypes>
+Json::Value packMessageReversed(MessageType0 msg_head, MessageTypes... msg_tail) {
+	Json::Value rest = packMessageReversed(msg_tail...);
+	rest.append(msg_head);
+	return rest;
 }
 
-template<typename MessageType1, typename MessageType2>
-void logJson(std::string level, std::string path, int line,
-	MessageType1 msg1, MessageType2 msg2) {
-	Json::Value message;
-	message.append(msg1);
-	message.append(msg2);
-	logJsonRaw(level, path, line, message);
-}
 
-template<typename MessageType1, typename MessageType2, typename MessageType3>
-void logJson(std::string level, std::string path, int line,
-	MessageType1 msg1, MessageType2 msg2, MessageType3 msg3) {
-	Json::Value message;
-	message.append(msg1);
-	message.append(msg2);
-	message.append(msg3);
-	logJsonRaw(level, path, line, message);
-}
-
-template<typename MessageType1, typename MessageType2, typename MessageType3, typename MessageType4>
-void logJson(std::string level, std::string path, int line,
-	MessageType1 msg1, MessageType2 msg2, MessageType3 msg3, MessageType4 msg4) {
-	Json::Value message;
-	message.append(msg1);
-	message.append(msg2);
-	message.append(msg3);
-	message.append(msg4);
-	logJsonRaw(level, path, line, message);
+template<typename... MessageType>
+void logJson(std::string level, std::string path, int line, MessageType... msgs) {
+	Json::Value message_rev = packMessageReversed(msgs...);
+	if(message_rev.size() == 1) {
+		logJsonRaw(level, path, line, message_rev[0]);
+	} else {
+		Json::Value array;
+		for(int i = message_rev.size() - 1; i >= 0; i--) {
+			array.append(message_rev[i]);
+		}
+		logJsonRaw(level, path, line, array);
+	}
 }

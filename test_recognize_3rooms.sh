@@ -14,7 +14,7 @@ time ./recon --convert ../capturer/scan-20140801-18:54-gakusei-small-1/ --conver
 # * scan-20140801-18:47
 # * scan-20140801-18:50-ocha-2
 echo "== Ocha"
-time ./recon --convert ../capturer/scan-20140801-18:44 --convert ../capturer/scan-20140801-18:47
+time ./recon --convert ../capturer/scan-20140801-18:44 --convert ../capturer/scan-20140801-18:47 --convert ../capturer/scan-20140801-18:50-ocha-2
 
 # large
 # * test-20140801-15:24-gakusei-table
