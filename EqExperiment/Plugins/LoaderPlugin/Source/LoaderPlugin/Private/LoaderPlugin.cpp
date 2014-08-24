@@ -90,11 +90,15 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	for (auto& light : lights) {
 		auto pos = light.get<picojson::object>()["pos"].get<picojson::object>();
 		FVector location(pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
+		FTransform pose(location);
 		location *= uu_per_meter;
-		const FRotator rotation(0, 0, 0);
 		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Light at %s"), *location.ToString());
-		AActor* actor = factory->CreateActor(asset, level, location, &rotation);
+		AActor* actor = factory->CreateActor(asset, level, pose);
 	}
+
+	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
+
+
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {
