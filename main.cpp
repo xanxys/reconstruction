@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("test", "do experimental stuff")
-		("convert", value<std::vector<std::string>>(), "convert given scans");
+		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans");
 
 	variables_map vars;
 	store(parse_command_line(argc, argv, desc), vars);
