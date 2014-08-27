@@ -8,6 +8,7 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/registration/icp.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -257,35 +258,60 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 		return std::make_pair(mat, mat_n);
 	};
 
+	auto to_cloud = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+		return scene_recognizer::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+	};
+
+	bool use_sicp = false;
+
 	// Merge others.
 	for(int i : boost::irange(1, (int)scans.size())) {
 		INFO("Calculating best pre-alignment between", 0, i);
 		const auto pre_align = prealign(scans[0], scans[i]);
 		INFO("Prealign Affine |t|=", pre_align.translation().norm());
 
-		auto m_source_pa = to_matrix(scene_recognizer::applyTransform(scans[i].cloud_w_normal, pre_align));
-		auto m_target = to_matrix(scans[0].cloud_w_normal);
+		const auto source_pa = scene_recognizer::applyTransform(scans[i].cloud_w_normal, pre_align);
+		const auto target = scans[0].cloud_w_normal;
+		Eigen::Affine3f trans;
+		if(true) {
+			INFO("Running Sparse ICP", i);
 
-		INFO("Running Sparse ICP", i);
-		// See this youtube video for quick summary of good p value.
-		// https://www.youtube.com/watch?v=ii2vHBwlmo8
-		SICP::Parameters params;
-		params.max_icp = 200;
-		params.p = 0.6;
-		//params.stop = 0;
+			auto m_source_pa = to_matrix(source_pa);
+			auto m_target = to_matrix(target);
 
-		// The type signature do look like it allows any Scalar, but only
-		// double will work in reality.
-		Eigen::Matrix3Xd m_source_orig = m_source_pa.first;
-		SICP::point_to_plane(m_source_pa.first, m_target.first, m_target.second, params);
+			// See this youtube video for quick summary of good p value.
+			// https://www.youtube.com/watch?v=ii2vHBwlmo8
+			SICP::Parameters params;
+			params.max_icp = 200;
+			params.p = 0.6;
+			//params.stop = 0;
 
-		// Recover motion.
-		const Eigen::Affine3f fine_align = RigidMotionEstimator::point_to_point(
-			m_source_orig, m_source_pa.first).cast<float>();
-		INFO("Fine Affine |t|=", fine_align.translation().norm());
+			// The type signature do look like it allows any Scalar, but only
+			// double will work in reality.
+			Eigen::Matrix3Xd m_source_orig = m_source_pa.first;
+			SICP::point_to_plane(m_source_pa.first, m_target.first, m_target.second, params);
+
+			// Recover motion.
+			const Eigen::Affine3f fine_align = RigidMotionEstimator::point_to_point(
+				m_source_orig, m_source_pa.first).cast<float>();
+			INFO("Fine Affine |t|=", fine_align.translation().norm());
+			trans = fine_align * pre_align;
+		}
+		if(false) {
+			INFO("Running PCL ICP");
+			pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+			icp.setInputCloud(to_cloud(source_pa));
+			icp.setInputTarget(to_cloud(target));
+			pcl::PointCloud<pcl::PointXYZRGBNormal> final;
+			icp.align(final);
+			INFO("ICP converged", icp.hasConverged(), "score", icp.getFitnessScore());
+			Eigen::Affine3f fine_align(icp.getFinalTransformation());
+			INFO("Fine Affine |t|=", fine_align.translation().norm());
+			trans = fine_align * pre_align;
+		}
 
 		scans_with_pose.push_back(std::make_pair(
-			scans[i], fine_align * pre_align));
+			scans[i], trans));
 	}
 
 	applyLeveling();
