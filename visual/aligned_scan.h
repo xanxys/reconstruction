@@ -46,6 +46,8 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
+	void createClosenessMatrix(const std::vector<SingleScan>& scans) const;
+
 	// Calculate a rough transform from source to target by heuristics.
 	static Eigen::Affine3f prealign(const SingleScan& target, const SingleScan& source);
 

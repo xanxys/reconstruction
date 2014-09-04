@@ -115,6 +115,8 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
+	createClosenessMatrix(scans);
+
 	scans_with_pose.push_back(std::make_pair(
 		scans[0],
 		Eigen::Affine3f::Identity()));
@@ -191,6 +193,29 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	}
 
 	applyLeveling();
+}
+
+void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) const {
+	const int n = scans.size();
+	INFO("Calculating point cloud closeness matrix");
+	Eigen::MatrixXf closeness(n, n);
+	for(int i : boost::irange(0, n)) {
+		for(int j : boost::irange(i, n)) {
+			const float dist = cloud_base::cloudDistance(scans[i].cloud_w_normal, scans[j].cloud_w_normal);
+			closeness(i, j) = dist;
+			closeness(j, i) = dist;
+		}
+	}
+	// serialize to json.
+	Json::Value rows;
+	for(int i : boost::irange(0, n)) {
+		Json::Value row;
+		for(int j : boost::irange(0, n)) {
+			row.append(closeness(i, j));
+		}
+		rows.append(row);
+	}
+	DEBUG("closeness matrix", rows);
 }
 
 void AlignedScans::applyLeveling() {

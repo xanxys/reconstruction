@@ -7,3 +7,4 @@ archive/
 *.pb.cc
 *.pb.h
 *.sublime-workspace
+log
