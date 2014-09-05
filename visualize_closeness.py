@@ -15,5 +15,8 @@ if __name__ == '__main__':
         closeness = np.array(closeness)
 
         x = plt.imshow(closeness, interpolation='none')
+        plt.title('Pair distance (%s)' % target["date"])
+        plt.xlabel('scan index')
+        plt.ylabel('scan index')
         plt.colorbar(x)
         plt.show()
