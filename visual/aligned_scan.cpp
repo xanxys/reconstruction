@@ -201,7 +201,12 @@ void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) c
 	Eigen::MatrixXf closeness(n, n);
 	for(int i : boost::irange(0, n)) {
 		for(int j : boost::irange(i, n)) {
-			const float dist = cloud_base::cloudDistance(scans[i].cloud_w_normal, scans[j].cloud_w_normal);
+			const auto pre_align = prealign(scans[j], scans[i]);
+
+			const float dist = cloud_base::cloudDistance(
+				cloud_base::applyTransform(scans[i].cloud_w_normal, pre_align),
+				scans[j].cloud_w_normal);
+
 			closeness(i, j) = dist;
 			closeness(j, i) = dist;
 		}
