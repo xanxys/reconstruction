@@ -47,9 +47,15 @@ public:
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
 	void createClosenessMatrix(const std::vector<SingleScan>& scans) const;
+	void hierarchicalMerge(const std::vector<SingleScan>& scans);
 
 	// Calculate a rough transform from source to target by heuristics.
 	static Eigen::Affine3f prealign(const SingleScan& target, const SingleScan& source);
+	static Eigen::Affine3f finealign(const SingleScan& target, const SingleScan& source);
+	static Eigen::Affine3f prealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
+			const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source);
+	static Eigen::Affine3f finealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
+			const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source);
 
 	// Mkae large near-horizontal planar segment (most likely ceiling) completely level
 	// by slight rotation.

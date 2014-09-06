@@ -116,6 +116,7 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
 	createClosenessMatrix(scans);
+	hierarchicalMerge(scans);
 
 	scans_with_pose.push_back(std::make_pair(
 		scans[0],
@@ -221,6 +222,87 @@ void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) c
 		rows.append(row);
 	}
 	DEBUG("closeness matrix", rows);
+
+	// do hierarchical aggregation.
+	// will be O(N^2) + small constant * O(N^3)
+	// O(N^3) can be removed by some clever data structure,
+	// but since N is small (<100) it's needless optimization.
+	int new_id = n;
+	std::map<int, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> remaining;
+	std::map<std::pair<int, int>, float> sparse_dist;  // always i < j
+	// node = (i, (j, k, trans))
+	//   i
+	// -----
+	// |   |
+	// j  trans * k
+	std::map<int, std::tuple<int, int, Eigen::Affine3f>> nodes;
+
+	// initialize.
+	INFO("Begin hierarchical aggregation of point clouds");
+	for(int i : boost::irange(0, n)) {
+		remaining[i] = scans[i].cloud_w_normal;
+		for(int j : boost::irange(i + 1, n)) {
+			sparse_dist[std::make_pair(i, j)] = closeness(i, j);
+		}
+	}
+	// merge until only one node remains.
+	while(remaining.size() > 1) {
+		const auto best_pair = std::min_element(sparse_dist.begin(), sparse_dist.end(),
+			[](const std::pair<std::pair<int, int>, float>& a, const std::pair<std::pair<int, int>, float>& b) {
+				return a.second < b.second;
+			}
+		)->first;
+		// Create new node(agg_id) from best_pair.
+		const int agg_id = new_id++;
+		DEBUG("Pair:", best_pair.first, best_pair.second, "->", agg_id);
+
+
+		// Align.
+		DEBUG("ALIGNING");
+		const auto pre_align = prealign(remaining[best_pair.second], remaining[best_pair.first]);
+		DEBUG("FALIGNING");
+		const auto fine_align = finealign(remaining[best_pair.second], cloud_base::applyTransform(remaining[best_pair.first], pre_align));
+		DEBUG("REGISTERING");
+		const Eigen::Affine3f trans = fine_align * pre_align;
+		nodes[agg_id] = std::make_tuple(best_pair.second, best_pair.first, trans);
+		remaining[agg_id] = cloud_base::merge<pcl::PointXYZRGBNormal>(
+			remaining[best_pair.second],
+			cloud_base::applyTransform(remaining[best_pair.first], trans));
+		remaining.erase(best_pair.first);
+		remaining.erase(best_pair.second);
+
+		DEBUG("Updating distances");
+		// Remove obsolete distances.
+		// (pairs containing either first or second)
+		for(const auto& pair : sparse_dist) {
+			if(pair.first.first == best_pair.first || pair.first.second == best_pair.first ||
+				pair.first.first == best_pair.second || pair.first.second == best_pair.second) {
+				sparse_dist.erase(pair.first);
+			}
+		}
+		// Add new distances.
+		// agg_id - other
+		for(const auto& key : remaining) {
+			if(key.first == agg_id) {
+				continue;
+			}
+			const auto new_pair = (key.first > agg_id) ?
+				std::make_pair(agg_id, key.first) :
+				std::make_pair(key.first, agg_id);
+			const int i = new_pair.first;
+			const int j = new_pair.second;
+			assert(i < j);
+			const auto pre_align = prealign(remaining[j], remaining[i]);
+			const float dist = cloud_base::cloudDistance(
+				cloud_base::applyTransform(remaining[i], pre_align),
+				remaining[j]);
+			sparse_dist[new_pair] = dist;
+		}
+	}
+	assert(remaining.size() == 1);
+}
+
+void AlignedScans::hierarchicalMerge(const std::vector<SingleScan>& scans) {
 }
 
 void AlignedScans::applyLeveling() {
@@ -290,6 +372,13 @@ void AlignedScans::applyLeveling() {
 }
 
 Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleScan& source) {
+	return prealign(target.cloud_w_normal, source.cloud_w_normal);
+}
+
+Eigen::Affine3f AlignedScans::prealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
+		const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source) {
+	assert(target);
+	assert(source);
 	std::vector<Eigen::Affine3f> seeds;
 	const int n_rot = 60;
 	for(int i : boost::irange(0, n_rot)) {
@@ -315,11 +404,11 @@ Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleSca
 	float best_dist = 1e6;
 	Eigen::Affine3f best_trans;
 	for(const auto& seed_trans : seeds) {
-		const auto cloud_seeded = cloud_base::applyTransform(source.cloud_w_normal, seed_trans);
-		const auto dp = extract_centroid(target.cloud_w_normal) - extract_centroid(cloud_seeded);
+		const auto cloud_seeded = cloud_base::applyTransform(source, seed_trans);
+		const auto dp = extract_centroid(target) - extract_centroid(cloud_seeded);
 		const Eigen::Affine3f trans_centroid(Eigen::Translation3f(Eigen::Vector3f(dp(0), dp(1), 0)));
 
-		const float dist = cloud_base::cloudDistance(cloud_base::applyTransform(cloud_seeded, trans_centroid), target.cloud_w_normal);
+		const float dist = cloud_base::cloudDistance(cloud_base::applyTransform(cloud_seeded, trans_centroid), target);
 		DEBUG("Dist(angle)", dist);
 		if(dist < best_dist) {
 			best_dist = dist;
@@ -329,6 +418,80 @@ Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleSca
 	INFO("Pre-align: best dist=", best_dist);
 	return best_trans;
 }
+
+Eigen::Affine3f AlignedScans::finealign(const SingleScan& target, const SingleScan& source) {
+	return finealign(target.cloud_w_normal, source.cloud_w_normal);
+}
+
+Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
+		const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source) {
+	assert(target);
+	assert(source);
+
+	// 0: target
+	// 1,2,..: source
+	// return: (position matrix, normal matrix)
+	auto to_matrix = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+		const auto ds_cloud = cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+		const int n = ds_cloud->points.size();
+		Eigen::Matrix3Xd mat(3, n);
+		Eigen::Matrix3Xd mat_n(3, n);
+		for(int i : boost::irange(0, n)) {
+			mat.col(i) = ds_cloud->points[i].getVector3fMap().cast<double>();
+			mat_n.col(i) = ds_cloud->points[i].getNormalVector3fMap().cast<double>();
+		}
+		return std::make_pair(mat, mat_n);
+	};
+
+	auto to_cloud = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+		return cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+	};
+
+	/*
+	bool use_sicp = false;
+
+		const auto source = cloud_base::applyTransform(scans[i].cloud_w_normal, pre_align);
+		const auto target = scans[0].cloud_w_normal;
+		Eigen::Affine3f trans;
+		if(false) {
+			INFO("Running Sparse ICP", i);
+
+			auto m_source_pa = to_matrix(source_pa);
+			auto m_target = to_matrix(target);
+
+			// See this youtube video for quick summary of good p value.
+			// https://www.youtube.com/watch?v=ii2vHBwlmo8
+			SICP::Parameters params;
+			params.max_icp = 200;
+			params.p = 0.6;
+			//params.stop = 0;
+
+			// The type signature do look like it allows any Scalar, but only
+			// double will work in reality.
+			Eigen::Matrix3Xd m_source_orig = m_source_pa.first;
+			SICP::point_to_plane(m_source_pa.first, m_target.first, m_target.second, params);
+
+			// Recover motion.
+			const Eigen::Affine3f fine_align = RigidMotionEstimator::point_to_point(
+				m_source_orig, m_source_pa.first).cast<float>();
+			INFO("Fine Affine |t|=", fine_align.translation().norm());
+			trans = fine_align * pre_align;
+		}
+	*/
+	if(true) {
+		INFO("Running PCL ICP");
+		pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+		icp.setInputCloud(to_cloud(source));
+		icp.setInputTarget(to_cloud(target));
+		pcl::PointCloud<pcl::PointXYZRGBNormal> final;
+		icp.align(final);
+		INFO("ICP converged", icp.hasConverged(), "score", icp.getFitnessScore());
+		Eigen::Affine3f fine_align(icp.getFinalTransformation());
+		INFO("Fine Affine |t|=", fine_align.translation().norm());
+		return fine_align;
+	}
+}
+
 
 std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPose() const {
 	return scans_with_pose;

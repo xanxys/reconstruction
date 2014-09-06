@@ -48,6 +48,18 @@ typename pcl::PointCloud<Point>::Ptr downsample(typename pcl::PointCloud<Point>:
 	return cloud_new;
 }
 
+template<typename Point>
+typename pcl::PointCloud<Point>::Ptr merge(typename pcl::PointCloud<Point>::Ptr c1, typename pcl::PointCloud<Point>::Ptr c2) {
+	typename pcl::PointCloud<Point>::Ptr cloud(new pcl::PointCloud<Point>());
+	for(const auto& pt : c1->points) {
+		cloud->points.push_back(pt);
+	}
+	for(const auto& pt : c2->points) {
+		cloud->points.push_back(pt);
+	}
+	return cloud;
+}
+
 // Calculate distance between two point clouds by
 // RGB and normal similarity.
 float cloudDistance(
