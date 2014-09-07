@@ -47,6 +47,8 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
+	void predefinedMerge(std::string path, const std::vector<SingleScan>& scans);
+
 	void createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const;
 	void hierarchicalMerge(const std::vector<SingleScan>& scans);
 

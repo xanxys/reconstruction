@@ -39,8 +39,8 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl:
 float cloudDistance(
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c1,
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c2) {
-	// Collect single smaple per each bin.
-	const float res = 0.3;
+	// Collect single sample per each bin.
+	const float res = 0.15;
 	const float weight_normal_cos = 5;
 	const float weight_color_l2 = 0.01;
 	// PosIndex -> (Normal, RGB)

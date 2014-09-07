@@ -114,6 +114,9 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 
 AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
+	predefinedMerge("pose-20140827.json", scans);
+	assert(scans.size() == scans_with_pose.size());
+	return;
 
 	createClosenessMatrix(bundle, scans);
 	hierarchicalMerge(scans);
@@ -194,6 +197,43 @@ AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleSca
 	}
 
 	applyLeveling();
+}
+
+void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleScan>& scans) {
+	Json::Value root;
+	Json::Reader reader;
+	std::ifstream test(path);
+	const bool success = reader.parse(test, root, false);
+	if(!success) {
+		WARN("couldn't parse scan pose json");
+		throw std::runtime_error(reader.getFormatedErrorMessages());
+	}
+	INFO("Loaded poses from", path, "#poses=", root.size());
+	if(root.size() != scans.size()) {
+		throw std::runtime_error("Loaded #poses != #scans");
+	}
+
+	int ix_scan = 0;
+	for(auto& entry : root) {
+		// Load affine transform.
+		if(entry["affine"].size() != 4) {
+			throw std::runtime_error("Invalid affine transform (#rows !=4)");
+		}
+		Eigen::Matrix4f m;
+		for(int i : boost::irange(0, 4)) {
+			if(entry["affine"][i].size() != 4) {
+				throw std::runtime_error("Invalid affine transform (#cols != 4)");
+			}
+			for(int j : boost::irange(0, 4)) {
+				m(i, j) = entry["affine"][i][j].asDouble();
+			}
+		}
+		Eigen::Affine3f trans(m);
+		// store
+		scans_with_pose.push_back(std::make_pair(
+			scans[ix_scan++],
+			trans));
+	}
 }
 
 void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const {
@@ -449,49 +489,16 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 		return cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
 	};
 
-	/*
-	bool use_sicp = false;
-
-		const auto source = cloud_base::applyTransform(scans[i].cloud_w_normal, pre_align);
-		const auto target = scans[0].cloud_w_normal;
-		Eigen::Affine3f trans;
-		if(false) {
-			INFO("Running Sparse ICP", i);
-
-			auto m_source_pa = to_matrix(source_pa);
-			auto m_target = to_matrix(target);
-
-			// See this youtube video for quick summary of good p value.
-			// https://www.youtube.com/watch?v=ii2vHBwlmo8
-			SICP::Parameters params;
-			params.max_icp = 200;
-			params.p = 0.6;
-			//params.stop = 0;
-
-			// The type signature do look like it allows any Scalar, but only
-			// double will work in reality.
-			Eigen::Matrix3Xd m_source_orig = m_source_pa.first;
-			SICP::point_to_plane(m_source_pa.first, m_target.first, m_target.second, params);
-
-			// Recover motion.
-			const Eigen::Affine3f fine_align = RigidMotionEstimator::point_to_point(
-				m_source_orig, m_source_pa.first).cast<float>();
-			INFO("Fine Affine |t|=", fine_align.translation().norm());
-			trans = fine_align * pre_align;
-		}
-	*/
-	if(true) {
-		INFO("Running PCL ICP");
-		pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
-		icp.setInputCloud(to_cloud(source));
-		icp.setInputTarget(to_cloud(target));
-		pcl::PointCloud<pcl::PointXYZRGBNormal> final;
-		icp.align(final);
-		INFO("ICP converged", icp.hasConverged(), "score", icp.getFitnessScore());
-		Eigen::Affine3f fine_align(icp.getFinalTransformation());
-		INFO("Fine Affine |t|=", fine_align.translation().norm());
-		return fine_align;
-	}
+	INFO("Running PCL ICP");
+	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+	icp.setInputCloud(to_cloud(source));
+	icp.setInputTarget(to_cloud(target));
+	pcl::PointCloud<pcl::PointXYZRGBNormal> final;
+	icp.align(final);
+	INFO("ICP converged", icp.hasConverged(), "score", icp.getFitnessScore());
+	Eigen::Affine3f fine_align(icp.getFinalTransformation());
+	INFO("Fine Affine |t|=", fine_align.translation().norm());
+	return fine_align;
 }
 
 
