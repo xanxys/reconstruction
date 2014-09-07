@@ -11,6 +11,7 @@
 #include <pcl/point_types.h>
 
 #include <logging.h>
+#include <visual/scene_asset_bundle.h>
 #include <visual/textured_mesh.h>
 
 namespace visual {
@@ -41,12 +42,12 @@ public:
 class AlignedScans {
 public:
 	// Create aligned scan from unaligned scans. (slow, takes a few minutes)
-	AlignedScans(const std::vector<SingleScan>& scans);
+	AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
-	void createClosenessMatrix(const std::vector<SingleScan>& scans) const;
+	void createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const;
 	void hierarchicalMerge(const std::vector<SingleScan>& scans);
 
 	// Calculate a rough transform from source to target by heuristics.

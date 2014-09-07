@@ -27,6 +27,9 @@ public:
 	// become available.
 	SceneAssetBundle(std::string dir_path);
 	~SceneAssetBundle();
+
+	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 private:
 	// Put bunch of files into specified directory (newly created).
 	// Behavior is undefined when the directory already exists.
@@ -39,6 +42,8 @@ private:
 	// Don't store image-like things or huge triangle mesh here.
 	Json::Value serializeSmallData() const;
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
+	// TODO: don't throw away normals.
+	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;
 public:
 	TexturedMesh exterior_mesh;
 	std::vector<Eigen::Vector3f> point_lights;
@@ -49,6 +54,7 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_distance;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_merged;
 private:
+	int debug_count;
 	const std::string dir_path;
 };
 

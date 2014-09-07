@@ -112,10 +112,10 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 }
 
 
-AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
+AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
-	createClosenessMatrix(scans);
+	createClosenessMatrix(bundle, scans);
 	hierarchicalMerge(scans);
 
 	scans_with_pose.push_back(std::make_pair(
@@ -196,7 +196,7 @@ AlignedScans::AlignedScans(const std::vector<SingleScan>& scans) {
 	applyLeveling();
 }
 
-void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) const {
+void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const {
 	const int n = scans.size();
 	INFO("Calculating point cloud closeness matrix");
 	Eigen::MatrixXf closeness(n, n);
@@ -271,7 +271,7 @@ void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) c
 		remaining.erase(best_pair.second);
 
 		// debug dump
-		//remaining[agg_id]
+		bundle.addDebugPointCloud(remaining[agg_id]);
 
 		DEBUG("Updating distances");
 		// Remove obsolete distances.

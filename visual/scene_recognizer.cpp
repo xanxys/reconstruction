@@ -93,7 +93,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	assert(!scans.empty());
 
 	INFO("Merging points in multiple scans");
-	const AlignedScans scans_aligned(scans);
+	const AlignedScans scans_aligned(bundle, scans);
 	const auto points_merged = scans_aligned.getMergedPoints();
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
