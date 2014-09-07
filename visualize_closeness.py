@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import networkx as nx
+import dateutil.parser
 
 
 def get_sessions(fobj):
@@ -24,6 +25,10 @@ if __name__ == '__main__':
         print('Processing sid=%s at %s' % (sid, session[0]["date"]))
         if sid == "":
             print('WARNING: old logs with empty sid found. Some results might be messed up.')
+
+        # stats
+        dur = dateutil.parser.parse(session[-1]["date"]) - dateutil.parser.parse(session[0]["date"])
+        print('* Run duration: %s' % dur)
 
         plt.figure(1)
 
