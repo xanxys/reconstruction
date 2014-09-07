@@ -12,34 +12,10 @@
 
 #include <logging.h>
 #include <visual/aligned_scan.h>
+#include <visual/scene_asset_bundle.h>
 #include <visual/textured_mesh.h>
 
 namespace visual {
-
-// A complete information to be loaded by EqExperiment/LoaderPlugin.
-class SceneAssetBundle {
-public:
-	// Put bunch of files into specified directory (newly created).
-	// Behavior is undefined when the directory already exists.
-	// TODO: erase it & re-create. just-like a single file.
-	// The directory might be nested.
-	void serializeIntoDirectory(std::string dir_path) const;
-private:
-	// Serialize relative small data that nicely fits into a JSON
-	// (e.g. <100MB).
-	// Don't store image-like things or huge triangle mesh here.
-	Json::Value serializeSmallData() const;
-	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
-public:
-	TexturedMesh exterior_mesh;
-	std::vector<Eigen::Vector3f> point_lights;
-	std::vector<TexturedMesh> interior_objects;
-
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior;
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_2d;
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_distance;
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_merged;
-};
 
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
@@ -62,8 +38,8 @@ boost::optional<TexturedMesh> createWallBox(
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
 // Takes several scans of a single room as input (in unordered way),
-// and generates a SceneAsssetBundle.
-SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans);
+// and populate given SceneAsssetBundle.
+void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 //pcl::PointCloud<pcl::PointXYZNormal>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGBNormal>& cloud);

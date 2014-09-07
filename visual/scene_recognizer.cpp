@@ -25,68 +25,6 @@ namespace visual {
 
 const double pi = 3.14159265359;
 
-void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
-	using boost::filesystem::create_directory;
-	using boost::filesystem::path;
-	using boost::filesystem::remove_all;
-
-	const path dir_path(dir_path_raw);
-
-	// Remove directory if exists, mimicing overwriting semantics
-	// of a single file.
-	remove_all(dir_path);
-	create_directory(dir_path);
-	exterior_mesh.writeWavefrontObject(
-		(dir_path / path("exterior_mesh")).string());
-	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_interior.ply")).string());
-		serializeDebugPoints(debug_points_interior).serializePLYWithRgb(debug_points_file);
-	}
-	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_interior_2d.ply")).string());
-		serializeDebugPoints(debug_points_interior_2d).serializePLYWithRgb(debug_points_file);
-	}
-	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_interior_distance.ply")).string());
-		serializeDebugPoints(debug_points_interior_distance).serializePLYWithRgb(debug_points_file);
-	}
-	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_merged.ply")).string());
-		serializeDebugPoints(debug_points_merged).serializePLYWithRgb(debug_points_file);
-	}
-	{
-		std::ofstream json_file((dir_path / path("small_data.json")).string());
-		json_file << Json::FastWriter().write(serializeSmallData());
-	}
-	int count = 0;
-	for(const auto& interior : interior_objects) {
-		const std::string name = "interior_" + std::to_string(count++);
-		interior.writeWavefrontObject((dir_path / name).string());
-	}
-}
-
-TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const {
-	TriangleMesh<Eigen::Vector3f> mesh;
-	for(const auto& pt : cloud->points) {
-		mesh.vertices.push_back(std::make_pair(
-			pt.getVector3fMap(),
-			Eigen::Vector3f(pt.r, pt.g, pt.b)));
-	}
-	return mesh;
-}
-
-Json::Value SceneAssetBundle::serializeSmallData() const {
-	Json::Value small_data;
-	for(const auto& pos : point_lights) {
-		Json::Value light;
-		light["pos"]["x"] = pos(0);
-		light["pos"]["y"] = pos(1);
-		light["pos"]["z"] = pos(2);
-		small_data["lights"].append(light);
-	}
-	return small_data;
-}
-
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
 	std::vector<float> zs;
@@ -151,7 +89,7 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 
 namespace scene_recognizer {
 
-SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
+void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
 	INFO("Merging points in multiple scans");
@@ -198,7 +136,6 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	}
 
 	INFO("Creating assets");
-	SceneAssetBundle bundle;
 	bundle.point_lights = visual::recognize_lights(points_merged);
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
@@ -206,7 +143,6 @@ SceneAssetBundle recognizeScene(const std::vector<SingleScan>& scans) {
 	bundle.debug_points_interior_2d = cloud_interior_2d;
 	bundle.debug_points_interior_distance = cloud_interior_dist;
 	bundle.debug_points_merged = points_merged;
-	return bundle;
 }
 
 // Apply affine transform to given XYZ+RGB+Normal point cloud,

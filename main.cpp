@@ -59,8 +59,8 @@ void testSceneBundleGeneration() {
 	std::vector<visual::SingleScan> scans;
 	scans.emplace_back(cloud);
 
-	auto bundle = visual::scene_recognizer::recognizeScene(scans);
-	bundle.serializeIntoDirectory("room_bundle");
+	visual::SceneAssetBundle bundle("room_bundle");
+	visual::scene_recognizer::recognizeScene(bundle, scans);
 }
 
 std::string guessSceneName(const std::string& scan_path) {
@@ -132,8 +132,8 @@ int main(int argc, char** argv) {
 		}
 
 		INFO("Converting to a scene");
-		auto bundle = visual::scene_recognizer::recognizeScene(scans);
-		bundle.serializeIntoDirectory(guessSceneName(dir_paths.front()));
+		visual::SceneAssetBundle bundle(guessSceneName(dir_paths.front()));
+		visual::scene_recognizer::recognizeScene(bundle, scans);
 		return 0;
 	} else {
 		INFO("Launching HTTP server");

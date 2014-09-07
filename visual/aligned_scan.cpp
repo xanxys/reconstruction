@@ -246,6 +246,7 @@ void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) c
 		}
 	}
 	// merge until only one node remains.
+	int count_merge = 0;
 	while(remaining.size() > 1) {
 		const auto best_pair_org = std::min_element(sparse_dist.begin(), sparse_dist.end(),
 			[](const std::pair<std::pair<int, int>, float>& a, const std::pair<std::pair<int, int>, float>& b) {
@@ -268,6 +269,9 @@ void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) c
 			cloud_base::applyTransform(remaining[best_pair.first], trans));
 		remaining.erase(best_pair.first);
 		remaining.erase(best_pair.second);
+
+		// debug dump
+		//remaining[agg_id]
 
 		DEBUG("Updating distances");
 		// Remove obsolete distances.
