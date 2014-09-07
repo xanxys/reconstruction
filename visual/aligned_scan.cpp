@@ -247,22 +247,20 @@ void AlignedScans::createClosenessMatrix(const std::vector<SingleScan>& scans) c
 	}
 	// merge until only one node remains.
 	while(remaining.size() > 1) {
-		const auto best_pair = std::min_element(sparse_dist.begin(), sparse_dist.end(),
+		const auto best_pair_org = std::min_element(sparse_dist.begin(), sparse_dist.end(),
 			[](const std::pair<std::pair<int, int>, float>& a, const std::pair<std::pair<int, int>, float>& b) {
 				return a.second < b.second;
 			}
-		)->first;
+		);
+		const auto best_dist = best_pair_org->second;
+		const auto best_pair = best_pair_org->first;
 		// Create new node(agg_id) from best_pair.
 		const int agg_id = new_id++;
-		DEBUG("Pair:", best_pair.first, best_pair.second, "->", agg_id);
-
+		INFO("Pair:", best_pair.first, best_pair.second, "->", agg_id, best_dist);
 
 		// Align.
-		DEBUG("ALIGNING");
 		const auto pre_align = prealign(remaining[best_pair.second], remaining[best_pair.first]);
-		DEBUG("FALIGNING");
 		const auto fine_align = finealign(remaining[best_pair.second], cloud_base::applyTransform(remaining[best_pair.first], pre_align));
-		DEBUG("REGISTERING");
 		const Eigen::Affine3f trans = fine_align * pre_align;
 		nodes[agg_id] = std::make_tuple(best_pair.second, best_pair.first, trans);
 		remaining[agg_id] = cloud_base::merge<pcl::PointXYZRGBNormal>(

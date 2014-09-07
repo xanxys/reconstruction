@@ -47,13 +47,15 @@ if __name__ == '__main__':
         # Pairings
         plt.subplot(122)
         pairs = filter(lambda e: e["msg"][0] == "Pair:", session)
-        pairs = [(pair["msg"][1], pair["msg"][2], pair["msg"][4]) for pair in pairs]
+        pairs = [(pair["msg"][1], pair["msg"][2], pair["msg"][4], pair["msg"][5] if len(pair["msg"]) >= 6 else 0) for pair in pairs]
         g = nx.DiGraph()
-        for (source0, source1, target) in pairs:
-            g.add_edge(source0, target)
-            g.add_edge(source1, target)
+        for (source0, source1, target, d) in pairs:
+            g.add_edge(source0, target, weight=d)
+            g.add_edge(source1, target, weight=d)
         p = nx.graphviz_layout(g, prog='twopi', args='')
-        nx.draw(g, p, node_color='skyblue', alpha=0.8)
+        edges, weights = zip(*nx.get_edge_attributes(g, 'weight').items())
+        nx.draw(g, p, node_color='skyblue', alpha=0.8, edgelist=edges, edge_color=weights)
+        nx.draw_networkx_edge_labels(g, p, edge_labels={edge: '%d' % (100000 * w) for (edge, w) in nx.get_edge_attributes(g, 'weight').items()})
 
         # show all
         plt.show()
