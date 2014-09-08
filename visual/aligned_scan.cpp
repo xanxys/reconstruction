@@ -36,6 +36,7 @@ SingleScan::SingleScan(Json::Value& cloud_json) :
 	m.col(1) = Eigen::Vector3f(0, 0, 1);
 	m.col(2) = Eigen::Vector3f(1, 0, 0);
 
+	/*
 	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGB pt;
@@ -49,7 +50,9 @@ SingleScan::SingleScan(Json::Value& cloud_json) :
 		pt.getVector3fMap() = m * pt.getVector3fMap();
 		cloud->points.push_back(pt);
 	}
+	*/
 	WARN("Since SingleScan Json constructor is no longer supported, program might crash when newer feature is used; consider migration");
+	throw std::runtime_error("deprecated SingleScan");
 }
 
 SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
@@ -63,6 +66,7 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	Json::Value cloud_json;
 	Json::Reader().parse(f_input, cloud_json);
 
+	/*
 	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGB pt;
@@ -74,6 +78,7 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 		pt.b = point["b"].asDouble();
 		cloud->points.push_back(pt);
 	}
+	*/
 	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGBNormal pt;
@@ -230,6 +235,7 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 		}
 		Eigen::Affine3f trans(m);
 		if(ix_scan > 0) {
+			INFO("Fine-aligning scan", ix_scan);
 			// fine-align to scan[0]
 			const auto fine_align = finealign(
 				scans[0].cloud_w_normal,
@@ -500,7 +506,8 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 	INFO("Running PCL ICP");
 	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
 	icp.setMaxCorrespondenceDistance(0.5);  // need to be larger than pre-alignment error
-	icp.setMaximumIterations(200);
+	icp.setMaximumIterations(1000);
+	icp.setEuclideanFitnessEpsilon(10);
 	icp.setInputCloud(to_cloud(source));
 	icp.setInputTarget(to_cloud(target));
 	pcl::PointCloud<pcl::PointXYZRGBNormal> final;
@@ -519,8 +526,11 @@ std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPo
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>());
 	for(const auto& s_w_p : scans_with_pose) {
-		for(const auto& pt : s_w_p.first.cloud->points) {
-			pcl::PointXYZRGB pt_new = pt;
+		for(const auto& pt : s_w_p.first.cloud_w_normal->points) {
+			pcl::PointXYZRGB pt_new;
+			pt_new.r = pt.r;
+			pt_new.g = pt.g;
+			pt_new.b = pt.b;
 			pt_new.getVector3fMap() = s_w_p.second * pt.getVector3fMap();
 			merged->points.push_back(pt_new);
 		}

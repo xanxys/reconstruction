@@ -24,7 +24,6 @@ public:
 	SingleScan(const std::string& path, float pre_rotation = 0);
 public:
 	// TODO: make this immutable.
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_w_normal;
 
 	// Hack to make sparse ICP work.
