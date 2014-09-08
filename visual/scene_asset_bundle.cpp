@@ -49,10 +49,6 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 		serializeDebugPoints(debug_points_interior_distance).serializePLYWithRgb(debug_points_file);
 	}
 	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_merged.ply")).string());
-		serializeDebugPoints(debug_points_merged).serializePLYWithRgb(debug_points_file);
-	}
-	{
 		std::ofstream json_file((dir_path / path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}

@@ -499,6 +499,8 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 
 	INFO("Running PCL ICP");
 	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+	icp.setMaxCorrespondenceDistance(0.5);  // need to be larger than pre-alignment error
+	icp.setMaximumIterations(200);
 	icp.setInputCloud(to_cloud(source));
 	icp.setInputTarget(to_cloud(target));
 	pcl::PointCloud<pcl::PointXYZRGBNormal> final;

@@ -57,7 +57,6 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_2d;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_distance;
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_merged;
 private:
 	int debug_count;
 	const std::string dir_path;
