@@ -7,13 +7,14 @@
 namespace visual {
 
 SceneAssetBundle::SceneAssetBundle(std::string dir_path) : debug_count(0), dir_path(dir_path) {
+	recreateDirectory(dir_path);
 }
 
 SceneAssetBundle::~SceneAssetBundle() {
 	serializeIntoDirectory(dir_path);
 }
 
-void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
+void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {
 	using boost::filesystem::create_directory;
 	using boost::filesystem::path;
 	using boost::filesystem::remove_all;
@@ -24,6 +25,15 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	// of a single file.
 	remove_all(dir_path);
 	create_directory(dir_path);
+}
+
+void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
+	using boost::filesystem::create_directory;
+	using boost::filesystem::path;
+	using boost::filesystem::remove_all;
+
+	const path dir_path(dir_path_raw);
+
 	exterior_mesh.writeWavefrontObject(
 		(dir_path / path("exterior_mesh")).string());
 	{
@@ -68,6 +78,19 @@ void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal
 	std::ofstream debug_points_file((dir_path / path("debug_" + std::to_string(id) + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
 }
+
+void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+	using boost::filesystem::path;
+	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
+	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
+}
+
+void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+	using boost::filesystem::path;
+	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
+	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
+}
+
 
 TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const {
 	TriangleMesh<Eigen::Vector3f> mesh;

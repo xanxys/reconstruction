@@ -30,10 +30,15 @@ public:
 
 	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
+
+	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 private:
-	// Put bunch of files into specified directory (newly created).
+	void recreateDirectory(std::string dir_path) const;
+
+	// Put bunch of files into specified directory.
+	// Directory must exist and be empty.
 	// Behavior is undefined when the directory already exists.
-	// TODO: erase it & re-create. just-like a single file.
 	// The directory might be nested.
 	void serializeIntoDirectory(std::string dir_path) const;
 

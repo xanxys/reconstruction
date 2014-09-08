@@ -95,6 +95,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("Merging points in multiple scans");
 	const AlignedScans scans_aligned(bundle, scans);
 	const auto points_merged = scans_aligned.getMergedPoints();
+	bundle.addDebugPointCloud("points_merged", points_merged);
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
 	INFO("Approximating exterior shape by an extruded polygon");
@@ -142,7 +143,6 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.debug_points_interior = cloud_interior;
 	bundle.debug_points_interior_2d = cloud_interior_2d;
 	bundle.debug_points_interior_distance = cloud_interior_dist;
-	bundle.debug_points_merged = points_merged;
 }
 
 // Apply affine transform to given XYZ+RGB+Normal point cloud,
