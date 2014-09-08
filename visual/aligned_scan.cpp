@@ -229,10 +229,18 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 			}
 		}
 		Eigen::Affine3f trans(m);
+		if(ix_scan > 0) {
+			// fine-align to scan[0]
+			const auto fine_align = finealign(
+				scans[0].cloud_w_normal,
+				cloud_base::applyTransform(scans[ix_scan].cloud_w_normal, trans));
+			trans = fine_align * trans;
+		}
 		// store
 		scans_with_pose.push_back(std::make_pair(
-			scans[ix_scan++],
+			scans[ix_scan],
 			trans));
+		ix_scan++;
 	}
 }
 
