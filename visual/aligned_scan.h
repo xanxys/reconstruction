@@ -32,6 +32,9 @@ public:
 	cv::Mat_<cv::Vec3b> er_rgb;
 	cv::Mat_<float> er_depth;
 	cv::Mat_<uint16_t> er_intensity;
+
+private:
+	std::string scan_id;
 };
 
 

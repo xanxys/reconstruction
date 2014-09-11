@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
@@ -37,6 +38,14 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	}
 	Json::Value cloud_json;
 	Json::Reader().parse(f_input, cloud_json);
+
+	// extract scan id (basename)
+	std::vector<std::string> components;
+	boost::split(components, scan_dir, boost::is_any_of("/"));
+	if(components.empty() || components.back() == "") {
+		throw std::runtime_error("Couldn't extract valid scan id");
+	}
+	scan_id = components.back();
 
 	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& point : cloud_json) {
