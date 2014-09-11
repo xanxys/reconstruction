@@ -27,34 +27,6 @@ namespace visual {
 const double pi = 3.14159265359;
 
 
-SingleScan::SingleScan(Json::Value& cloud_json) :
-		pre_rotation(0) {
-	// Convert input coords. space to make Z+ up.
-	// Only required for old dataset which was Y+ up.
-	Eigen::Matrix3f m;
-	m.col(0) = Eigen::Vector3f(0, 1, 0);
-	m.col(1) = Eigen::Vector3f(0, 0, 1);
-	m.col(2) = Eigen::Vector3f(1, 0, 0);
-
-	/*
-	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-	for(const auto& point : cloud_json) {
-		pcl::PointXYZRGB pt;
-		pt.x = point["x"].asDouble();
-		pt.y = point["y"].asDouble();
-		pt.z = point["z"].asDouble();
-		pt.r = point["r"].asDouble();
-		pt.g = point["g"].asDouble();
-		pt.b = point["b"].asDouble();
-
-		pt.getVector3fMap() = m * pt.getVector3fMap();
-		cloud->points.push_back(pt);
-	}
-	*/
-	WARN("Since SingleScan Json constructor is no longer supported, program might crash when newer feature is used; consider migration");
-	throw std::runtime_error("deprecated SingleScan");
-}
-
 SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 		pre_rotation(pre_rotation) {
 	using boost::filesystem::path;
@@ -66,19 +38,6 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	Json::Value cloud_json;
 	Json::Reader().parse(f_input, cloud_json);
 
-	/*
-	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-	for(const auto& point : cloud_json) {
-		pcl::PointXYZRGB pt;
-		pt.x = point["x"].asDouble();
-		pt.y = point["y"].asDouble();
-		pt.z = point["z"].asDouble();
-		pt.r = point["r"].asDouble();
-		pt.g = point["g"].asDouble();
-		pt.b = point["b"].asDouble();
-		cloud->points.push_back(pt);
-	}
-	*/
 	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGBNormal pt;

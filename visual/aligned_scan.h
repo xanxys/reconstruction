@@ -19,8 +19,6 @@ namespace visual {
 // Immutable data that holds a single scan.
 class SingleScan {
 public:
-	SingleScan(Json::Value& old_style);
-
 	SingleScan(const std::string& path, float pre_rotation = 0);
 public:
 	// TODO: make this immutable.

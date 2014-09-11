@@ -50,19 +50,6 @@ void testMeshIO() {
 	visual::writeObjMaterial(test_mat, "uv_3d.png");
 }
 
-void testSceneBundleGeneration() {
-	INFO("Recognizing scene");
-	std::ifstream test("ocha_points.json");
-	Json::Value cloud;
-	Json::Reader().parse(test, cloud);
-
-	std::vector<visual::SingleScan> scans;
-	scans.emplace_back(cloud);
-
-	visual::SceneAssetBundle bundle("room_bundle");
-	visual::scene_recognizer::recognizeScene(bundle, scans);
-}
-
 std::string guessSceneName(const std::string& scan_path) {
 	std::vector<std::string> components;
 	boost::split(components, scan_path, boost::is_any_of("/"));
@@ -98,7 +85,6 @@ int main(int argc, char** argv) {
 		return 0;
 	} else if(vars.count("test") > 0) {
 		testMeshIO();
-		testSceneBundleGeneration();
 		return 0;
 	} else if(vars.count("convert") > 0) {
 		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
