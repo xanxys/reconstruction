@@ -20,6 +20,8 @@ namespace visual {
 class SingleScan {
 public:
 	SingleScan(const std::string& path, float pre_rotation = 0);
+
+	std::string getScanId() const;
 public:
 	// TODO: make this immutable.
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_w_normal;
@@ -47,6 +49,7 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
+	// Use external json with pose for each scan.
 	void predefinedMerge(std::string path, const std::vector<SingleScan>& scans);
 
 	void createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const;

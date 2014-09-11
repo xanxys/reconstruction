@@ -84,6 +84,10 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	assert(er_depth.type() == CV_32F);
 }
 
+std::string SingleScan::getScanId() const {
+	return scan_id;
+}
+
 
 AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
@@ -173,49 +177,67 @@ AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleSca
 }
 
 void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleScan>& scans) {
-	Json::Value root;
-	Json::Reader reader;
-	std::ifstream test(path);
-	const bool success = reader.parse(test, root, false);
-	if(!success) {
-		WARN("couldn't parse scan pose json");
-		throw std::runtime_error(reader.getFormatedErrorMessages());
-	}
-	INFO("Loaded poses from", path, "#poses=", root.size());
-	if(root.size() != scans.size()) {
-		throw std::runtime_error("Loaded #poses != #scans");
+	// Load pose json (scan_id -> local_to_world)
+	std::map<std::string, Eigen::Affine3f> poses;
+	{
+		Json::Value root;
+		Json::Reader reader;
+		std::ifstream test(path);
+		const bool success = reader.parse(test, root, false);
+		if(!success) {
+			WARN("couldn't parse scan pose json");
+			throw std::runtime_error(reader.getFormatedErrorMessages());
+		}
+
+		for(auto& entry : root) {
+			// Load affine transform.
+			if(entry["affine"].size() != 4) {
+				throw std::runtime_error("Invalid affine transform (#rows !=4)");
+			}
+			Eigen::Matrix4f m;
+			for(int i : boost::irange(0, 4)) {
+				if(entry["affine"][i].size() != 4) {
+					throw std::runtime_error("Invalid affine transform (#cols != 4)");
+				}
+				for(int j : boost::irange(0, 4)) {
+					m(i, j) = entry["affine"][i][j].asDouble();
+				}
+			}
+			Eigen::Affine3f trans(m);
+			poses[entry["scan_id"].asString()] = trans;
+		}
 	}
 
-	int ix_scan = 0;
-	for(auto& entry : root) {
-		// Load affine transform.
-		if(entry["affine"].size() != 4) {
-			throw std::runtime_error("Invalid affine transform (#rows !=4)");
+	// Apply predefined pose, finding fine_align_target_ix.
+	const std::string fine_align_target_id = "scan-20140827-12-57-gakusei-small";
+	boost::optional<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> fine_align_target;
+	for(const auto& scan : scans) {
+		const std::string scan_id = scan.getScanId();
+		if(poses.find(scan_id) == poses.end()) {
+			throw std::runtime_error("Pose undefined for scan_id=" + scan_id);
 		}
-		Eigen::Matrix4f m;
-		for(int i : boost::irange(0, 4)) {
-			if(entry["affine"][i].size() != 4) {
-				throw std::runtime_error("Invalid affine transform (#cols != 4)");
-			}
-			for(int j : boost::irange(0, 4)) {
-				m(i, j) = entry["affine"][i][j].asDouble();
-			}
+		if(scan_id == fine_align_target_id) {
+			fine_align_target =
+				cloud_base::applyTransform(scan.cloud_w_normal, poses[scan_id]);
 		}
-		Eigen::Affine3f trans(m);
-		if(ix_scan > 0) {
-			INFO("Fine-aligning scan", ix_scan);
-			// fine-align to scan[0]
-			const auto fine_align = finealign(
-				scans[0].cloud_w_normal,
-				cloud_base::applyTransform(scans[ix_scan].cloud_w_normal, trans));
-			trans = fine_align * trans;
-		}
-		// store
-		scans_with_pose.push_back(std::make_pair(
-			scans[ix_scan],
-			trans));
-		ix_scan++;
+		scans_with_pose.push_back(std::make_pair(scan, poses[scan_id]));
 	}
+
+	// fine-align to target.
+	if(!fine_align_target) {
+		throw std::runtime_error("Fine-alignment target not found. id=" + fine_align_target_id);
+	}
+	for(auto& scan_with_pose : scans_with_pose) {
+		auto fine_align = Eigen::Affine3f::Identity();
+		if(scan_with_pose.first.getScanId() != fine_align_target_id) {
+			INFO("Fine-aligning scan", scan_with_pose.first.getScanId());
+			const auto fine_align = finealign(
+				*fine_align_target,
+				cloud_base::applyTransform(scan_with_pose.first.cloud_w_normal, scan_with_pose.second));
+		}
+		scan_with_pose.second = fine_align * scan_with_pose.second;
+	}
+
 }
 
 void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const {
