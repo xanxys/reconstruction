@@ -209,7 +209,7 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 	}
 
 	// Apply predefined pose, finding fine_align_target_ix.
-	const std::string fine_align_target_id = "scan-20140827-12-57-gakusei-small";
+	const std::string fine_align_target_id = "scan-20140827-13:26-gakusei-small";
 	boost::optional<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> fine_align_target;
 	for(const auto& scan : scans) {
 		const std::string scan_id = scan.getScanId();
@@ -227,6 +227,8 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 	if(!fine_align_target) {
 		throw std::runtime_error("Fine-alignment target not found. id=" + fine_align_target_id);
 	}
+
+	std::vector<std::pair<SingleScan, Eigen::Affine3f>> new_scans_with_pose;
 	for(auto& scan_with_pose : scans_with_pose) {
 		auto fine_align = Eigen::Affine3f::Identity();
 		if(scan_with_pose.first.getScanId() != fine_align_target_id) {
@@ -235,9 +237,10 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 				*fine_align_target,
 				cloud_base::applyTransform(scan_with_pose.first.cloud_w_normal, scan_with_pose.second));
 		}
-		scan_with_pose.second = fine_align * scan_with_pose.second;
+		new_scans_with_pose.push_back(std::make_pair(
+			scan_with_pose.first, fine_align * scan_with_pose.second));
 	}
-
+	scans_with_pose = std::move(new_scans_with_pose);
 }
 
 void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const {
@@ -495,9 +498,10 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 
 	INFO("Running PCL ICP");
 	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
-	icp.setMaxCorrespondenceDistance(0.5);  // need to be larger than pre-alignment error
-	icp.setMaximumIterations(1000);
-	icp.setEuclideanFitnessEpsilon(10);
+	icp.setMaxCorrespondenceDistance(0.3);  // need to be larger than pre-alignment error
+	icp.setMaximumIterations(2000);
+	icp.setTransformationEpsilon(0);  // disable this criteria
+	icp.setEuclideanFitnessEpsilon(1000);  // disable this criteria
 	icp.setInputCloud(to_cloud(source));
 	icp.setInputTarget(to_cloud(target));
 	pcl::PointCloud<pcl::PointXYZRGBNormal> final;
