@@ -9,12 +9,13 @@
 #include <CGAL/Polygon_2.h>
 #include <CGAL/create_offset_polygons_2.h>
 #include <pcl/ModelCoefficients.h>
+#include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
-//#include <pcl/segmentation/region_growing.h>
+#include <pcl/segmentation/region_growing.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <visual/cloud_baker.h>
@@ -93,19 +94,20 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 
 namespace scene_recognizer {
 
-#if 0
 void test_segmentation(
 		SceneAssetBundle& bundle,
-		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-	/*
-	pcl::search::Search<pcl::PointXYZ>::Ptr tree = boost::shared_ptr<pcl::search::Search<pcl::PointXYZ> > (new pcl::search::KdTree<pcl::PointXYZ>);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+	
+	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
+		boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>> (new pcl::search::KdTree<pcl::PointXYZRGB>);
+	
 	pcl::PointCloud <pcl::Normal>::Ptr normals (new pcl::PointCloud <pcl::Normal>);
-	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> normal_estimator;
+	pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimator;
 	normal_estimator.setSearchMethod (tree);
 	normal_estimator.setInputCloud (cloud);
 	normal_estimator.setKSearch (50);
 	normal_estimator.compute (*normals);
-	*/
+	
 
 	// pcl::IndicesPtr indices (new std::vector <int>);
 	// pcl::PassThrough<pcl::PointXYZ> pass;
@@ -114,14 +116,14 @@ void test_segmentation(
 	// pass.setFilterLimits (0.0, 1.0);
 	// pass.filter (*indices);
 
-	pcl::RegionGrowing<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> reg;
+	pcl::RegionGrowing<pcl::PointXYZRGB, pcl::Normal> reg;
 	reg.setMinClusterSize (50);
 	reg.setMaxClusterSize (1000000);
 	reg.setSearchMethod (tree);
 	reg.setNumberOfNeighbours (30);
 	reg.setInputCloud (cloud);
 	//reg.setIndices (indices);
-	reg.setInputNormals(cloud);
+	reg.setInputNormals(normals);
 	reg.setSmoothnessThreshold (3.0 / 180.0 * M_PI);
 	reg.setCurvatureThreshold (1.0);
 
@@ -151,8 +153,6 @@ void test_segmentation(
 	bundle.addDebugPointCloud("clusters", colored_cloud);
 
 }
-#endif
-
 
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
@@ -211,6 +211,9 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	room_polygon = std::get<1>(extrusion_refined);
 	room_hrange = std::get<2>(extrusion_refined);
 
+	INFO("Segmentation");
+	// test_segmentation(bundle, points_inside);
+
 	INFO("Modeling boxes along wall");
 	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_inside, room_mesh, true);
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
@@ -227,8 +230,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	}
 	INFO("Box actually created", (int)boxes.size());
 
-	INFO("Segmentation");
-	//test_segmentation(bundle, points_inside);
+
 
 	INFO("Projecting to 2d");
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_interior_2d(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -262,7 +264,7 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl:
 	for(auto& pt : cloud->points) {
 		pcl::PointXYZRGBNormal pt_new = pt;
 		pt_new.getVector3fMap() = trans * pt.getVector3fMap();
-		pt_new.getNormalVector3fMap() = trans * pt.getNormalVector3fMap();
+		pt_new.getNormalVector3fMap() = trans.rotation() * pt.getNormalVector3fMap();
 		new_cloud->points.push_back(pt_new);
 	}
 	return new_cloud;
