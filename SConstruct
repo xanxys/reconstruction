@@ -15,7 +15,7 @@ env = Environment(
 	'/usr/include/GL',
 	'/usr/include/GLFW',  # for EC2
 	'/usr/include/ni',
-	'/usr/include/pcl-1.6',
+	'/usr/include/pcl-1.7',
 	'/usr/include/jsoncpp',
 	'./',
 	],
