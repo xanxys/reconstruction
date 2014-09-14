@@ -5,6 +5,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/create_offset_polygons_2.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
@@ -101,19 +104,61 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = decolor(*points_merged);
 	const auto extrusion = shape_fitter::fitExtrusion(cloud_colorless);
-	const auto room_mesh = std::get<0>(extrusion);
-	const auto room_polygon = std::get<1>(extrusion);
+	auto room_mesh = std::get<0>(extrusion);
+	auto room_polygon = std::get<1>(extrusion);
+	auto room_hrange = std::get<2>(extrusion);
+	// We're just lucky to get correct room polygon without excluding outside points first.
+	// points
+	// |-inside
+	// | |-exterior
+	// | |-interior
+	// |-outside (either mirror or window, there's a case RGB is transparent and IR is reflected)
+	INFO("Splitting inside/outside");
+	auto points_inside = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+	auto points_outside = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+	typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+	typedef K::Point_2 Point;
+	typedef CGAL::Polygon_2<K> Polygon_2;
+	std::vector<Point> pp;
+	for(const auto& pt : room_polygon) {
+		pp.emplace_back(pt.x(), pt.y());
+	}
+	Polygon_2 room_polygon_cgal(pp.begin(), pp.end());
+	assert(room_polygon_cgal.is_simple());
+	/** CGAL-4.2 doesn't like C++11 (boost::shared_ptr cannot be implicitly casted to bool)
+	auto polys = CGAL::create_exterior_skeleton_and_offset_polygons_2(
+		offset, room_polygon_cgal);
+	*/
+	for(const auto& pt3 : points_merged->points) {
+		// hack to simulate offset, assuming origin is near centroid
+		Eigen::Vector2f d(pt3.x, pt3.y);
+		d *= -0.2 / d.norm();
+
+		const Point pt(pt3.x + d.x(), pt3.y + d.y());
+		if(room_polygon_cgal.bounded_side(pt) != CGAL::ON_UNBOUNDED_SIDE) {
+			points_inside->points.push_back(pt3);
+		} else {
+			points_outside->points.push_back(pt3);
+		}
+	}
+	bundle.addDebugPointCloud("points_outside", points_outside);
+
+	INFO("Recalculating extrusion");
+	const auto extrusion_refined = shape_fitter::fitExtrusion(decolor(*points_inside));
+	room_mesh = std::get<0>(extrusion_refined);
+	room_polygon = std::get<1>(extrusion_refined);
+	room_hrange = std::get<2>(extrusion_refined);
 
 	INFO("Modeling boxes along wall");
-	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh, true);
+	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_inside, room_mesh, true);
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
-	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh, false);
+	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 	const auto box_ticks = decomposeWallBoxes(decolor(*cloud_interior), room_polygon);
 	INFO("Box candidates found", (int)box_ticks.size());
 	std::vector<TexturedMesh> boxes;
 	for(const auto& tick_range : box_ticks) {
-		const auto maybe_box = createWallBox(room_polygon, std::get<2>(extrusion), tick_range, cloud_interior);
+		const auto maybe_box = createWallBox(room_polygon, room_hrange, tick_range, cloud_interior);
 		if(maybe_box) {
 			boxes.push_back(*maybe_box);
 		}
@@ -140,7 +185,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.addDebugPointCloud("points_interior_2d", cloud_interior_2d);
 
 	INFO("Creating assets");
-	bundle.point_lights = visual::recognize_lights(points_merged);
+	bundle.point_lights = visual::recognize_lights(points_inside);
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
 }
