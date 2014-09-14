@@ -25,7 +25,9 @@ RUN yum install -y \
 	jsoncpp-devel CGAL CGAL-devel \
 	glew-devel glfw glfw-devel \
 	gtest gtest-devel protobuf-devel \
-	boost-filesystem boost-program-options boost-system boost-thread
+	boost boost-devel \
+	libstdc++ libstdc++-devel gcc-c++
+
 RUN git clone git@bitbucket.org:xanxys/reconstruction.git; \
 	cd reconstruction; \
 	git checkout docker-based; \
