@@ -12,6 +12,7 @@ RUN yum install -y \
 # eigen: 3.2.2
 # opencv: 2.4.7
 # cgal: 4.3
+# boost: 1.53.0
 
 # Setup SSH for git clone
 ENV HOME /root
@@ -23,7 +24,8 @@ RUN chmod 600 /root/.ssh/*; ssh-keyscan bitbucket.org > /root/.ssh/known_hosts
 RUN yum install -y \
 	jsoncpp-devel CGAL CGAL-devel \
 	glew-devel glfw glfw-devel \
-	gtest gtest-devel protobuf-devel
+	gtest gtest-devel protobuf-devel \
+	boost-filesystem boost-program-options boost-system boost-thread
 RUN git clone git@bitbucket.org:xanxys/reconstruction.git; \
 	cd reconstruction; \
 	git checkout docker-based; \
