@@ -47,6 +47,7 @@ public:
 	AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr getMergedPointsNormal() const;
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
 	// Use external json with pose for each scan.

@@ -517,6 +517,7 @@ std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPo
 	return scans_with_pose;
 }
 
+
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGB>());
 	for(const auto& s_w_p : scans_with_pose) {
@@ -526,6 +527,20 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
 			pt_new.g = pt.g;
 			pt_new.b = pt.b;
 			pt_new.getVector3fMap() = s_w_p.second * pt.getVector3fMap();
+			merged->points.push_back(pt_new);
+		}
+	}
+	return merged;
+}
+
+
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr AlignedScans::getMergedPointsNormal() const {
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	for(const auto& s_w_p : scans_with_pose) {
+		for(const auto& pt : s_w_p.first.cloud_w_normal->points) {
+			pcl::PointXYZRGBNormal pt_new = pt;
+			pt_new.getVector3fMap() = s_w_p.second * pt.getVector3fMap();
+			pt_new.getNormalVector3fMap() = s_w_p.second.rotation() * pt.getNormalVector3fMap();
 			merged->points.push_back(pt_new);
 		}
 	}
