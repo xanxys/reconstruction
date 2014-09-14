@@ -15,7 +15,7 @@
 #include <pcl/io/openni_grabber.h>
 #endif
 #include <pcl/io/pcd_io.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <pcl/PCLPointCloud2.h>
 
 namespace server {
 
