@@ -106,7 +106,9 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	INFO("Modeling boxes along wall");
 	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh, true);
+	bundle.addDebugPointCloud("points_interior", cloud_interior);
 	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance(points_merged, room_mesh, false);
+	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 	const auto box_ticks = decomposeWallBoxes(decolor(*cloud_interior), room_polygon);
 	INFO("Box candidates found", (int)box_ticks.size());
 	std::vector<TexturedMesh> boxes;
@@ -135,14 +137,12 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 		new_pt.z = 0;
 		cloud_interior_2d->points.push_back(new_pt);
 	}
+	bundle.addDebugPointCloud("points_interior_2d", cloud_interior_2d);
 
 	INFO("Creating assets");
 	bundle.point_lights = visual::recognize_lights(points_merged);
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
-	bundle.debug_points_interior = cloud_interior;
-	bundle.debug_points_interior_2d = cloud_interior_2d;
-	bundle.debug_points_interior_distance = cloud_interior_dist;
 }
 
 // Apply affine transform to given XYZ+RGB+Normal point cloud,

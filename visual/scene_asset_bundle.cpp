@@ -37,18 +37,6 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	exterior_mesh.writeWavefrontObject(
 		(dir_path / path("exterior_mesh")).string());
 	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_interior.ply")).string());
-		serializeDebugPoints(debug_points_interior).serializePLYWithRgb(debug_points_file);
-	}
-	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_interior_2d.ply")).string());
-		serializeDebugPoints(debug_points_interior_2d).serializePLYWithRgb(debug_points_file);
-	}
-	{
-		std::ofstream debug_points_file((dir_path / path("debug_points_interior_distance.ply")).string());
-		serializeDebugPoints(debug_points_interior_distance).serializePLYWithRgb(debug_points_file);
-	}
-	{
 		std::ofstream json_file((dir_path / path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}

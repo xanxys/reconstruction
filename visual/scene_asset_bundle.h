@@ -53,10 +53,6 @@ public:
 	TexturedMesh exterior_mesh;
 	std::vector<Eigen::Vector3f> point_lights;
 	std::vector<TexturedMesh> interior_objects;
-
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior;
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_2d;
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr debug_points_interior_distance;
 private:
 	int debug_count;
 	const std::string dir_path;
