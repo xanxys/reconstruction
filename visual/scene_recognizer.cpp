@@ -283,7 +283,7 @@ TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::null
 		// results in
 		// 1. ghosting due to misalignment (or calibration error)
 		// 2. color artifact (exposure / color balance difference)
-		break;
+		// break;
 	}
 	INFO("Baking Hits/All", n_hits, n_all);
 
