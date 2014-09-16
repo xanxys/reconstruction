@@ -232,26 +232,16 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("Box actually created", (int)boxes.size());
 
 
-	/*
-	INFO("Projecting to 2d");
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_interior_2d(new pcl::PointCloud<pcl::PointXYZRGB>);
-	const float ceiling_reject = 0.5;
-	const float floor_reject = 0.3;
+	INFO("Slicing near-floor");
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior_2d(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	const float floor_margin = 0.3;
 	for(const auto& pt : cloud_interior->points) {
-		// Reject points too near, or above ceiling.
-		if(pt.z > std::get<2>(extrusion).second - ceiling_reject) {
+		if(pt.z > std::get<2>(extrusion).first + floor_margin) {
 			continue;
 		}
-		// Reject floor points.
-		if(pt.z < std::get<2>(extrusion).first + floor_reject) {
-			continue;
-		}
-		pcl::PointXYZRGB new_pt = pt;
-		new_pt.z = 0;
-		cloud_interior_2d->points.push_back(new_pt);
+		cloud_interior_2d->points.push_back(pt);
 	}
-	bundle.addDebugPointCloud("points_interior_2d", cloud_interior_2d);
-	*/
+	bundle.addDebugPointCloud("points_interior_slice", cloud_interior_2d);
 
 	INFO("Creating assets");
 	bundle.point_lights = visual::recognize_lights(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
