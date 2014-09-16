@@ -15,39 +15,12 @@
 #include <analyzer/voxel_traversal.h>
 #include <logging.h>
 #include <range2.h>
-#include <visual/cloud_conversion.h>
-#include <visual/mapping.h>
 #include <visual/marching_cubes.h>
 #include <visual/shape_fitter.h>
-#include <visual/texture_conversion.h>
 #include <visual/voxel_conversion.h>
 
 namespace visual {
 namespace cloud_baker {
-
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorPointsByDistance(
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
-		TriangleMesh<std::nullptr_t> shape,
-		bool dont_color) {
-	const auto mesh_uv = mapSecond(assignUV(shape));
-
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_new(new pcl::PointCloud<pcl::PointXYZRGB>);
-	for(auto point : cloud->points) {
-		const Eigen::Vector3f pos = point.getVector3fMap();
-		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
-		const float dist = dist_and_uv.first;
-		if(dist > 0.2) {
-			if(!dont_color) {
-				point.r = dist * 255;
-				point.g = dist * 255;
-				point.b = dist * 255;
-			}
-			cloud_new->points.push_back(point);
-		}
-	}
-	return cloud_new;
-}
-
 
 TexturedMesh bakePointsToMesh(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,

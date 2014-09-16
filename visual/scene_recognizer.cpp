@@ -159,12 +159,12 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	INFO("Merging points in multiple scans");
 	const AlignedScans scans_aligned(bundle, scans);
-	const auto points_merged = scans_aligned.getMergedPoints();
+	const auto points_merged = scans_aligned.getMergedPointsNormal();
 	bundle.addDebugPointCloud("points_merged", points_merged);
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
 	INFO("Approximating exterior shape by an extruded polygon");
-	const auto cloud_colorless = decolor(*points_merged);
+	const auto cloud_colorless = cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
 	const auto extrusion = shape_fitter::fitExtrusion(cloud_colorless);
 	auto room_mesh = std::get<0>(extrusion);
 	auto room_polygon = std::get<1>(extrusion);
@@ -176,8 +176,8 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	// | |-interior
 	// |-outside (either mirror or window, there's a case RGB is transparent and IR is reflected)
 	INFO("Splitting inside/outside");
-	auto points_inside = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
-	auto points_outside = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+	auto points_inside = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	auto points_outside = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 	typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 	typedef K::Point_2 Point;
 	typedef CGAL::Polygon_2<K> Polygon_2;
@@ -206,24 +206,25 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Recalculating extrusion");
-	const auto extrusion_refined = shape_fitter::fitExtrusion(decolor(*points_inside));
+	const auto extrusion_refined = shape_fitter::fitExtrusion(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_inside));
 	room_mesh = std::get<0>(extrusion_refined);
 	room_polygon = std::get<1>(extrusion_refined);
 	room_hrange = std::get<2>(extrusion_refined);
 
 	INFO("Segmentation");
-	// test_segmentation(bundle, points_inside);
+	//test_segmentation(bundle, points_inside);
 
 	INFO("Modeling boxes along wall");
-	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance(points_inside, room_mesh, true);
+	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
-	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance(points_inside, room_mesh, false);
+	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
-	const auto box_ticks = decomposeWallBoxes(decolor(*cloud_interior), room_polygon);
+	const auto box_ticks = decomposeWallBoxes(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(cloud_interior), room_polygon);
 	INFO("Box candidates found", (int)box_ticks.size());
 	std::vector<TexturedMesh> boxes;
 	for(const auto& tick_range : box_ticks) {
-		const auto maybe_box = createWallBox(room_polygon, room_hrange, tick_range, cloud_interior);
+		const auto maybe_box = createWallBox(room_polygon, room_hrange, tick_range,
+			cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_interior));
 		if(maybe_box) {
 			boxes.push_back(*maybe_box);
 		}
@@ -231,7 +232,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("Box actually created", (int)boxes.size());
 
 
-
+	/*
 	INFO("Projecting to 2d");
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_interior_2d(new pcl::PointCloud<pcl::PointXYZRGB>);
 	const float ceiling_reject = 0.5;
@@ -250,9 +251,10 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 		cloud_interior_2d->points.push_back(new_pt);
 	}
 	bundle.addDebugPointCloud("points_interior_2d", cloud_interior_2d);
+	*/
 
 	INFO("Creating assets");
-	bundle.point_lights = visual::recognize_lights(points_inside);
+	bundle.point_lights = visual::recognize_lights(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
 }

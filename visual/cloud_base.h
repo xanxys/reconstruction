@@ -66,8 +66,12 @@ float cloudDistance(
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c1,
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr c2);
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
-//pcl::PointCloud<pcl::PointXYZNormal>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGBNormal>& cloud);
+template<typename PointIn, typename PointOut>
+typename pcl::PointCloud<PointOut>::Ptr cast(typename pcl::PointCloud<PointIn>::Ptr cloud) {
+	typename pcl::PointCloud<PointOut>::Ptr cloud_out(new pcl::PointCloud<PointOut>);
+	pcl::copyPointCloud(*cloud, *cloud_out);
+	return cloud_out;
+}
 
 }  // namespace
 }  // namespace

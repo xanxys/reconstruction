@@ -60,7 +60,7 @@ void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal
 
 	const int id = debug_count++;
 	std::ofstream debug_points_file((dir_path / path("debug_" + std::to_string(id) + ".ply")).string());
-	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
+	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
@@ -72,7 +72,7 @@ void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl:
 void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
 	using boost::filesystem::path;
 	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
-	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
+	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
 }
 
 
@@ -86,12 +86,14 @@ TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointC
 	return mesh;
 }
 
-TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const {
-	TriangleMesh<Eigen::Vector3f> mesh;
+TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const {
+	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> mesh;
 	for(const auto& pt : cloud->points) {
 		mesh.vertices.push_back(std::make_pair(
 			pt.getVector3fMap(),
-			Eigen::Vector3f(pt.r, pt.g, pt.b)));
+			std::make_tuple(
+				Eigen::Vector3f(pt.r, pt.g, pt.b),
+				pt.getNormalVector3fMap())));
 	}
 	return mesh;
 }
