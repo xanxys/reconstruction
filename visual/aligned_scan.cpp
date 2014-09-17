@@ -233,7 +233,7 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 		auto fine_align = Eigen::Affine3f::Identity();
 		if(scan_with_pose.first.getScanId() != fine_align_target_id) {
 			INFO("Fine-aligning scan", scan_with_pose.first.getScanId());
-			const auto fine_align = finealign(
+			fine_align = finealign(
 				*fine_align_target,
 				cloud_base::applyTransform(scan_with_pose.first.cloud_w_normal, scan_with_pose.second));
 		}
@@ -493,15 +493,16 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 	};
 
 	auto to_cloud = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-		return cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+		// return cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+		return cloud;
 	};
 
 	INFO("Running PCL ICP");
 	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
 	icp.setMaxCorrespondenceDistance(0.3);  // need to be larger than pre-alignment error
-	icp.setMaximumIterations(2000);
+	icp.setMaximumIterations(25);
 	icp.setTransformationEpsilon(0);  // disable this criteria
-	icp.setEuclideanFitnessEpsilon(1000);  // disable this criteria
+	icp.setEuclideanFitnessEpsilon(0);  // disable this criteria
 	icp.setInputCloud(to_cloud(source));
 	icp.setInputTarget(to_cloud(target));
 	pcl::PointCloud<pcl::PointXYZRGBNormal> final;
