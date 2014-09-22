@@ -52,6 +52,7 @@ cv::Mat bake3DTexture(
 
 		// Create integer AABB [pmin, pmax) that contains the triangle completely.
 		// Note that pixel center for pixel (x,y) is (x+0.5, y+0.5).
+		// It's ok to use cast<int> because pmin, pmax > 0.
 		const Eigen::Vector2i pmin = p_tex0.cwiseMin(p_tex1).cwiseMin(p_tex2).cast<int>();
 		const Eigen::Vector2i pmax = p_tex0.cwiseMax(p_tex1).cwiseMax(p_tex2).cast<int>() + Eigen::Vector2i(2, 2);
 

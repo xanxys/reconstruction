@@ -24,7 +24,7 @@ public:
 	std::string getScanId() const;
 public:
 	// TODO: make this immutable.
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_w_normal;
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud;
 
 	// Hack to make sparse ICP work.
 	// TODO: guess this internally and remove this field,

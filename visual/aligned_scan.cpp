@@ -47,7 +47,7 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 	}
 	scan_id = components.back();
 
-	cloud_w_normal.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGBNormal pt;
 		pt.x = point["x"].asDouble();
@@ -59,7 +59,7 @@ SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
 		pt.normal_x = point["nx"].asDouble();
 		pt.normal_y = point["ny"].asDouble();
 		pt.normal_z = point["nz"].asDouble();
-		cloud_w_normal->points.push_back(pt);
+		cloud->points.push_back(pt);
 	}
 
 	INFO("Loading equirectangular images");
@@ -93,86 +93,6 @@ AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleSca
 	assert(!scans.empty());
 	predefinedMerge("pose-20140827.json", scans);
 	assert(scans.size() == scans_with_pose.size());
-	return;
-
-	createClosenessMatrix(bundle, scans);
-	hierarchicalMerge(scans);
-
-	scans_with_pose.push_back(std::make_pair(
-		scans[0],
-		Eigen::Affine3f::Identity()));
-
-	// 0: target
-	// 1,2,..: source
-	// return: (position matrix, normal matrix)
-	auto to_matrix = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-		const auto ds_cloud = cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
-		const int n = ds_cloud->points.size();
-		Eigen::Matrix3Xd mat(3, n);
-		Eigen::Matrix3Xd mat_n(3, n);
-		for(int i : boost::irange(0, n)) {
-			mat.col(i) = ds_cloud->points[i].getVector3fMap().cast<double>();
-			mat_n.col(i) = ds_cloud->points[i].getNormalVector3fMap().cast<double>();
-		}
-		return std::make_pair(mat, mat_n);
-	};
-
-	auto to_cloud = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-		return cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
-	};
-
-	bool use_sicp = false;
-
-	// Merge others.
-	for(int i : boost::irange(1, (int)scans.size())) {
-		INFO("Calculating best pre-alignment between", 0, i);
-		const auto pre_align = prealign(scans[0], scans[i]);
-		INFO("Prealign Affine |t|=", pre_align.translation().norm());
-
-		const auto source_pa = cloud_base::applyTransform(scans[i].cloud_w_normal, pre_align);
-		const auto target = scans[0].cloud_w_normal;
-		Eigen::Affine3f trans;
-		if(false) {
-			INFO("Running Sparse ICP", i);
-
-			auto m_source_pa = to_matrix(source_pa);
-			auto m_target = to_matrix(target);
-
-			// See this youtube video for quick summary of good p value.
-			// https://www.youtube.com/watch?v=ii2vHBwlmo8
-			SICP::Parameters params;
-			params.max_icp = 200;
-			params.p = 0.6;
-			//params.stop = 0;
-
-			// The type signature do look like it allows any Scalar, but only
-			// double will work in reality.
-			Eigen::Matrix3Xd m_source_orig = m_source_pa.first;
-			SICP::point_to_plane(m_source_pa.first, m_target.first, m_target.second, params);
-
-			// Recover motion.
-			const Eigen::Affine3f fine_align = RigidMotionEstimator::point_to_point(
-				m_source_orig, m_source_pa.first).cast<float>();
-			INFO("Fine Affine |t|=", fine_align.translation().norm());
-			trans = fine_align * pre_align;
-		}
-		if(true) {
-			INFO("Running PCL ICP");
-			pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
-			icp.setInputCloud(to_cloud(source_pa));
-			icp.setInputTarget(to_cloud(target));
-			pcl::PointCloud<pcl::PointXYZRGBNormal> final;
-			icp.align(final);
-			INFO("ICP converged", icp.hasConverged(), "score", icp.getFitnessScore());
-			Eigen::Affine3f fine_align(icp.getFinalTransformation());
-			INFO("Fine Affine |t|=", fine_align.translation().norm());
-			trans = fine_align * pre_align;
-		}
-
-		scans_with_pose.push_back(std::make_pair(
-			scans[i], trans));
-	}
-
 	applyLeveling();
 }
 
@@ -218,7 +138,7 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 		}
 		if(scan_id == fine_align_target_id) {
 			fine_align_target =
-				cloud_base::applyTransform(scan.cloud_w_normal, poses[scan_id]);
+				cloud_base::applyTransform(scan.cloud, poses[scan_id]);
 		}
 		scans_with_pose.push_back(std::make_pair(scan, poses[scan_id]));
 	}
@@ -235,7 +155,7 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 			INFO("Fine-aligning scan", scan_with_pose.first.getScanId());
 			fine_align = finealign(
 				*fine_align_target,
-				cloud_base::applyTransform(scan_with_pose.first.cloud_w_normal, scan_with_pose.second));
+				cloud_base::applyTransform(scan_with_pose.first.cloud, scan_with_pose.second));
 		}
 		new_scans_with_pose.push_back(std::make_pair(
 			scan_with_pose.first, fine_align * scan_with_pose.second));
@@ -252,8 +172,8 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 			const auto pre_align = prealign(scans[j], scans[i]);
 
 			const float dist = cloud_base::cloudDistance(
-				cloud_base::applyTransform(scans[i].cloud_w_normal, pre_align),
-				scans[j].cloud_w_normal);
+				cloud_base::applyTransform(scans[i].cloud, pre_align),
+				scans[j].cloud);
 
 			closeness(i, j) = dist;
 			closeness(j, i) = dist;
@@ -287,7 +207,7 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 	// initialize.
 	INFO("Begin hierarchical aggregation of point clouds");
 	for(int i : boost::irange(0, n)) {
-		remaining[i] = scans[i].cloud_w_normal;
+		remaining[i] = scans[i].cloud;
 		for(int j : boost::irange(i + 1, n)) {
 			sparse_dist[std::make_pair(i, j)] = closeness(i, j);
 		}
@@ -421,7 +341,7 @@ void AlignedScans::applyLeveling() {
 }
 
 Eigen::Affine3f AlignedScans::prealign(const SingleScan& target, const SingleScan& source) {
-	return prealign(target.cloud_w_normal, source.cloud_w_normal);
+	return prealign(target.cloud, source.cloud);
 }
 
 Eigen::Affine3f AlignedScans::prealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
@@ -469,7 +389,7 @@ Eigen::Affine3f AlignedScans::prealign(const pcl::PointCloud<pcl::PointXYZRGBNor
 }
 
 Eigen::Affine3f AlignedScans::finealign(const SingleScan& target, const SingleScan& source) {
-	return finealign(target.cloud_w_normal, source.cloud_w_normal);
+	return finealign(target.cloud, source.cloud);
 }
 
 Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
@@ -525,11 +445,9 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr AlignedScans::getMergedPointsNormal() const {
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& s_w_p : scans_with_pose) {
-		for(const auto& pt : s_w_p.first.cloud_w_normal->points) {
-			pcl::PointXYZRGBNormal pt_new = pt;
-			pt_new.getVector3fMap() = s_w_p.second * pt.getVector3fMap();
-			pt_new.getNormalVector3fMap() = s_w_p.second.rotation() * pt.getNormalVector3fMap();
-			merged->points.push_back(pt_new);
+		const auto delta = cloud_base::applyTransform(s_w_p.first.cloud, s_w_p.second);
+		for(const auto& pt : delta->points) {
+			merged->points.push_back(pt);
 		}
 	}
 	return merged;

@@ -28,7 +28,7 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl:
 	for(auto& pt : cloud->points) {
 		pcl::PointXYZRGBNormal pt_new = pt;
 		pt_new.getVector3fMap() = trans * pt.getVector3fMap();
-		pt_new.getNormalVector3fMap() = trans * pt.getNormalVector3fMap();
+		pt_new.getNormalVector3fMap() = trans.rotation() * pt.getNormalVector3fMap();
 		new_cloud->points.push_back(pt_new);
 	}
 	return new_cloud;
@@ -50,15 +50,21 @@ float cloudDistance(
 			std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>,
 			std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f>>>> cells;
 	for(const auto& pt : c1->points) {
-		const auto ix = (pt.getVector3fMap() / res).cast<int>();
-		const auto tix = std::make_tuple(ix(0), ix(1), ix(2));
+		const auto ix = pt.getVector3fMap() / res;
+		const auto tix = std::make_tuple(
+			(int)std::floor(ix(0)),
+			(int)std::floor(ix(1)),
+			(int)std::floor(ix(2)));
 		cells[tix].first.push_back(std::make_tuple(
 			pt.getNormalVector3fMap(),
 			pt.getRGBVector3i().cast<float>()));
 	}
 	for(const auto& pt : c2->points) {
-		const auto ix = (pt.getVector3fMap() / res).cast<int>();
-		const auto tix = std::make_tuple(ix(0), ix(1), ix(2));
+		const auto ix = pt.getVector3fMap() / res;
+		const auto tix = std::make_tuple(
+			(int)std::floor(ix(0)),
+			(int)std::floor(ix(1)),
+			(int)std::floor(ix(2)));
 		cells[tix].second.push_back(std::make_tuple(
 			pt.getNormalVector3fMap(),
 			pt.getRGBVector3i().cast<float>()));

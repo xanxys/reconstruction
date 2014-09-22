@@ -298,8 +298,10 @@ std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Pt
 	const float resolution = 0.1;
 	std::map<std::pair<int, int>, std::vector<Eigen::Vector2f>> tiles;
 	for(const auto& pt : points) {
-		const auto pt_i = (pt / resolution).cast<int>();
-		tiles[std::make_pair(pt_i(0), pt_i(1))].push_back(pt);
+		const auto pt_i = pt / resolution;
+		tiles[std::make_pair(
+			(int)std::floor(pt_i(0)),
+			(int)std::floor(pt_i(1)))].push_back(pt);
 	}
 	const int n_thresh = 0.2 * points.size() / tiles.size();
 	INFO("2D downsampler: rejection thresh", n_thresh);
