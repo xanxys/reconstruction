@@ -22,7 +22,7 @@ namespace visual {
 namespace cloud_baker {
 
 // Assign color to point cloud based on distance from mesh.
-// Point type must have RGB and XYZ.
+// Point type must have RGB and XYZ and Normal.
 template<typename Point>
 typename pcl::PointCloud<Point>::Ptr colorPointsByDistance(
 		typename pcl::PointCloud<Point>::Ptr cloud,
@@ -33,9 +33,12 @@ typename pcl::PointCloud<Point>::Ptr colorPointsByDistance(
 	typename pcl::PointCloud<Point>::Ptr cloud_new(new pcl::PointCloud<Point>);
 	for(auto point : cloud->points) {
 		const Eigen::Vector3f pos = point.getVector3fMap();
-		const auto dist_and_uv = nearestCoordinate(mesh_uv, pos);
-		const float dist = dist_and_uv.first;
-		if(dist > 0.2) {
+		const auto dist_and_uv = nearestCoordinateWithNormal(mesh_uv, pos);
+		const float dist = std::get<0>(dist_and_uv);
+		const auto normal = std::get<2>(dist_and_uv);
+		// inside == very far from walls
+		// OR somewhat far from walls and have very different normals
+		if(dist > 0.2 || (dist > 0.05 && normal.dot(point.getNormalVector3fMap()) < 0.5)) {
 			if(!dont_color) {
 				point.r = dist * 255;
 				point.g = dist * 255;

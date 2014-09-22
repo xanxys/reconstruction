@@ -49,4 +49,32 @@ std::pair<float, Eigen::Vector2f> nearestCoordinate(
 	return std::make_pair(min_dist, coord);
 }
 
+
+// Get linear-interpolate coordinate of the surfact point, which is nearest to the given point.
+std::tuple<float, Eigen::Vector2f, Eigen::Vector3f> nearestCoordinateWithNormal(
+	const TriangleMesh<Eigen::Vector2f>& mesh, const Eigen::Vector3f p) {
+	float min_dist = std::numeric_limits<float>::max();
+	Eigen::Vector2f coord;
+	Eigen::Vector3f normal;
+	for(const auto& tri : mesh.triangles) {
+		const Eigen::Vector3f v0 = mesh.vertices[std::get<0>(tri)].first;
+		const Eigen::Vector3f v1 = mesh.vertices[std::get<1>(tri)].first;
+		const Eigen::Vector3f v2 = mesh.vertices[std::get<2>(tri)].first;
+		const auto bary = nearestBarycentricApprox(v0, v1, v2, p);
+
+		const Eigen::Vector3f pt_nearest = v0 + (v1 - v0) * bary(0) + (v2 - v0) * bary(1);
+		const float dist = (p - pt_nearest).norm();
+		if(dist < min_dist) {
+			min_dist = dist;
+
+			const Eigen::Vector2f c0 = mesh.vertices[std::get<0>(tri)].second;
+			const Eigen::Vector2f c1 = mesh.vertices[std::get<1>(tri)].second;
+			const Eigen::Vector2f c2 = mesh.vertices[std::get<2>(tri)].second;
+			coord = c0 + (c1 - c0) * bary(0) + (c2 - c0) * bary(1);
+			normal = (v1 - v0).cross(v2 - v0).normalized();
+		}
+	}
+	return std::make_tuple(min_dist, coord, normal);
+}
+
 }  // namespace

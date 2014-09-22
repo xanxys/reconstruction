@@ -22,4 +22,10 @@ Eigen::Vector2f nearestBarycentricApprox(
 std::pair<float, Eigen::Vector2f> nearestCoordinate(
 	const TriangleMesh<Eigen::Vector2f>& mesh, const Eigen::Vector3f p);
 
+// Get linear-interpolate coordinate of the surfact point, which is nearest to the given point.
+// return: (distance, UV coords)
+std::tuple<float, Eigen::Vector2f, Eigen::Vector3f> nearestCoordinateWithNormal(
+	const TriangleMesh<Eigen::Vector2f>& mesh, const Eigen::Vector3f p);
+
+
 }  // namespace
