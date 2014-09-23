@@ -365,44 +365,17 @@ def do_everything(dir_path_in):
     ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
     logging.info('#CCs: %d' % len(ccs))
 
+    rev_cluster = {}
     for (ix, cc) in enumerate(ccs):
         logging.debug("%d: %d" % (ix, len(cc)))
         # Visualize region
         region_color = (0, np.random.rand(1), np.random.rand(1), 0.3)
         for k in cc:
+            rev_cluster[k] = region_color
             # area
             ctx.rectangle(step * k[0], step * k[1], step, step)
             ctx.set_source_rgba(*region_color)
             ctx.fill()
-
-            # disallow edges
-            # n = len(cells[k]) / 10
-            # th = math.cos(math.pi / 4)
-            # r_xp = np.sum(cells[k][6] > th) / n
-            # r_xm = np.sum(cells[k][6] < -th) / n
-            # r_yp = np.sum(cells[k][7] > th) / n
-            # r_ym = np.sum(cells[k][7] < -th) / n
-            # logging.debug('%f %f %f %f' % (r_xp, r_xm, r_yp, r_ym))
-
-            # ctx.move_to(step * (k[0] + 1), step * k[1])
-            # ctx.rel_line_to(0, step)
-            # ctx.set_source_rgba(0, 0, 0, r_xp)
-            # ctx.stroke()
-
-            # ctx.move_to(step * k[0], step * k[1])
-            # ctx.rel_line_to(0, step)
-            # ctx.set_source_rgba(0, 0, 0, r_xm)
-            # ctx.stroke()
-
-            # ctx.move_to(step * k[0], step * (k[1] + 1))
-            # ctx.rel_line_to(step, 0)
-            # ctx.set_source_rgba(0, 0, 0, r_yp)
-            # ctx.stroke()
-
-            # ctx.move_to(step * k[0], step * k[1])
-            # ctx.rel_line_to(step, 0)
-            # ctx.set_source_rgba(0, 0, 0, r_ym)
-            # ctx.stroke()
 
         # Add label
         ctx.save()
@@ -456,6 +429,22 @@ def do_everything(dir_path_in):
             ctx.fill()
 
         surf.write_to_png(os.path.join(dir_path_in, 'shapes-%.1f.png' % h0))
+
+    # do coloring
+    for pt in cloud_big:
+        ip = np.floor(pt[:2] / step)
+        key = (int(ip[0]), int(ip[1]))
+
+        if key in rev_cluster:
+            pt[3] = rev_cluster[key][0] * 255
+            pt[4] = rev_cluster[key][1] * 255
+            pt[5] = rev_cluster[key][2] * 255
+        else:
+            # non-cluster
+            pt[3] = 255
+    serialize_points_as_ply(
+        cloud_big,
+        open(os.path.join(dir_path_in, "debug_shapes.ply"), 'w'))
 
 
 if __name__ == '__main__':
