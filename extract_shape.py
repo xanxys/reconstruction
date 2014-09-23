@@ -281,11 +281,11 @@ if __name__ == '__main__':
         for pt in pts:
             x, y = pt[:2]
             nx, ny = pt[6 : 8]
-            # ctx.set_source_rgba(1, 0, 0, 0.1)
-            # ctx.set_line_width(0.01)
-            # ctx.move_to(x, y)
-            # ctx.rel_line_to(nx * n_len, ny * n_len)
-            # ctx.stroke()
+            ctx.set_source_rgba(1, 0, 0, 0.1)
+            ctx.set_line_width(0.01)
+            ctx.move_to(x, y)
+            ctx.rel_line_to(nx * n_len, ny * n_len)
+            ctx.stroke()
 
             ctx.set_source_rgba(0, 0, 1, 0.1)
             ctx.arc(x, y, 0.01, 0, 2 * math.pi)
@@ -315,17 +315,24 @@ if __name__ == '__main__':
 
 
 
-    # ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
-    # print('#CCs: %d' % len(ccs))
+    ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
+    print('#CCs: %d' % len(ccs))
 
-    # for (ix, cc) in enumerate(ccs):
-    #     print("%d: %d" % (ix, len(cc)))
-    #     # Visualize region
-    #     for k in cc:
-    #         ctx.rectangle(step * k[0], step * k[1], step, step)
-    #     t = np.random.rand(1)
-    #     ctx.set_source_rgba(0, t, 1 - t, 0.3)
-    #     ctx.fill()
+    for (ix, cc) in enumerate(ccs):
+        print("%d: %d" % (ix, len(cc)))
+        # Visualize region
+        for k in cc:
+            ctx.rectangle(step * k[0], step * k[1], step, step)
+        ctx.set_source_rgba(0, np.random.rand(1), np.random.rand(1), 0.3)
+        ctx.fill()
+
+        # Add label
+        ctx.save()
+        ctx.translate(step * k[0], step * k[1])
+        ctx.scale(0.01, -0.01)
+        ctx.set_source_rgb(0, 0, 0)
+        ctx.show_text("cluster:%d" % ix)
+        ctx.restore()
 
     #     # Fit rect
     #     pts = np.vstack([cells[k] for k in cc])
