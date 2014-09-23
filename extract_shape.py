@@ -250,6 +250,45 @@ def squash_reg_error(pts, error_radius=0.2):
     return np.array(new_pts)
 
 
+def squash_reg_error_3d(pts, error_radius=0.2):
+    """
+    Smooth registration error using method in
+    http://www-video.eecs.berkeley.edu/papers/elturner/thesis_paper.pdf
+    Sec. 3.2
+
+    pts: x, y, z, r, g, b, nx, ny, nz
+    error_radius: max expected registration error
+    """
+    ortho_error_radius = error_radius * 0.3
+    kdt = scipy.spatial.cKDTree(pts[:, :3])
+
+    cos_thresh = math.cos(math.pi / 8)
+    logging.debug("Removing noise")
+    new_pts = []
+    for p in pts:
+        perp_vect = np.array([p[7], -p[6]])
+
+        ixs = kdt.query_ball_point(p[:3], error_radius)
+        if len(ixs) <= 1:
+            new_pts.append(p)
+        else:
+            pts_subset = pts[ixs]
+            cos = np.dot(pts_subset[:, 6:9], p[6:9])
+            delta = pts_subset[:, :3] - p[:3]
+            proj_v = np.outer(
+                np.dot(delta, p[6:9]),
+                p[6:9])
+            perp_v = delta - proj_v
+            perp = (perp_v ** 2).sum(axis=1) ** 0.5
+
+            pts_subset = pts_subset[(cos > cos_thresh) & (perp < ortho_error_radius)]
+            if len(pts_subset) <= 1:
+                new_pts.append(p)
+            else:
+                new_pts.append(pts_subset.mean(axis=0))
+    return np.array(new_pts)
+
+
 def checkpoint(filename, process):
     """
     Return cached data if present.
@@ -270,8 +309,14 @@ def do_everything(dir_path_in):
     cloud_big = load_cloud(os.path.join(dir_path_in, 'debug_points_interior.ply'))
     logging.info("Big cloud: %s" % str(cloud_big.shape))
 
-    cloud = load_cloud(os.path.join(dir_path_in, 'debug_points_interior_slice.ply'))
-    logging.info("Cloud shape: %s" % str(cloud.shape))
+    # Squash reg error
+    cloud_big = checkpoint(
+        os.path.join(dir_path_in, 'squash_cache_big.cache.pickle'),
+        lambda: squash_reg_error_3d(cloud_big))
+
+    slice_height = 0.5
+    cloud = cloud_big[cloud_big[:, 2] < (cloud_big[:, 2].min() + slice_height)]
+    logging.info("%fm sliced cloud shape: %s" % (slice_height, str(cloud.shape)))
 
     xyzs = cloud[:, :3]
 
@@ -305,11 +350,6 @@ def do_everything(dir_path_in):
     #     ctx.line_to(10, i * step)
     # ctx.set_source_rgba(0, 0, 0, 0.3)
     # ctx.stroke()
-
-    # Squash reg error
-    cloud = checkpoint(
-        os.path.join(dir_path_in, 'squash_cache.cache.pickle'),
-        lambda: squash_reg_error(cloud))
 
     # bin to cells
     cells = {}
@@ -399,36 +439,37 @@ def do_everything(dir_path_in):
 
     surf.write_to_png(os.path.join(dir_path_in, 'shapes.png'))
 
+    # Render slices.
     logging.debug('VMin: %s' % xyzs.min(axis=0))
     z0 = xyzs[:, 2].min()
-    for i in range(10):
-        h0 = i * 0.25 + z0
-        h1 = h0 + 0.25
+    # for i in range(10):
+    #     h0 = i * 0.25 + z0
+    #     h1 = h0 + 0.25
 
-        sl = cloud_big[(h0 < cloud_big[:, 2]) & (cloud_big[:, 2] < h1)]
-        logging.debug(sl.shape)
-        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
-        ctx = cairo.Context(surf)
-        ctx.scale(px_per_meter, -px_per_meter)
-        ctx.translate(-x0, -y1)
-        # set bg to white
-        ctx.set_source_rgb(1, 1, 1)
-        ctx.paint()
+    #     sl = cloud_big[(h0 < cloud_big[:, 2]) & (cloud_big[:, 2] < h1)]
+    #     logging.debug(sl.shape)
+    #     surf = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
+    #     ctx = cairo.Context(surf)
+    #     ctx.scale(px_per_meter, -px_per_meter)
+    #     ctx.translate(-x0, -y1)
+    #     # set bg to white
+    #     ctx.set_source_rgb(1, 1, 1)
+    #     ctx.paint()
 
-        for pt in sl:
-            x, y = pt[:2]
-            nx, ny = pt[6 : 8]
-            ctx.set_source_rgba(1, 0, 0, 0.1)
-            ctx.set_line_width(0.01)
-            ctx.move_to(x, y)
-            ctx.rel_line_to(nx * n_len, ny * n_len)
-            ctx.stroke()
+    #     for pt in sl:
+    #         x, y = pt[:2]
+    #         nx, ny = pt[6 : 8]
+    #         ctx.set_source_rgba(1, 0, 0, 0.1)
+    #         ctx.set_line_width(0.01)
+    #         ctx.move_to(x, y)
+    #         ctx.rel_line_to(nx * n_len, ny * n_len)
+    #         ctx.stroke()
 
-            ctx.set_source_rgba(0, 0, 1, 0.03)
-            ctx.arc(x, y, 0.01, 0, 2 * math.pi)
-            ctx.fill()
+    #         ctx.set_source_rgba(0, 0, 1, 0.03)
+    #         ctx.arc(x, y, 0.01, 0, 2 * math.pi)
+    #         ctx.fill()
 
-        surf.write_to_png(os.path.join(dir_path_in, 'shapes-%.1f.png' % h0))
+    #     surf.write_to_png(os.path.join(dir_path_in, 'shapes-%.1f.png' % h0))
 
     # do coloring
     for pt in cloud_big:
