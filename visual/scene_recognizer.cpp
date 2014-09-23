@@ -244,18 +244,6 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("Box actually created", (int)boxes.size());
 	*/
 
-
-	INFO("Slicing near-floor");
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior_2d(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	const float floor_margin = 0.3;
-	for(const auto& pt : cloud_interior->points) {
-		if(pt.z > std::get<2>(extrusion).first + floor_margin) {
-			continue;
-		}
-		cloud_interior_2d->points.push_back(pt);
-	}
-	bundle.addDebugPointCloud("points_interior_slice", cloud_interior_2d);
-
 	INFO("Creating assets");
 	bundle.point_lights = visual::recognize_lights(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
