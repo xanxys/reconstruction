@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import scipy.signal
 import scipy.spatial
 import itertools
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def load_cloud(path):
@@ -121,7 +124,7 @@ def fit_rect(pts):
             r = random_rect()
             s = eval_rect(*r)
             if s > best_score:
-                print('score update: to %d' % s)
+                logging.debug('score update: to %d' % s)
                 best_score = s
                 best_rect = r
         return best_rect
@@ -146,7 +149,7 @@ def fit_rect(pts):
     for pix in scipy.signal.argrelmax(ysh[0])[0]:
         ypeaks.append(ysh[1][pix])
 
-    print('Peaks: %dx%d' % (len(xpeaks), len(ypeaks)))
+    logging.debug('Peaks: %dx%d' % (len(xpeaks), len(ypeaks)))
 
     rs = []
     for xp in itertools.combinations(xpeaks, 2):
@@ -158,7 +161,7 @@ def fit_rect(pts):
             rs.append((rot_max, center, halfsize))
     #return random.sample(rs, 100)
     best_r = max(rs, key=lambda r:eval_rect(*r))
-    print("Best Score:%d" % eval_rect(*best_r))
+    logging.info("Best Score:%d" % eval_rect(*best_r))
     return [best_r]
 
     #r_org = random_rect()
@@ -178,7 +181,7 @@ def squash_reg_error(pts, error_radius=0.2):
     kdt = scipy.spatial.cKDTree(pts[:, :2])
 
     cos_thresh = math.cos(math.pi / 8)
-    print("Removing noise")
+    logging.debug("Removing noise")
     new_pts = []
     for p in pts:
         perp_vect = np.array([p[7], -p[6]])
@@ -206,10 +209,10 @@ def checkpoint(filename, process):
     """
     try:
         result = cPickle.load(open(filename, 'rb'))
-        print("Loaded from checkpoint %s" % filename)
+        logging.info("Loaded from checkpoint %s" % filename)
         return result
     except (IOError, EOFError):
-        print("Checkpoint not found. Re-calculating")
+        logging.info("Checkpoint not found. Re-calculating")
         result = process()
         cPickle.dump(result, open(filename, 'wb'))
         return result
@@ -217,7 +220,7 @@ def checkpoint(filename, process):
 
 if __name__ == '__main__':
     cloud = load_cloud('scan-20140827-12:57-gakusei-small/debug_points_interior_slice.ply')
-    print("Cloud shape: %s" % str(cloud.shape))
+    logging.info("Cloud shape: %s" % str(cloud.shape))
 
     xyzs = cloud[:, :3]
 
@@ -263,14 +266,14 @@ if __name__ == '__main__':
         ip = np.floor(pt[:2] / step)
         key = (int(ip[0]), int(ip[1]))
         cells.setdefault(key, []).append(pt)
-    print("#cells: %d" % len(cells))
+    logging.info("#cells: %d" % len(cells))
 
     # throw away cells with too few points
     cell_ns = sorted(map(len, cells.values()))
     thresh_no = cell_ns[3 * len(cell_ns) // 4]
-    print('noise removal threshold: %d' % thresh_no)
+    logging.info('noise removal threshold: %d' % thresh_no)
     cells = {k: pts for (k, pts) in cells.items() if len(pts) >= thresh_no}
-    print("#cells (after noise removal): %d" % len(cells))
+    logging.info("#cells (after noise removal): %d" % len(cells))
 
     # draw points in each cells
     n_len = 0.1
