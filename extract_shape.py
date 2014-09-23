@@ -29,6 +29,51 @@ def load_cloud(path):
     return np.array(vs)
 
 
+def serialize_points_as_ply(points, fobj):
+    """
+    Put XYZ or XYZRGB or XYZRGBNormal points to fobj in PLY format.
+
+    points: [N, 3] (XYZ) or [N, 6] or [N, 9] numpy array.
+    """
+    n_points, n_channels = points.shape
+    fobj.write("ply\n")
+    fobj.write("format ascii 1.0\n")
+    fobj.write("element vertex %d\n" % n_points)
+    fobj.write("property float32 x\n")
+    fobj.write("property float32 y\n")
+    fobj.write("property float32 z\n")
+    if n_channels >= 6:
+        fobj.write("property uint8 red\n")
+        fobj.write("property uint8 green\n")
+        fobj.write("property uint8 blue\n")
+    if n_channels >= 9:
+        fobj.write("property float32 nx\n")
+        fobj.write("property float32 ny\n")
+        fobj.write("property float32 nz\n")
+    fobj.write("element face %d\n" % 0)
+    fobj.write("property list uint8 int32 vertex_indices\n")
+    fobj.write("end_header\n")
+
+    if n_channels >= 3:
+        attrib_xyz = points[:, :3]
+    if n_channels >= 6:
+        attrib_rgb = points[:, 3:6].astype(int)
+    if n_channels >= 9:
+        attrib_normal = points[:, 6:9]
+
+    if n_channels == 3:
+        for xyz in attrib_xyz:
+            fobj.write("%f %f %f\n" % tuple(xyz))
+    elif n_channels == 6:
+        for (xyz, rgb) in zip(attrib_xyz, attrib_rgb):
+            fobj.write("%f %f %f %d %d %d\n" % (tuple(xyz) + tuple(rgb)))
+    elif n_channels == 9:
+        for (xyz, rgb, normal) in zip(attrib_xyz, attrib_rgb, attrib_normal):
+            fobj.write("%f %f %f %d %d %d %f %f %f\n" % (tuple(xyz) + tuple(rgb) + tuple(normal)))
+    else:
+        raise ValueError("Unsupported point cloud array shape")
+
+
 def to_4cc(keys):
     """
     Split 2D keys to connected components.
@@ -219,6 +264,9 @@ def checkpoint(filename, process):
 
 
 if __name__ == '__main__':
+    cloud_big = load_cloud('scan-20140827-12:57-gakusei-small/debug_points_interior.ply')
+    logging.info("Big cloud: %s" % str(cloud_big.shape))
+
     cloud = load_cloud('scan-20140827-12:57-gakusei-small/debug_points_interior_slice.ply')
     logging.info("Cloud shape: %s" % str(cloud.shape))
 
@@ -246,14 +294,14 @@ if __name__ == '__main__':
     step = 0.1
 
     # draw background grid
-    ctx.set_line_width(0.01)
-    for i in range(-100, 100):
-        ctx.move_to(i * step, -10)
-        ctx.line_to(i * step, 10)
-        ctx.move_to(-10, i * step)
-        ctx.line_to(10, i * step)
-    ctx.set_source_rgba(0, 0, 0, 0.3)
-    ctx.stroke()
+    # ctx.set_line_width(0.01)
+    # for i in range(-100, 100):
+    #     ctx.move_to(i * step, -10)
+    #     ctx.line_to(i * step, 10)
+    #     ctx.move_to(-10, i * step)
+    #     ctx.line_to(10, i * step)
+    # ctx.set_source_rgba(0, 0, 0, 0.3)
+    # ctx.stroke()
 
     # Squash reg error
     cloud = checkpoint(
@@ -287,7 +335,7 @@ if __name__ == '__main__':
             ctx.rel_line_to(nx * n_len, ny * n_len)
             ctx.stroke()
 
-            ctx.set_source_rgba(0, 0, 1, 0.1)
+            ctx.set_source_rgba(0, 0, 1, 0.03)
             ctx.arc(x, y, 0.01, 0, 2 * math.pi)
             ctx.fill()
 
@@ -311,20 +359,47 @@ if __name__ == '__main__':
         # ctx.line_to(*p1[:2])
         # ctx.stroke()
 
-
-
-
-
     ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
-    print('#CCs: %d' % len(ccs))
+    logging.info('#CCs: %d' % len(ccs))
 
     for (ix, cc) in enumerate(ccs):
-        print("%d: %d" % (ix, len(cc)))
+        logging.debug("%d: %d" % (ix, len(cc)))
         # Visualize region
+        region_color = (0, np.random.rand(1), np.random.rand(1), 0.3)
         for k in cc:
+            # area
             ctx.rectangle(step * k[0], step * k[1], step, step)
-        ctx.set_source_rgba(0, np.random.rand(1), np.random.rand(1), 0.3)
-        ctx.fill()
+            ctx.set_source_rgba(*region_color)
+            ctx.fill()
+
+            # disallow edges
+            # n = len(cells[k]) / 10
+            # th = math.cos(math.pi / 4)
+            # r_xp = np.sum(cells[k][6] > th) / n
+            # r_xm = np.sum(cells[k][6] < -th) / n
+            # r_yp = np.sum(cells[k][7] > th) / n
+            # r_ym = np.sum(cells[k][7] < -th) / n
+            # logging.debug('%f %f %f %f' % (r_xp, r_xm, r_yp, r_ym))
+
+            # ctx.move_to(step * (k[0] + 1), step * k[1])
+            # ctx.rel_line_to(0, step)
+            # ctx.set_source_rgba(0, 0, 0, r_xp)
+            # ctx.stroke()
+
+            # ctx.move_to(step * k[0], step * k[1])
+            # ctx.rel_line_to(0, step)
+            # ctx.set_source_rgba(0, 0, 0, r_xm)
+            # ctx.stroke()
+
+            # ctx.move_to(step * k[0], step * (k[1] + 1))
+            # ctx.rel_line_to(step, 0)
+            # ctx.set_source_rgba(0, 0, 0, r_yp)
+            # ctx.stroke()
+
+            # ctx.move_to(step * k[0], step * k[1])
+            # ctx.rel_line_to(step, 0)
+            # ctx.set_source_rgba(0, 0, 0, r_ym)
+            # ctx.stroke()
 
         # Add label
         ctx.save()
@@ -346,7 +421,35 @@ if __name__ == '__main__':
     #         ctx.stroke()
     #         ctx.restore()
 
-
-
-
     surf.write_to_png('shapes.png')
+
+    logging.debug('VMin: %s' % xyzs.min(axis=0))
+    z0 = xyzs[:, 2].min()
+    for i in range(10):
+        h0 = i * 0.25 + z0
+        h1 = h0 + 0.25
+
+        sl = cloud_big[(h0 < cloud_big[:, 2]) & (cloud_big[:, 2] < h1)]
+        logging.debug(sl.shape)
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
+        ctx = cairo.Context(surf)
+        ctx.scale(px_per_meter, -px_per_meter)
+        ctx.translate(-x0, -y1)
+        # set bg to white
+        ctx.set_source_rgb(1, 1, 1)
+        ctx.paint()
+
+        for pt in sl:
+            x, y = pt[:2]
+            nx, ny = pt[6 : 8]
+            ctx.set_source_rgba(1, 0, 0, 0.1)
+            ctx.set_line_width(0.01)
+            ctx.move_to(x, y)
+            ctx.rel_line_to(nx * n_len, ny * n_len)
+            ctx.stroke()
+
+            ctx.set_source_rgba(0, 0, 1, 0.03)
+            ctx.arc(x, y, 0.01, 0, 2 * math.pi)
+            ctx.fill()
+
+        surf.write_to_png('shapes-%.1f.png' % h0)
