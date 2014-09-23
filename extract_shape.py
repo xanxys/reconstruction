@@ -1,11 +1,13 @@
 #!/bin/python2
 from __future__ import print_function, division
+import cPickle
 import cairo
 import numpy as np
 import math
 import random
 import matplotlib.pyplot as plt
 import scipy.signal
+import scipy.spatial
 import itertools
 
 
@@ -163,6 +165,56 @@ def fit_rect(pts):
     return [search_rect()]  # eval_rect(*r_org) + [r_org]
 
 
+def squash_reg_error(pts, error_radius=0.2):
+    """
+    Smooth registration error using method in
+    http://www-video.eecs.berkeley.edu/papers/elturner/thesis_paper.pdf
+    Sec. 3.2
+
+    pts: x, y, z, r, g, b, nx, ny, nz
+    error_radius: max expected registration error
+    """
+    ortho_error_radius = error_radius * 0.3
+    kdt = scipy.spatial.cKDTree(pts[:, :2])
+
+    cos_thresh = math.cos(math.pi / 8)
+    print("Removing noise")
+    new_pts = []
+    for p in pts:
+        perp_vect = np.array([p[7], -p[6]])
+
+        ixs = kdt.query_ball_point(p[:2], error_radius)
+        if len(ixs) <= 1:
+            new_pts.append(p)
+        else:
+            pts_subset = pts[ixs]
+            cos = np.dot(pts_subset[:, 6:8], p[6:8])
+            perp = np.abs(np.dot(pts_subset[:, :2] - p[:2], perp_vect))
+
+            pts_subset = pts_subset[(cos > cos_thresh) & (perp < ortho_error_radius)]
+            if len(pts_subset) <= 1:
+                new_pts.append(p)
+            else:
+                new_pts.append(pts_subset.mean(axis=0))
+    return np.array(new_pts)
+
+
+def checkpoint(filename, process):
+    """
+    Return cached data if present.
+    Otherwise, execute process, save to filename, and return result.
+    """
+    try:
+        result = cPickle.load(open(filename, 'rb'))
+        print("Loaded from checkpoint %s" % filename)
+        return result
+    except (IOError, EOFError):
+        print("Checkpoint not found. Re-calculating")
+        result = process()
+        cPickle.dump(result, open(filename, 'wb'))
+        return result
+
+
 if __name__ == '__main__':
     cloud = load_cloud('scan-20140827-12:57-gakusei-small/debug_points_interior_slice.ply')
     print("Cloud shape: %s" % str(cloud.shape))
@@ -187,20 +239,54 @@ if __name__ == '__main__':
     ctx.set_source_rgb(1, 1, 1)
     ctx.paint()
 
-    # draw points
-    n_len = 0.1
-    for pt in cloud:
-        x, y = pt[:2]
-        nx, ny = pt[6 : 8]
-        ctx.set_source_rgba(1, 0, 0, 0.1)
-        ctx.set_line_width(0.01)
-        ctx.move_to(x, y)
-        ctx.rel_line_to(nx * n_len, ny * n_len)
-        ctx.stroke()
+    # global params
+    step = 0.1
 
-        ctx.set_source_rgba(0, 0, 1, 0.1)
-        ctx.arc(x, y, 0.01, 0, 2 * math.pi)
-        ctx.fill()
+    # draw background grid
+    ctx.set_line_width(0.01)
+    for i in range(-100, 100):
+        ctx.move_to(i * step, -10)
+        ctx.line_to(i * step, 10)
+        ctx.move_to(-10, i * step)
+        ctx.line_to(10, i * step)
+    ctx.set_source_rgba(0, 0, 0, 0.3)
+    ctx.stroke()
+
+    # Squash reg error
+    cloud = checkpoint(
+        'squash_cache.cache.pickle',
+        lambda: squash_reg_error(cloud))
+
+    # bin to cells
+    cells = {}
+    for pt in cloud:
+        ip = np.floor(pt[:2] / step)
+        key = (int(ip[0]), int(ip[1]))
+        cells.setdefault(key, []).append(pt)
+    print("#cells: %d" % len(cells))
+
+    # throw away cells with too few points
+    cell_ns = sorted(map(len, cells.values()))
+    thresh_no = cell_ns[3 * len(cell_ns) // 4]
+    print('noise removal threshold: %d' % thresh_no)
+    cells = {k: pts for (k, pts) in cells.items() if len(pts) >= thresh_no}
+    print("#cells (after noise removal): %d" % len(cells))
+
+    # draw points in each cells
+    n_len = 0.1
+    for pts in cells.values():
+        for pt in pts:
+            x, y = pt[:2]
+            nx, ny = pt[6 : 8]
+            # ctx.set_source_rgba(1, 0, 0, 0.1)
+            # ctx.set_line_width(0.01)
+            # ctx.move_to(x, y)
+            # ctx.rel_line_to(nx * n_len, ny * n_len)
+            # ctx.stroke()
+
+            ctx.set_source_rgba(0, 0, 1, 0.1)
+            ctx.arc(x, y, 0.01, 0, 2 * math.pi)
+            ctx.fill()
 
     vmin = xyzs.min(axis=0)[:2]
     vmax = xyzs.max(axis=0)[:2]
@@ -222,48 +308,33 @@ if __name__ == '__main__':
         # ctx.line_to(*p1[:2])
         # ctx.stroke()
 
-    step = 0.1
-
-    cells = {}
-    for pt in cloud:
-        ip = np.floor(pt[:2] / step)
-        key = (int(ip[0]), int(ip[1]))
-        cells.setdefault(key, []).append(pt)
-    print("#cells: %d" % len(cells))
-
-    for i in range(-100, 100):
-        ctx.move_to(i * step, -10)
-        ctx.line_to(i * step, 10)
-        ctx.move_to(-10, i * step)
-        ctx.line_to(10, i * step)
-    ctx.set_source_rgba(0, 0, 0, 0.3)
-    ctx.stroke()
 
 
 
-    ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
-    print('#CCs: %d' % len(ccs))
 
-    for (ix, cc) in enumerate(ccs):
-        print("%d: %d" % (ix, len(cc)))
-        # Visualize region
-        for k in cc:
-            ctx.rectangle(step * k[0], step * k[1], step, step)
-        t = np.random.rand(1)
-        ctx.set_source_rgba(0, t, 1 - t, 0.3)
-        ctx.fill()
+    # ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
+    # print('#CCs: %d' % len(ccs))
 
-        # Fit rect
-        pts = np.vstack([cells[k] for k in cc])
-        print(pts.shape)
-        for (rot, center, hsize) in fit_rect(pts):
-            ctx.save()
-            ctx.translate(*center)
-            ctx.rotate(rot)
-            ctx.rectangle(-hsize[0], -hsize[1], 2 * hsize[0], 2 * hsize[1])
-            ctx.set_source_rgba(0, 0, 0, 0.8)
-            ctx.stroke()
-            ctx.restore()
+    # for (ix, cc) in enumerate(ccs):
+    #     print("%d: %d" % (ix, len(cc)))
+    #     # Visualize region
+    #     for k in cc:
+    #         ctx.rectangle(step * k[0], step * k[1], step, step)
+    #     t = np.random.rand(1)
+    #     ctx.set_source_rgba(0, t, 1 - t, 0.3)
+    #     ctx.fill()
+
+    #     # Fit rect
+    #     pts = np.vstack([cells[k] for k in cc])
+    #     print(pts.shape)
+    #     for (rot, center, hsize) in fit_rect(pts):
+    #         ctx.save()
+    #         ctx.translate(*center)
+    #         ctx.rotate(rot)
+    #         ctx.rectangle(-hsize[0], -hsize[1], 2 * hsize[0], 2 * hsize[1])
+    #         ctx.set_source_rgba(0, 0, 0, 0.8)
+    #         ctx.stroke()
+    #         ctx.restore()
 
 
 
