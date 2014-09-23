@@ -1,5 +1,6 @@
 #!/bin/python2
 from __future__ import print_function, division
+import argparse
 import cPickle
 import cairo
 import numpy as np
@@ -10,6 +11,8 @@ import scipy.signal
 import scipy.spatial
 import itertools
 import logging
+import os
+import os.path
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -263,11 +266,11 @@ def checkpoint(filename, process):
         return result
 
 
-if __name__ == '__main__':
-    cloud_big = load_cloud('scan-20140827-12:57-gakusei-small/debug_points_interior.ply')
+def do_everything(dir_path_in):
+    cloud_big = load_cloud(os.path.join(dir_path_in, 'debug_points_interior.ply'))
     logging.info("Big cloud: %s" % str(cloud_big.shape))
 
-    cloud = load_cloud('scan-20140827-12:57-gakusei-small/debug_points_interior_slice.ply')
+    cloud = load_cloud(os.path.join(dir_path_in, 'debug_points_interior_slice.ply'))
     logging.info("Cloud shape: %s" % str(cloud.shape))
 
     xyzs = cloud[:, :3]
@@ -305,7 +308,7 @@ if __name__ == '__main__':
 
     # Squash reg error
     cloud = checkpoint(
-        'squash_cache.cache.pickle',
+        os.path.join(dir_path_in, 'squash_cache.cache.pickle'),
         lambda: squash_reg_error(cloud))
 
     # bin to cells
@@ -421,7 +424,7 @@ if __name__ == '__main__':
     #         ctx.stroke()
     #         ctx.restore()
 
-    surf.write_to_png('shapes.png')
+    surf.write_to_png(os.path.join(dir_path_in, 'shapes.png'))
 
     logging.debug('VMin: %s' % xyzs.min(axis=0))
     z0 = xyzs[:, 2].min()
@@ -452,4 +455,22 @@ if __name__ == '__main__':
             ctx.arc(x, y, 0.01, 0, 2 * math.pi)
             ctx.fill()
 
-        surf.write_to_png('shapes-%.1f.png' % h0)
+        surf.write_to_png(os.path.join(dir_path_in, 'shapes-%.1f.png' % h0))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="""
+""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        '--input', required=True, type=str,
+        help='Input scene asset bundle directory')
+
+    args = parser.parse_args()
+    logging.info("Processing %s" % args.input)
+
+    chmod = 'sudo chmod a+rwx %s' % args.input
+    logging.debug("Running %s" % chmod)
+    os.system(chmod)
+    do_everything(args.input)
