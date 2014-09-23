@@ -215,13 +215,25 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	//test_segmentation(bundle, points_inside);
 
 	INFO("Modeling boxes along wall");
-	const auto cloud_interior = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
+	auto cloud_interior_pre = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
+	INFO("Rejecting near-ceiling points");
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	const float ceiling_range = 0.65;
+	for(const auto& pt : cloud_interior_pre->points) {
+		if(pt.z > room_hrange.second - ceiling_range) {
+			continue;
+		}
+		cloud_interior->points.push_back(pt);
+	}
+
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
 	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
+
+	std::vector<TexturedMesh> boxes;
+	/*
 	const auto box_ticks = decomposeWallBoxes(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(cloud_interior), room_polygon);
 	INFO("Box candidates found", (int)box_ticks.size());
-	std::vector<TexturedMesh> boxes;
 	for(const auto& tick_range : box_ticks) {
 		const auto maybe_box = createWallBox(room_polygon, room_hrange, tick_range,
 			cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_interior));
@@ -230,6 +242,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 		}
 	}
 	INFO("Box actually created", (int)boxes.size());
+	*/
 
 
 	INFO("Slicing near-floor");
