@@ -6,11 +6,21 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
+#include <pcl/features/normal_3d.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/ModelCoefficients.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/point_types.h>
+#include <pcl/registration/icp.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/region_growing.h>
+#include <pcl/segmentation/sac_segmentation.h>
 
 #include <logging.h>
 #include <server/recon_server.h>
+#include <visual/cloud_base.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>
@@ -63,6 +73,70 @@ std::string guessSceneName(const std::string& scan_path) {
 }
 
 
+void test_segmentation(
+		std::string dir_path,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org) {
+	using boost::filesystem::path;
+
+
+	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
+		boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>> (new pcl::search::KdTree<pcl::PointXYZRGB>);
+	
+	/// pcl::PointCloud <pcl::Normal>::Ptr normals (new pcl::PointCloud <pcl::Normal>);
+
+	// decompose to XYZRGB + Normal
+	auto cloud = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_org);
+	auto normals = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::Normal>(cloud_org);
+
+
+	INFO("Doing region growing");
+	pcl::RegionGrowing<pcl::PointXYZRGB, pcl::Normal> reg;
+	reg.setMinClusterSize (50);
+	reg.setMaxClusterSize (1000000);
+	reg.setSearchMethod (tree);
+	reg.setNumberOfNeighbours (30);
+	reg.setInputCloud (cloud);
+	reg.setInputNormals(normals);
+	reg.setSmoothnessThreshold (3.0 / 180.0 * M_PI);
+	reg.setCurvatureThreshold (1.0);
+
+	std::vector <pcl::PointIndices> clusters;
+	reg.extract (clusters);
+
+	INFO("Number of clusters=", (int)clusters.size());
+	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
+	/*
+	for(int i : boost::irange(0, (int)clusters.size())) {
+
+	}
+	int counter = 0;
+	while (counter < clusters[0].indices.size ())
+	{
+	std::cout << clusters[0].indices[counter] << ", ";
+	counter++;
+	if (counter % 10 == 0)
+	  std::cout << std::endl;
+	}
+	std::cout << std::endl;
+	*/
+
+	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud = reg.getColoredCloud ();
+	//pcl::visualization::CloudViewer viewer ("Cluster viewer");
+	//viewer.showCloud(colored_cloud);
+
+
+	//bundle.addDebugPointCloud("clusters", colored_cloud);
+	visual::TriangleMesh<Eigen::Vector3f> mesh;
+	for(const auto& pt : colored_cloud->points) {
+		mesh.vertices.push_back(std::make_pair(
+			pt.getVector3fMap(),
+			Eigen::Vector3f(pt.r, pt.g, pt.b)));
+	}
+
+	std::ofstream debug_points_file((dir_path / path("debug_second_cluster.ply")).string());
+	mesh.serializePLYWithRgb(debug_points_file);
+}
+
 void secondPass(std::string dir_path) {
 	using boost::filesystem::path;
 
@@ -91,6 +165,7 @@ void secondPass(std::string dir_path) {
 	}
 	DEBUG("Loaded #points", (int)cloud->points.size());
 
+	test_segmentation(dir_path, cloud);
 }
 
 
