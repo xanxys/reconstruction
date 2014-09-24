@@ -41,6 +41,14 @@ boost::optional<TexturedMesh> createWallBox(
 // and populate given SceneAsssetBundle.
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
 
+// Second pass of scene recognition, after ./extract_shape.py is applied.
+// Create objects.
+void recognizeScene2(SceneAssetBundle& bundle);
+
+void splitObjects(
+	SceneAssetBundle& bundle,
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org);
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 //pcl::PointCloud<pcl::PointXYZNormal>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGBNormal>& cloud);
 

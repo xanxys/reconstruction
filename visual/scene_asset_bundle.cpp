@@ -10,6 +10,10 @@ SceneAssetBundle::SceneAssetBundle(std::string dir_path) : debug_count(0), dir_p
 	recreateDirectory(dir_path);
 }
 
+SceneAssetBundle::SceneAssetBundle(std::string dir_path, int count_start) :
+		debug_count(count_start), dir_path(dir_path) {
+}
+
 SceneAssetBundle::~SceneAssetBundle() {
 	serializeIntoDirectory(dir_path);
 }
@@ -47,6 +51,20 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	}
 }
 
+
+Json::Value SceneAssetBundle::loadJson(std::string name) const {
+	using boost::filesystem::path;
+
+	std::ifstream f_input((path(dir_path) / path(name)).string());
+	if(!f_input.is_open()) {
+		throw std::runtime_error("Cloudn't open " + name);
+	}
+	Json::Value root;
+	Json::Reader().parse(f_input, root);
+	return root;
+}
+
+
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	using boost::filesystem::path;
 
@@ -73,6 +91,12 @@ void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl:
 	using boost::filesystem::path;
 	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
+}
+
+void SceneAssetBundle::addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh) {
+	using boost::filesystem::path;
+	std::ofstream mesh_f((dir_path / path(name + ".ply")).string());
+	mesh.serializePLY(mesh_f);
 }
 
 

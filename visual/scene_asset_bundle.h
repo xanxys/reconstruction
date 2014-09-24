@@ -26,6 +26,8 @@ public:
 	// The output directory will be filled by files as data
 	// become available.
 	SceneAssetBundle(std::string dir_path);
+	// open with existing incomplete asset bundle.
+	SceneAssetBundle(std::string dir_path, int count_start);
 	~SceneAssetBundle();
 
 	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
@@ -33,6 +35,10 @@ public:
 
 	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
+
+	void addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh);
+
+	Json::Value loadJson(std::string name) const;
 private:
 	void recreateDirectory(std::string dir_path) const;
 

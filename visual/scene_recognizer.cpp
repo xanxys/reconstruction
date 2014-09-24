@@ -1,20 +1,33 @@
 #include "scene_recognizer.h"
 
 #include <fstream>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
+// Unfortunately, CGAL headers are sensitive to include orders.
+// these are copied from example code in the docs.
+// DO NOT TOUCH IT!
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_2.h>
 #include <CGAL/create_offset_polygons_2.h>
-#include <pcl/ModelCoefficients.h>
+// insanity continues (3d polyhedra)
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/point_generators_3.h>
+#include <CGAL/algorithm.h>
+#include <CGAL/Polyhedron_3.h>
+#include <CGAL/convex_hull_3.h>
+// insanity ends here
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
@@ -30,7 +43,8 @@ namespace visual {
 
 const double pi = 3.14159265359;
 
-std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+std::vector<Eigen::Vector3f> recognize_lights(
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
 	std::vector<float> zs;
 	for(const auto& pt : cloud->points) {
@@ -211,9 +225,6 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	room_polygon = std::get<1>(extrusion_refined);
 	room_hrange = std::get<2>(extrusion_refined);
 
-	INFO("Segmentation");
-	//test_segmentation(bundle, points_inside);
-
 	INFO("Modeling boxes along wall");
 	auto cloud_interior_pre = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
 	INFO("Rejecting near-ceiling points");
@@ -250,9 +261,120 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.interior_objects = boxes;
 }
 
+
+void recognizeScene2(SceneAssetBundle& bundle) {
+	Json::Value cloud_json = bundle.loadJson("debug_shapes.json");
+
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
+		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGBNormal pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		pt.normal_x = point["nx"].asDouble();
+		pt.normal_y = point["ny"].asDouble();
+		pt.normal_z = point["nz"].asDouble();
+		cloud->points.push_back(pt);
+	}
+	DEBUG("Loaded #points", (int)cloud->points.size());
+
+	splitObjects(bundle, cloud);
+}
+
+
+void splitObjects(
+		SceneAssetBundle& bundle,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org) {
+	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Point_3 = K::Point_3;
+	using Polyhedron_3 = CGAL::Polyhedron_3<K>;
+
+	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
+		boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>>(
+			new pcl::search::KdTree<pcl::PointXYZRGB>);
+
+	// decompose to XYZRGB + Normal
+	auto cloud = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_org);
+	auto normals = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::Normal>(cloud_org);
+
+	INFO("Doing EC");
+	std::vector<pcl::PointIndices> cluster_indices;
+	pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+	ec.setClusterTolerance(0.02); // 2cm
+	ec.setMinClusterSize(100);
+	ec.setMaxClusterSize(100000);  // 100000: most small objects / 500000: everything incl. tabgles
+	ec.setSearchMethod(tree);
+	ec.setInputCloud(cloud);
+
+	std::vector<pcl::PointIndices> clusters;
+	ec.extract(clusters);
+
+	INFO("Number of clusters=", (int)clusters.size());
+	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
+
+	// create polyhedron.
+	int i_cluster = 0;
+	for(const auto& indices : clusters) {
+		std::vector<Point_3> points;
+		for(int ix : indices.indices) {
+			auto pt = cloud->points[ix];
+			points.emplace_back(pt.x, pt.y, pt.z);
+		}
+		Polyhedron_3 poly;
+		CGAL::convex_hull_3(points.begin(), points.end(), poly);
+		INFO("Polyhedron #vert", (int)poly.size_of_vertices());
+		assert(poly.is_pure_triangle());
+
+		visual::TriangleMesh<std::nullptr_t> mesh;
+		for(auto it_f = poly.facets_begin(); it_f != poly.facets_end(); it_f++) {
+			const int v0 = mesh.vertices.size();
+			auto it_e = it_f->facet_begin();
+			for(int i : boost::irange(0, 3)) {
+				const auto p = it_e->vertex()->point();
+				mesh.vertices.push_back(std::make_pair(
+					Eigen::Vector3f(p.x(), p.y(), p.z()),
+					nullptr));
+				it_e++;
+			}
+			mesh.triangles.push_back(std::make_tuple(
+				v0, v0 + 1, v0 + 2));
+		}
+
+		bundle.addMesh("poly_" + std::to_string(i_cluster), mesh);
+		i_cluster++;
+	}
+
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> distribution(1, 255);
+
+	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
+		new pcl::PointCloud <pcl::PointXYZRGB>);
+	for(const auto& indices : clusters) {
+		const int r = distribution(generator);
+		const int g = distribution(generator);
+		const int b = distribution(generator);
+		for(int ix : indices.indices) {
+			auto pt = cloud->points[ix];
+			pt.r = r;
+			pt.g = g;
+			pt.b = b;
+			colored_cloud->points.push_back(pt);
+		}
+	}
+
+	bundle.addDebugPointCloud("second_clusters", colored_cloud);
+}
+
+
 // Apply affine transform to given XYZ+RGB+Normal point cloud,
 // and return new transformed cloud.
-pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud, const Eigen::Affine3f& trans) {
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud,
+		const Eigen::Affine3f& trans) {
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr new_cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(auto& pt : cloud->points) {
 		pcl::PointXYZRGBNormal pt_new = pt;
@@ -263,7 +385,9 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl:
 	return new_cloud;
 }
 
-TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
+TexturedMesh bakeTexture(
+		const AlignedScans& scans,
+		const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
 	const int tex_size = 4096;
 	FilmRGB8U film(tex_size, tex_size, 1.0);
 
