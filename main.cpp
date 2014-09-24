@@ -7,6 +7,11 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/point_generators_3.h>
+#include <CGAL/algorithm.h>
+#include <CGAL/Polyhedron_3.h>
+#include <CGAL/convex_hull_3.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/ModelCoefficients.h>
@@ -79,6 +84,9 @@ void test_segmentation(
 		std::string dir_path,
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org) {
 	using boost::filesystem::path;
+	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Point_3 = K::Point_3;
+	using Polyhedron_3 = CGAL::Polyhedron_3<K>;
 
 
 	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
@@ -96,7 +104,7 @@ void test_segmentation(
 	pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
 	ec.setClusterTolerance (0.02); // 2cm
 	ec.setMinClusterSize (100);
-	ec.setMaxClusterSize (100000);
+	ec.setMaxClusterSize (100000);  // 100000: most small objects / 500000: everything incl. tabgles
 	ec.setSearchMethod (tree);
 	ec.setInputCloud (cloud);
 
@@ -105,6 +113,44 @@ void test_segmentation(
 
 	INFO("Number of clusters=", (int)clusters.size());
 	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
+
+	// create polyhedron.
+	int i_cluster = 0;
+	for(const auto& indices : clusters) {
+		std::vector<Point_3> points;
+		for(int ix : indices.indices) {
+			auto pt = cloud->points[ix];
+			points.emplace_back(pt.x, pt.y, pt.z);
+		}
+		Polyhedron_3 poly;
+		CGAL::convex_hull_3(points.begin(), points.end(), poly);
+		INFO("Polyhedron #vert", (int)poly.size_of_vertices());
+		assert(poly.is_pure_triangle());
+
+		visual::TriangleMesh<std::nullptr_t> mesh;
+		for(auto it_f = poly.facets_begin(); it_f != poly.facets_end(); it_f++) {
+			const int v0 = mesh.vertices.size();
+			auto it_e = it_f->facet_begin();
+			for(int i : boost::irange(0, 3)) {
+				const auto p = it_e->vertex()->point();
+				mesh.vertices.push_back(std::make_pair(
+					Eigen::Vector3f(p.x(), p.y(), p.z()),
+					nullptr));
+				it_e++;
+			}
+			mesh.triangles.push_back(std::make_tuple(
+				v0, v0 + 1, v0 + 2));
+		}
+
+		// dump
+		const std::string name = "poly_" + std::to_string(i_cluster) + ".ply";
+
+		std::ofstream debug_poly((dir_path / path(name)).string());
+		mesh.serializePLY(debug_poly);
+
+		i_cluster++;
+	}
+
 
 	std::default_random_engine generator;
 	std::uniform_int_distribution<int> distribution(1, 255);
