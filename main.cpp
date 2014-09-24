@@ -3,6 +3,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <random>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -17,6 +18,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/extract_clusters.h>
 
 #include <logging.h>
 #include <server/recon_server.h>
@@ -89,43 +91,40 @@ void test_segmentation(
 	auto normals = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::Normal>(cloud_org);
 
 
-	INFO("Doing region growing");
-	pcl::RegionGrowing<pcl::PointXYZRGB, pcl::Normal> reg;
-	reg.setMinClusterSize (50);
-	reg.setMaxClusterSize (1000000);
-	reg.setSearchMethod (tree);
-	reg.setNumberOfNeighbours (30);
-	reg.setInputCloud (cloud);
-	reg.setInputNormals(normals);
-	reg.setSmoothnessThreshold (3.0 / 180.0 * M_PI);
-	reg.setCurvatureThreshold (1.0);
+	INFO("Doing EC");
+	std::vector<pcl::PointIndices> cluster_indices;
+	pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+	ec.setClusterTolerance (0.02); // 2cm
+	ec.setMinClusterSize (100);
+	ec.setMaxClusterSize (100000);
+	ec.setSearchMethod (tree);
+	ec.setInputCloud (cloud);
 
 	std::vector <pcl::PointIndices> clusters;
-	reg.extract (clusters);
+	ec.extract (clusters);
 
 	INFO("Number of clusters=", (int)clusters.size());
 	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
-	/*
-	for(int i : boost::irange(0, (int)clusters.size())) {
 
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> distribution(1, 255);
+
+	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
+		new pcl::PointCloud <pcl::PointXYZRGB>);
+	for(const auto& indices : clusters) {
+		const int r = distribution(generator);
+		const int g = distribution(generator);
+		const int b = distribution(generator);
+		for(int ix : indices.indices) {
+			auto pt = cloud->points[ix];
+			pt.r = r;
+			pt.g = g;
+			pt.b = b;
+			colored_cloud->points.push_back(pt);
+		}
 	}
-	int counter = 0;
-	while (counter < clusters[0].indices.size ())
-	{
-	std::cout << clusters[0].indices[counter] << ", ";
-	counter++;
-	if (counter % 10 == 0)
-	  std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	*/
 
-	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud = reg.getColoredCloud ();
-	//pcl::visualization::CloudViewer viewer ("Cluster viewer");
-	//viewer.showCloud(colored_cloud);
-
-
-	//bundle.addDebugPointCloud("clusters", colored_cloud);
+	// serialize
 	visual::TriangleMesh<Eigen::Vector3f> mesh;
 	for(const auto& pt : colored_cloud->points) {
 		mesh.vertices.push_back(std::make_pair(
