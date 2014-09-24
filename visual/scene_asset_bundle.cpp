@@ -6,16 +6,19 @@
 
 namespace visual {
 
-SceneAssetBundle::SceneAssetBundle(std::string dir_path) : debug_count(0), dir_path(dir_path) {
+SceneAssetBundle::SceneAssetBundle(std::string dir_path) :
+		debug_count(0), dir_path(dir_path), do_finalize(true) {
 	recreateDirectory(dir_path);
 }
 
 SceneAssetBundle::SceneAssetBundle(std::string dir_path, int count_start) :
-		debug_count(count_start), dir_path(dir_path) {
+		debug_count(count_start), dir_path(dir_path), do_finalize(false) {
 }
 
 SceneAssetBundle::~SceneAssetBundle() {
-	serializeIntoDirectory(dir_path);
+	if(do_finalize) {
+		serializeIntoDirectory(dir_path);
+	}
 }
 
 void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {

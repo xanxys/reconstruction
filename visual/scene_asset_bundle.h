@@ -60,6 +60,7 @@ public:
 	std::vector<Eigen::Vector3f> point_lights;
 	std::vector<TexturedMesh> interior_objects;
 private:
+	bool do_finalize;
 	int debug_count;
 	const std::string dir_path;
 };
