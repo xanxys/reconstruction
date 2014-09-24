@@ -37,6 +37,7 @@ public:
 	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 
 	void addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh);
+	void addMesh(std::string name, const TexturedMesh& mesh);
 
 	Json::Value loadJson(std::string name) const;
 private:

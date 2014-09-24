@@ -345,6 +345,10 @@ void splitObjects(
 		}
 
 		bundle.addMesh("poly_" + std::to_string(i_cluster), mesh);
+
+		// bake texture
+		const auto tex_mesh = visual::cloud_baker::bakePointsToMesh(cloud, mesh);
+		bundle.addMesh("poly_" + std::to_string(i_cluster), tex_mesh);
 		i_cluster++;
 	}
 
