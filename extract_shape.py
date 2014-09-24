@@ -13,8 +13,40 @@ import logging
 import os
 import os.path
 import ply
+import ujson
+
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+def serialize_points_as_json(points, fobj):
+    """
+    Put XYZ or XYZRGB or XYZRGBNormal points to fobj in json format.
+    XYZ: [{x,y,z}]
+    XYZRGB: [{x,y,z,r,g,b}]
+    XYZRGBNormal: [{x,y,z,r,g,b,nx,ny,nz}]
+
+    points: [N, 3] (XYZ) or [N, 6] or [N, 9] numpy array.
+    """
+    n_points, n_channels = points.shape
+    points = [map(float, pt) for pt in points]
+    json_points = []
+    if n_channels == 3:
+        json_points = [{"x": x, "y": y, "z": z} for (x, y, z) in points]
+    elif n_channels == 6:
+        json_points = [
+            {"x": x, "y": y, "z": z,
+                "r": r, "g": g, "b": b} for
+            (x, y, z, r, g, b) in points]
+    elif n_channels == 9:
+        json_points = [
+            {"x": x, "y": y, "z": z,
+                "r": r, "g": g, "b": b,
+                "nx": nx, "ny": ny, "nz": nz} for
+            (x, y, z, r, g, b, nx, ny, nz) in points]
+    else:
+        raise ValueError("Unsupported point cloud array shape")
+    ujson.dump(json_points, fobj)
 
 
 def to_4cc(keys):
@@ -279,7 +311,7 @@ def do_everything(dir_path_in):
     ctx.paint()
 
     # global params
-    step = 0.1
+    step = 0.05
 
     # draw background grid
     # ctx.set_line_width(0.01)
@@ -426,6 +458,9 @@ def do_everything(dir_path_in):
     ply.serialize_points_as_ply(
         cloud_big,
         open(os.path.join(dir_path_in, "debug_shapes.ply"), 'w'))
+    serialize_points_as_json(
+        cloud_big,
+        open(os.path.join(dir_path_in, "debug_shapes.json"), 'w'))
 
 
 if __name__ == '__main__':

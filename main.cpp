@@ -62,6 +62,38 @@ std::string guessSceneName(const std::string& scan_path) {
 	}
 }
 
+
+void secondPass(std::string dir_path) {
+	using boost::filesystem::path;
+
+	INFO("Loading a scan from", dir_path);
+	std::ifstream f_input((path(dir_path) / path("debug_shapes.json")).string());
+	if(!f_input.is_open()) {
+		throw std::runtime_error("Cloudn't open debug_shapes.json");
+	}
+	Json::Value cloud_json;
+	Json::Reader().parse(f_input, cloud_json);
+
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
+		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	for(const auto& point : cloud_json) {
+		pcl::PointXYZRGBNormal pt;
+		pt.x = point["x"].asDouble();
+		pt.y = point["y"].asDouble();
+		pt.z = point["z"].asDouble();
+		pt.r = point["r"].asDouble();
+		pt.g = point["g"].asDouble();
+		pt.b = point["b"].asDouble();
+		pt.normal_x = point["nx"].asDouble();
+		pt.normal_y = point["ny"].asDouble();
+		pt.normal_z = point["nz"].asDouble();
+		cloud->points.push_back(pt);
+	}
+	DEBUG("Loaded #points", (int)cloud->points.size());
+
+}
+
+
 int main(int argc, char** argv) {
 	using boost::program_options::notify;
 	using boost::program_options::options_description;
@@ -74,6 +106,7 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("test", "do experimental stuff")
+		("second", value<std::string>(), "do second pass")
 		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans");
 
 	variables_map vars;
@@ -120,6 +153,10 @@ int main(int argc, char** argv) {
 		INFO("Converting to a scene");
 		visual::SceneAssetBundle bundle(guessSceneName(dir_paths.front()));
 		visual::scene_recognizer::recognizeScene(bundle, scans);
+		return 0;
+	} else if(vars.count("second") > 0) {
+		const std::string dir_path = vars["second"].as<std::string>();
+		secondPass(dir_path);
 		return 0;
 	} else {
 		INFO("Launching HTTP server");
