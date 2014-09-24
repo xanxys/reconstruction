@@ -343,7 +343,7 @@ def do_everything(dir_path_in):
     for pts in cells.values():
         for pt in pts:
             x, y = pt[:2]
-            nx, ny = pt[6 : 8]
+            nx, ny = pt[6:8]
             ctx.set_source_rgba(1, 0, 0, 0.1)
             ctx.set_line_width(0.01)
             ctx.move_to(x, y)
@@ -353,26 +353,6 @@ def do_everything(dir_path_in):
             ctx.set_source_rgba(0, 0, 1, 0.03)
             ctx.arc(x, y, 0.01, 0, 2 * math.pi)
             ctx.fill()
-
-    vmin = xyzs.min(axis=0)[:2]
-    vmax = xyzs.max(axis=0)[:2]
-    vsize = vmax - vmin
-    # for i in range(100):
-    #     p0 = np.random.rand(2) * vsize + vmin
-    #     sz = np.random.rand(2) * (vsize * 0.5)
-    #     th = np.random.rand(1) * math.pi / 2
-    #     ctx.save()
-    #     ctx.translate(*p0)
-    #     ctx.rotate(th)
-    #     ctx.rectangle(0, 0, sz[0], sz[1])
-    #     ctx.set_source_rgba(0, 1, 0, 0.5)
-    #     ctx.stroke()
-    #     ctx.restore()
-        
-        # ctx.set_source_rgba(0, 1, 0, 0.1)
-        # ctx.move_to(*p0[:2])
-        # ctx.line_to(*p1[:2])
-        # ctx.stroke()
 
     ccs = [cc for cc in to_4cc(cells.keys()) if len(cc) > 1]
     logging.info('#CCs: %d' % len(ccs))
@@ -397,70 +377,14 @@ def do_everything(dir_path_in):
         ctx.show_text("cluster:%d" % ix)
         ctx.restore()
 
-    #     # Fit rect
-    #     pts = np.vstack([cells[k] for k in cc])
-    #     print(pts.shape)
-    #     for (rot, center, hsize) in fit_rect(pts):
-    #         ctx.save()
-    #         ctx.translate(*center)
-    #         ctx.rotate(rot)
-    #         ctx.rectangle(-hsize[0], -hsize[1], 2 * hsize[0], 2 * hsize[1])
-    #         ctx.set_source_rgba(0, 0, 0, 0.8)
-    #         ctx.stroke()
-    #         ctx.restore()
-
     surf.write_to_png(os.path.join(dir_path_in, 'shapes.png'))
 
-    # Render slices.
-    logging.debug('VMin: %s' % xyzs.min(axis=0))
-    z0 = xyzs[:, 2].min()
-    # for i in range(10):
-    #     h0 = i * 0.25 + z0
-    #     h1 = h0 + 0.25
-
-    #     sl = cloud_big[(h0 < cloud_big[:, 2]) & (cloud_big[:, 2] < h1)]
-    #     logging.debug(sl.shape)
-    #     surf = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
-    #     ctx = cairo.Context(surf)
-    #     ctx.scale(px_per_meter, -px_per_meter)
-    #     ctx.translate(-x0, -y1)
-    #     # set bg to white
-    #     ctx.set_source_rgb(1, 1, 1)
-    #     ctx.paint()
-
-    #     for pt in sl:
-    #         x, y = pt[:2]
-    #         nx, ny = pt[6 : 8]
-    #         ctx.set_source_rgba(1, 0, 0, 0.1)
-    #         ctx.set_line_width(0.01)
-    #         ctx.move_to(x, y)
-    #         ctx.rel_line_to(nx * n_len, ny * n_len)
-    #         ctx.stroke()
-
-    #         ctx.set_source_rgba(0, 0, 1, 0.03)
-    #         ctx.arc(x, y, 0.01, 0, 2 * math.pi)
-    #         ctx.fill()
-
-    #     surf.write_to_png(os.path.join(dir_path_in, 'shapes-%.1f.png' % h0))
-
-    # do coloring
-    for pt in cloud_big:
-        ip = np.floor(pt[:2] / step)
-        key = (int(ip[0]), int(ip[1]))
-
-        if key in rev_cluster:
-            pt[3] = rev_cluster[key][0] * 255
-            pt[4] = rev_cluster[key][1] * 255
-            pt[5] = rev_cluster[key][2] * 255
-        else:
-            # non-cluster
-            pt[3] = 255
     ply.serialize_points_as_ply(
         cloud_big,
-        open(os.path.join(dir_path_in, "debug_shapes.ply"), 'w'))
+        open(os.path.join(dir_path_in, "debug_filtered.ply"), 'w'))
     serialize_points_as_json(
         cloud_big,
-        open(os.path.join(dir_path_in, "debug_shapes.json"), 'w'))
+        open(os.path.join(dir_path_in, "debug_filtered.json"), 'w'))
 
 
 if __name__ == '__main__':
