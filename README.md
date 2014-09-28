@@ -23,3 +23,8 @@ reconstruction uses docker to build and run.
 6. `cd /root/local` (mapped to `./` in host)
 7. `scons` (if you modified source code)
 8. `./recon --convert ../data/scan-*`
+
+```
+sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data 1c6bbe46e13e bash
+```
+
