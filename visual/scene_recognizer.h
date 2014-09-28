@@ -43,7 +43,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 // Second pass of scene recognition, after ./extract_shape.py is applied.
 // Create objects.
-void recognizeScene2(SceneAssetBundle& bundle);
+void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
 
 void splitObjects(
 	SceneAssetBundle& bundle,

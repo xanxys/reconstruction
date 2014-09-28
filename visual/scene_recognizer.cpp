@@ -262,7 +262,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 }
 
 
-void recognizeScene2(SceneAssetBundle& bundle) {
+void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	Json::Value cloud_json = bundle.loadJson("debug_filtered.json");
 
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
