@@ -28,8 +28,7 @@ namespace visual {
 const double pi = 3.14159265359;
 
 
-SingleScan::SingleScan(const std::string& scan_dir, float pre_rotation) :
-		pre_rotation(pre_rotation) {
+SingleScan::SingleScan(const std::string& scan_dir) {
 	using boost::filesystem::path;
 	INFO("Loading a scan from", scan_dir);
 	std::ifstream f_input((path(scan_dir) / path("points.json")).string());

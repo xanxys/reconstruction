@@ -19,17 +19,12 @@ namespace visual {
 // Immutable data that holds a single scan.
 class SingleScan {
 public:
-	SingleScan(const std::string& path, float pre_rotation = 0);
+	SingleScan(const std::string& path);
 
 	std::string getScanId() const;
 public:
 	// TODO: make this immutable.
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud;
-
-	// Hack to make sparse ICP work.
-	// TODO: guess this internally and remove this field,
-	// or replace with magnetometer measurement.
-	const float pre_rotation;
 
 	cv::Mat_<cv::Vec3b> er_rgb;
 	cv::Mat_<float> er_depth;
