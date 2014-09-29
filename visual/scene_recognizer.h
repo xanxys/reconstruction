@@ -47,7 +47,8 @@ void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& sc
 
 void splitObjects(
 	SceneAssetBundle& bundle,
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org);
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org,
+	const AlignedScans& scans);
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 //pcl::PointCloud<pcl::PointXYZNormal>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGBNormal>& cloud);

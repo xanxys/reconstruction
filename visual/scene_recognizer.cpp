@@ -264,6 +264,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	Json::Value cloud_json = bundle.loadJson("debug_filtered.json");
+	const AlignedScans scans_aligned(bundle, scans);
 
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
 		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
@@ -282,13 +283,14 @@ void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& sc
 	}
 	DEBUG("Loaded #points", (int)cloud->points.size());
 
-	splitObjects(bundle, cloud);
+	splitObjects(bundle, cloud, scans_aligned);
 }
 
 
 void splitObjects(
 		SceneAssetBundle& bundle,
-		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org) {
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org,
+		const AlignedScans& scans) {
 	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 	using Point_3 = K::Point_3;
 	using Polyhedron_3 = CGAL::Polyhedron_3<K>;
@@ -347,7 +349,8 @@ void splitObjects(
 		bundle.addMesh("poly_" + std::to_string(i_cluster), mesh);
 
 		// bake texture
-		const auto tex_mesh = visual::cloud_baker::bakePointsToMesh(cloud, mesh);
+		//const auto tex_mesh = visual::cloud_baker::bakePointsToMesh(cloud, mesh);
+		const auto tex_mesh = bakeTexture(scans, mesh);
 		bundle.addMesh("poly_" + std::to_string(i_cluster), tex_mesh);
 		i_cluster++;
 	}
