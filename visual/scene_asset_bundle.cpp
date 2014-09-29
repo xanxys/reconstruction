@@ -107,6 +107,11 @@ void SceneAssetBundle::addMesh(std::string name, const TexturedMesh& mesh) {
 	mesh.writeWavefrontObject((dir_path / path(name)).string());
 }
 
+void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
+	using boost::filesystem::path;
+	mesh.writeWavefrontObjectFlat((dir_path / path(name)).string());
+}
+
 
 TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const {
 	TriangleMesh<Eigen::Vector3f> mesh;

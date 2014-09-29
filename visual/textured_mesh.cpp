@@ -40,4 +40,18 @@ void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
 	cv::imwrite((dir_path / name_diffuse).string(), diffuse);
 }
 
+void TexturedMesh::writeWavefrontObjectFlat(std::string prefix) const {
+	const boost::filesystem::path name_obj(prefix + "object.obj");
+	const boost::filesystem::path name_mtl(prefix + "object.mtl");
+	const boost::filesystem::path name_diffuse(prefix + "diffuse.png");
+
+	// Write bunch of files.
+	std::ofstream f_obj(name_obj.string());
+	mesh.serializeObjWithUv(f_obj, name_mtl.filename().string());
+
+	std::ofstream f_mtl(name_mtl.string());
+	writeObjMaterial(f_mtl, name_diffuse.filename().string());
+
+	cv::imwrite(name_diffuse.string(), diffuse);
+}
 }  // namespace

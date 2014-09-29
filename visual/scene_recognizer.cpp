@@ -352,6 +352,8 @@ void splitObjects(
 		//const auto tex_mesh = visual::cloud_baker::bakePointsToMesh(cloud, mesh);
 		const auto tex_mesh = bakeTexture(scans, mesh);
 		bundle.addMesh("poly_" + std::to_string(i_cluster), tex_mesh);
+
+		bundle.addMeshFlat("flat_poly_" + std::to_string(i_cluster), tex_mesh);
 		i_cluster++;
 	}
 

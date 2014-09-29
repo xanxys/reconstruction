@@ -39,6 +39,8 @@ public:
 	void addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh);
 	void addMesh(std::string name, const TexturedMesh& mesh);
 
+	void addMeshFlat(std::string name, const TexturedMesh& mesh);
+
 	Json::Value loadJson(std::string name) const;
 private:
 	void recreateDirectory(std::string dir_path) const;
