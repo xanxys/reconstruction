@@ -590,15 +590,5 @@ std::vector<std::pair<int, int>> decomposeWallBoxes(
 	return ticks;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr decolor(const pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_colorless(new pcl::PointCloud<pcl::PointXYZ>());
-	for(const auto& point : cloud) {
-		pcl::PointXYZ pt;
-		pt.getVector3fMap() = point.getVector3fMap();
-		cloud_colorless->points.push_back(pt);
-	}
-	return cloud_colorless;
-}
-
 }  // namespace
 }  // namespace
