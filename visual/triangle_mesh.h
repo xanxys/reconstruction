@@ -28,6 +28,17 @@ public:
 			delta.vertices.begin(), delta.vertices.end());
 	}
 
+	float area() const {
+		float area = 0;
+		for(const auto& face : triangles) {
+			const auto v0 = vertices[std::get<0>(face)].first;
+			const auto v1 = vertices[std::get<1>(face)].first;
+			const auto v2 = vertices[std::get<2>(face)].first;
+			area += (v1 - v0).cross(v2 - v0).norm() * 0.5;
+		}
+		return area;
+	}
+
 	// Transform vertex attributes without changing positions.
 	/*
 	template<typename Mapper>

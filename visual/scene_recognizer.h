@@ -37,6 +37,10 @@ boost::optional<TexturedMesh> createWallBox(
 	std::pair<int, int> ticks,
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
+// Return nearest power of 2 number >= x.
+// ceilToPowerOf2(x) = 1 for x <=0.
+int ceilToPowerOf2(int x);
+
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);

@@ -392,11 +392,27 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(
 	return new_cloud;
 }
 
+
+int ceilToPowerOf2(int x) {
+	int r = 1;
+	while(r <= x) {
+		r *= 2;
+	}
+	return r;
+}
+
+
 TexturedMesh bakeTexture(
 		const AlignedScans& scans,
 		const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
-	const int tex_size = 4096;
+	// Calculate good texture size.
+	// * must be pow of 2 (not mandatory, but for efficiency)
+	// * texture pixel area \propto actual area
+	const float area = shape_wo_uv.area();
+	const int px_raw = std::sqrt(area) * 300;
+	const int tex_size = ceilToPowerOf2(px_raw);
 	FilmRGB8U film(tex_size, tex_size, 1.0);
+	INFO("Choosing texture size v. real area", tex_size, area);
 
 	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
 	MeshIntersecter intersecter(shape_wo_uv);
