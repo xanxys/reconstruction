@@ -97,7 +97,32 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	}
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
+	{
+		const std::string asset_path = "/Game/Props/SM_Lamp_Ceiling";
+		UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, _T("/Game/Props/SM_GlassWindow.SM_GlassWindow"));
+		//const ConstructorHelpers::FObjectFinder<UStaticMesh> finder(TEXT("/Game/Props/SM_Lamp_Ceiling"));
+		//UObject* asset = finder.Object;
 
+		if (asset == nullptr) {
+			UE_LOG(LoaderPlugin, Error, TEXT("Failed to load static mesh asset"));
+			return;
+		}
+		UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
+
+		auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
+		auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
+
+		UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
+		assert(factory != nullptr);
+		assert(level != nullptr);
+
+		const float uu_per_meter = 100;
+		FVector location(0, 0, 0); //  pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
+		FTransform pose(location);
+		location *= uu_per_meter;
+		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Object at %s"), *location.ToString());
+			AActor* actor = factory->CreateActor(asset, level, pose);
+	}
 
 }
 
