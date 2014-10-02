@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <locale>
 
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
@@ -14,6 +15,14 @@
 #include "Slate.h"
 
 #include "LoaderPluginCommands.h"
+
+
+std::wstring widen(const std::string& s) {
+	const int n_wstring = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, s.data(), s.size(), nullptr, 0);
+	std::vector<wchar_t> buffer(n_wstring);
+	MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, s.data(), s.size(), buffer.data(), buffer.size());
+	return std::wstring(buffer.begin(), buffer.end());
+}
 
 
 void FLoaderPlugin::StartupModule()
@@ -72,7 +81,7 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 
 	const std::string asset_path = "/Script/Engine.PointLight";
 
-	UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, _T("/Script/Engine.PointLight"));
+	UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
 	if(asset == nullptr) {
 		UE_LOG(LoaderPlugin, Error, TEXT("Failed to load point light asset"));
 		return;
@@ -98,10 +107,8 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
 	{
-		const std::string asset_path = "/Game/Props/SM_Lamp_Ceiling";
-		UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, _T("/Game/Props/SM_GlassWindow.SM_GlassWindow"));
-		//const ConstructorHelpers::FObjectFinder<UStaticMesh> finder(TEXT("/Game/Props/SM_Lamp_Ceiling"));
-		//UObject* asset = finder.Object;
+		const std::string asset_path = "/Game/Props/SM_GlassWindow.SM_GlassWindow";
+		UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
 
 		if (asset == nullptr) {
 			UE_LOG(LoaderPlugin, Error, TEXT("Failed to load static mesh asset"));
@@ -121,7 +128,7 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		FTransform pose(location);
 		location *= uu_per_meter;
 		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Object at %s"), *location.ToString());
-			AActor* actor = factory->CreateActor(asset, level, pose);
+		AActor* actor = factory->CreateActor(asset, level, pose);
 	}
 
 }
