@@ -64,103 +64,63 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
 	
 	const std::string file_path = "\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json";
-	picojson::value small_data;
-	try {
-		std::ifstream test(file_path);
-		test >> small_data;
-	}
-	catch (...) {
-		UE_LOG(LoaderPlugin, Warning, TEXT("Failed to load text; aborting import"));
-		return;
-	}
-	
-	std::stringstream ss;
-	ss << small_data;
-	std::string data = ss.str();
-	UE_LOG(LoaderPlugin, Log, TEXT("Loaded: %s"), *FString(data.c_str()));
-	auto lights = small_data.get<picojson::object>()["lights"].get<picojson::array>();
+
+	picojson::object scene_root = LoadJsonFromFile(file_path).get<picojson::object>();
+	auto lights = scene_root["lights"].get<picojson::array>();
 	UE_LOG(LoaderPlugin, Log, TEXT("* Number of Lights: %d"), lights.size());
 
-	// TODO: put asset (StaticMesh) to project and scene
-
-	const std::string asset_path = "/Script/Engine.PointLight";
-
-	UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
-	if(asset == nullptr) {
-		UE_LOG(LoaderPlugin, Error, TEXT("Failed to load point light asset"));
-		return;
-	}
-	UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
-
-	auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
-	auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
-
-	UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
-	assert(factory != nullptr);
-	assert(level != nullptr);
-	
 	const float uu_per_meter = 100;
+	FVector offset(0, 0, 1.0);
+	
 	for (auto& light : lights) {
 		auto pos = light.get<picojson::object>()["pos"].get<picojson::object>();
 		FVector location(pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
-		FTransform pose(location);
-		location *= uu_per_meter;
-		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Light at %s"), *location.ToString());
-		AActor* actor = factory->CreateActor(asset, level, pose);
+		FTransform pose((location + offset) * uu_per_meter);
+		InsertAssetToScene(pose, "/Script/Engine.PointLight");
 	}
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
-	{
-		const std::string asset_path = "/Game/Props/SM_GlassWindow.SM_GlassWindow";
-		UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
-
-		if (asset == nullptr) {
-			UE_LOG(LoaderPlugin, Error, TEXT("Failed to load static mesh asset"));
-			return;
-		}
-		UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
-
-		auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
-		auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
-
-		UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
-		assert(factory != nullptr);
-		assert(level != nullptr);
-
-		const float uu_per_meter = 100;
-		FVector location(0, 0, 0); //  pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
-		FTransform pose(location);
-		location *= uu_per_meter;
-		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Object at %s"), *location.ToString());
-		AActor* actor = factory->CreateActor(asset, level, pose);
-	}
-
 	for(int i = 0; i < 5; i++) {
 		const std::string name = "flat_poly_" + std::to_string(i) + "object";
 		const std::string asset_path = "/Game/Auto/" + name + "." + name;
-		UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
 
-		if (asset == nullptr) {
-			UE_LOG(LoaderPlugin, Error, TEXT("Failed to load static mesh asset"));
-			return;
+		// Dunno why, but specifying scale in CreateActor is being ignored. Set it after actor is created.
+		FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
+		AActor* actor = InsertAssetToScene(pose, asset_path);
+		auto* component = actor->FindComponentByClass<USceneComponent>();
+		if (component) {
+			component->SetMobility(EComponentMobility::Movable);
+			component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
 		}
-		UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
-
-		auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
-		auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
-
-		UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
-		assert(factory != nullptr);
-		assert(level != nullptr);
-
-		const float uu_per_meter = 100;
-		FVector location(0, 0, 0); //  pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
-		FTransform pose(location);
-		location *= uu_per_meter;
-		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Object at %s"), *location.ToString());
-		AActor* actor = factory->CreateActor(asset, level, pose);
+		else {
+			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't set actor mobility to movable"));
+		}
 	}
+}
 
+picojson::value FLoaderPlugin::LoadJsonFromFile(const std::string& path) {
+	picojson::value root;
+	try {
+		std::ifstream test(path);
+		test >> root;
+	}
+	catch (...) {
+		UE_LOG(LoaderPlugin, Warning, TEXT("Failed to load text; aborting import"));
+	}
+	return root;
+}
+
+AActor* FLoaderPlugin::InsertAssetToScene(FTransform pose, const std::string& asset_path) {
+	UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
+	if (asset == nullptr) {
+		UE_LOG(LoaderPlugin, Error, TEXT("Failed to load asset %s"), widen(asset_path).c_str());
+		return nullptr;
+	}
+	auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
+	auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
+	assert(factory != nullptr);
+	assert(level != nullptr);
+	return factory->CreateActor(asset, level, pose);
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {

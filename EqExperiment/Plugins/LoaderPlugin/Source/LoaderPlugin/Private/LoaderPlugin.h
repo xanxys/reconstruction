@@ -4,6 +4,10 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Slate.h"
 
+#include "picojson.h"
+
+#include <string>
+
 
 DECLARE_LOG_CATEGORY_EXTERN(LoaderPlugin, Log, All);
 DEFINE_LOG_CATEGORY(LoaderPlugin);class FLoaderPlugin : public ILoaderPlugin
@@ -16,6 +20,9 @@ public:
 private:
 	void OnLoadButtonClicked();
 	void AddToolbarExtension(FToolBarBuilder& builder);
+
+	picojson::value LoadJsonFromFile(const std::string& path);
+	AActor* InsertAssetToScene(FTransform pose, const std::string& asset_path);
 private:
 	TSharedPtr<FUICommandList> commands;
 };
