@@ -18,9 +18,13 @@
 
 
 std::wstring widen(const std::string& s) {
-	const int n_wstring = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, s.data(), s.size(), nullptr, 0);
+	const int n_wstring = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), nullptr, 0);
+	if (n_wstring == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed");
+	}
+
 	std::vector<wchar_t> buffer(n_wstring);
-	MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, s.data(), s.size(), buffer.data(), buffer.size());
+	const int n_written = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), buffer.data(), buffer.size());
 	return std::wstring(buffer.begin(), buffer.end());
 }
 
