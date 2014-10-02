@@ -22,7 +22,19 @@ reconstruction uses docker to build and run.
 5. You're now inside bash in container.
 6. `cd /root/local` (mapped to `./` in host)
 7. `scons` (if you modified source code)
-8. `./recon --convert ../data/scan-*`
+8. `./recon --first --convert ../data/scan-*`
+9. exit container
+10. `./extract_shape.py scan-hoge
+11. enter container
+12. `./recon --second --convert ../data/scan-*`
+
+Now move that scan- directory to somewhere accesible from UE4.
+
+1. Launch ExExperiment UE4 project
+2. Drag&Drop all files into Game/Auto (Contents Browser), optionally click through "degenerate tangent base" errors
+3. Click Import Earthquake
+4. You should have all actors placed nicely in the scene
+
 
 ```
 sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data 1c6bbe46e13e bash
