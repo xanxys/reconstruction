@@ -9,6 +9,7 @@
 
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
+#include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "ModuleManager.h"
 #include "picojson.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
@@ -55,13 +56,42 @@ void FLoaderPlugin::StartupModule()
 	MyExtender->AddToolBarExtension("Settings", EExtensionHook::After, commands,
 		FToolBarExtensionDelegate::CreateRaw(this, &FLoaderPlugin::AddToolbarExtension));
 
+	FModuleManager::Get().LoadModuleChecked<FDesktopPlatformModule>("DesktopPlatform");
+
 	LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(MyExtender);
 }
 
 // Very helpful answer
 // https://forums.unrealengine.com/showthread.php?22023-UE4-Automatic-Level-Builder-Construction-and-Pipeline-Scripts&p=103983&viewfull=1#post103983
 void FLoaderPlugin::OnLoadButtonClicked() {
+#define LOCTEXT_NAMESPACE "LevelEditorToolBar"
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
+	
+	// Ask input directory. OpenDirectoryDialog cannot be used because it can't expand NAS folder.
+	/*
+	Due to some unknown reason, UE4 crashes when (or after?) calling OpenFileDialog.
+
+	IDesktopPlatform* desktop = FDesktopPlatformModule::Get();
+	if (!desktop) {
+		UE_LOG(LoaderPlugin, Error, TEXT("Failed to get IDesktopPlatform"));
+		return;
+	}
+	TArray<FString> paths;
+	const bool selected = desktop->OpenFileDialog(
+		nullptr,
+		TEXT("Choose Scan Directory"),
+		TEXT(""),
+		TEXT(""),
+		TEXT("Scene Description (*.json)|*.json"),
+		EFileDialogFlags::None,
+		paths);
+	if (!selected || paths.Num() < 1) {
+		return;
+	}
+	FString selected_path = paths[0];
+	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
+	*/
+
 	
 	const std::string file_path = "\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json";
 
@@ -96,6 +126,7 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't set actor mobility to movable"));
 		}
 	}
+#undef LOCTEXT_NAMESPACE
 }
 
 picojson::value FLoaderPlugin::LoadJsonFromFile(const std::string& path) {

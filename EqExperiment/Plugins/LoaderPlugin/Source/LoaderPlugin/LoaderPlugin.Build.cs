@@ -28,7 +28,8 @@ namespace UnrealBuildTool.Rules
                     "Engine",
                     "LevelEditor",
                     "Slate",
-                    "UnrealEd"
+                    "UnrealEd",
+                    "DesktopPlatform"
 				}
 				);
 
