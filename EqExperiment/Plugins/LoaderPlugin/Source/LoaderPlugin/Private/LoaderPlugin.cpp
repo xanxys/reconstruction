@@ -131,6 +131,32 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		AActor* actor = factory->CreateActor(asset, level, pose);
 	}
 
+	for(int i = 0; i < 5; i++) {
+		const std::string name = "flat_poly_" + std::to_string(i) + "object";
+		const std::string asset_path = "/Game/Auto/" + name + "." + name;
+		UObject* asset = StaticLoadObject(UObject::StaticClass(), nullptr, widen(asset_path).c_str());
+
+		if (asset == nullptr) {
+			UE_LOG(LoaderPlugin, Error, TEXT("Failed to load static mesh asset"));
+			return;
+		}
+		UE_LOG(LoaderPlugin, Log, TEXT("Asset loaded"));
+
+		auto* factory = FActorFactoryAssetProxy::GetFactoryForAssetObject(asset);
+		auto* level = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
+
+		UE_LOG(LoaderPlugin, Log, TEXT("Creating Actor"));
+		assert(factory != nullptr);
+		assert(level != nullptr);
+
+		const float uu_per_meter = 100;
+		FVector location(0, 0, 0); //  pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
+		FTransform pose(location);
+		location *= uu_per_meter;
+		UE_LOG(LoaderPlugin, Log, TEXT("Inserting Object at %s"), *location.ToString());
+		AActor* actor = factory->CreateActor(asset, level, pose);
+	}
+
 }
 
 void FLoaderPlugin::AddToolbarExtension(FToolBarBuilder& builder) {
