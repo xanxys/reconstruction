@@ -10,9 +10,12 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
+#include "Developer/RawMesh/Public/RawMesh.h"
 #include "ModuleManager.h"
 #include "picojson.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
+#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+//#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Slate.h"
 
 #include "LoaderPluginCommands.h"
@@ -61,6 +64,81 @@ void FLoaderPlugin::StartupModule()
 	LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(MyExtender);
 }
 
+
+// Copied from /Engine/Source/Editor/UnrealEd/Private/GeomFitUtils.cpp
+void RefreshCollisionChange(const UStaticMesh * StaticMesh)
+{
+	for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
+	{
+		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(*Iter);
+		if (StaticMeshComponent->StaticMesh == StaticMesh)
+		{
+			// it needs to recreate IF it already has been created
+			if (StaticMeshComponent->IsPhysicsStateCreated())
+			{
+				StaticMeshComponent->RecreatePhysicsState();
+			}
+		}
+	}
+
+	//FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+static void CalcBoundingBox(const FRawMesh& RawMesh, FVector& Center, FVector& Extents, FVector& LimitVec)
+{
+	FBox Box(0);
+
+	for (uint32 i = 0; i < (uint32)RawMesh.VertexPositions.Num(); i++)
+	{
+		Box += RawMesh.VertexPositions[i] * LimitVec;
+	}
+
+	Box.GetCenterAndExtents(Center, Extents);
+}
+
+
+
+int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
+{
+	/*
+	if (!PromptToRemoveExistingCollision(StaticMesh))
+	{
+		return INDEX_NONE;
+	}
+	*/
+
+	UBodySetup* bs = StaticMesh->BodySetup;
+
+	// Calculate bounding Box.
+	FRawMesh RawMesh;
+	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+	FVector unitVec = bs->BuildScale3D;
+	FVector Center, Extents;
+	CalcBoundingBox(RawMesh, Center, Extents, unitVec);
+
+	bs->Modify();
+
+	// Create new GUID
+	bs->InvalidatePhysicsData();
+
+	FKBoxElem BoxElem;
+	BoxElem.Center = Center;
+	BoxElem.X = Extents.X * 2.0f;
+	BoxElem.Y = Extents.Y * 2.0f;
+	BoxElem.Z = Extents.Z * 2.0f;
+	bs->AggGeom.BoxElems.Add(BoxElem);
+
+	// refresh collision change back to staticmesh components
+	RefreshCollisionChange(StaticMesh);
+
+	// Mark staticmesh as dirty, to help make sure it gets saved.
+	StaticMesh->MarkPackageDirty();
+
+	return bs->AggGeom.BoxElems.Num() - 1;
+}
+
 // Very helpful answer
 // https://forums.unrealengine.com/showthread.php?22023-UE4-Automatic-Level-Builder-Construction-and-Pipeline-Scripts&p=103983&viewfull=1#post103983
 void FLoaderPlugin::OnLoadButtonClicked() {
@@ -100,13 +178,21 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("* Number of Lights: %d"), lights.size());
 
 	const float uu_per_meter = 100;
-	FVector offset(0, 0, 1.0);
+	FVector offset(0, 0, 2.0);
 	
 	for (auto& light : lights) {
 		auto pos = light.get<picojson::object>()["pos"].get<picojson::object>();
 		FVector location(pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
 		FTransform pose((location + offset) * uu_per_meter);
 		InsertAssetToScene(pose, "/Script/Engine.PointLight");
+	}
+
+	// Insert exterior mesh
+	FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
+	AActor* actor = InsertAssetToScene(pose, "/Game/Auto/Object.Object");
+	auto* component = actor->FindComponentByClass<USceneComponent>();
+	if (component) {
+		component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
 	}
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
@@ -118,13 +204,38 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
 		AActor* actor = InsertAssetToScene(pose, asset_path);
 		auto* component = actor->FindComponentByClass<USceneComponent>();
-		if (component) {
-			component->SetMobility(EComponentMobility::Movable);
-			component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
-		}
-		else {
+		if (!component) {
 			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't set actor mobility to movable"));
+			return;
 		}
+		component->SetMobility(EComponentMobility::Movable);
+		component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
+		
+		auto* mesh = actor->FindComponentByClass<UStaticMeshComponent>();
+		if (!mesh) {
+			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't get StaticMeshComponent of inserted actor"));
+			return;
+		}
+		// Reference: https://forums.unrealengine.com/archive/index.php/t-2078.html
+		/*
+		UBodySetup* bs = mesh->StaticMesh->BodySetup;
+		if (!bs) {
+			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't get StaticMeshComponent->BodySetup of inserted actor"));
+			return;
+		}
+		*/
+		GenerateBoxAsSimpleCollision(mesh->StaticMesh);
+		//bs->CollisionTraceFlag = CTF_UseComplexAsSimple;
+		//bs->bMeshCollideAll = true;
+		//bs->InvalidatePhysicsData();
+		//bs->CreatePhysicsMeshes();
+		auto* prim = actor->FindComponentByClass<UPrimitiveComponent>();
+		if (!prim) {
+			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't set simulate physics flag"));
+			return;
+		}
+		prim->SetSimulatePhysics(true);
+		actor->SetActorEnableCollision(true);
 	}
 #undef LOCTEXT_NAMESPACE
 }

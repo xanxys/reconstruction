@@ -29,7 +29,8 @@ namespace UnrealBuildTool.Rules
                     "LevelEditor",
                     "Slate",
                     "UnrealEd",
-                    "DesktopPlatform"
+                    "DesktopPlatform",
+                    "RawMesh"
 				}
 				);
 
