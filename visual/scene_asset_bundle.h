@@ -55,11 +55,17 @@ private:
 	// (e.g. <100MB).
 	// Don't store image-like things or huge triangle mesh here.
 	Json::Value serializeSmallData() const;
+
+	// Do inverse of serializeSmallData. Parsed result will be written
+	// to members.
+	void deserializeSmallData(const Json::Value& v);
+
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;
 public:
 	TexturedMesh exterior_mesh;
 	std::vector<Eigen::Vector3f> point_lights;
+	std::vector<std::string> object_ids;
 	std::vector<TexturedMesh> interior_objects;
 private:
 	bool do_finalize;

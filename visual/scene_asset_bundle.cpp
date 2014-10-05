@@ -1,10 +1,12 @@
 #include "scene_asset_bundle.h"
 
-#include <fstream>
-
 #include <boost/filesystem.hpp>
 
+#include <fstream>
+
 namespace visual {
+
+using boost::filesystem::path;
 
 SceneAssetBundle::SceneAssetBundle(std::string dir_path) :
 		debug_count(0), dir_path(dir_path), do_finalize(true) {
@@ -13,17 +15,25 @@ SceneAssetBundle::SceneAssetBundle(std::string dir_path) :
 
 SceneAssetBundle::SceneAssetBundle(std::string dir_path, int count_start) :
 		debug_count(count_start), dir_path(dir_path), do_finalize(false) {
+	std::ifstream json_file((dir_path / path("small_data.json")).string());
+	Json::Value small_data;
+	if(!Json::Reader().parse(json_file, small_data)) {
+		throw std::runtime_error("Failed to import json metadata");
+	}
+	deserializeSmallData(small_data);
 }
 
 SceneAssetBundle::~SceneAssetBundle() {
 	if(do_finalize) {
 		serializeIntoDirectory(dir_path);
+	} else {
+		std::ofstream json_file((dir_path / path("small_data.json")).string());
+		json_file << Json::FastWriter().write(serializeSmallData());
 	}
 }
 
 void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {
 	using boost::filesystem::create_directory;
-	using boost::filesystem::path;
 	using boost::filesystem::remove_all;
 
 	const path dir_path(dir_path_raw);
@@ -36,7 +46,6 @@ void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {
 
 void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	using boost::filesystem::create_directory;
-	using boost::filesystem::path;
 	using boost::filesystem::remove_all;
 
 	const path dir_path(dir_path_raw);
@@ -56,8 +65,6 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 
 
 Json::Value SceneAssetBundle::loadJson(std::string name) const {
-	using boost::filesystem::path;
-
 	std::ifstream f_input((path(dir_path) / path(name)).string());
 	if(!f_input.is_open()) {
 		throw std::runtime_error("Cloudn't open " + name);
@@ -69,46 +76,37 @@ Json::Value SceneAssetBundle::loadJson(std::string name) const {
 
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	using boost::filesystem::path;
-
 	const int id = debug_count++;
 	std::ofstream debug_points_file((dir_path / path("debug_" + std::to_string(id) + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-	using boost::filesystem::path;
-
 	const int id = debug_count++;
 	std::ofstream debug_points_file((dir_path / path("debug_" + std::to_string(id) + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	using boost::filesystem::path;
 	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-	using boost::filesystem::path;
 	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
 }
 
 void SceneAssetBundle::addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh) {
-	using boost::filesystem::path;
 	std::ofstream mesh_f((dir_path / path(name + ".ply")).string());
 	mesh.serializePLY(mesh_f);
 }
 
 void SceneAssetBundle::addMesh(std::string name, const TexturedMesh& mesh) {
-	using boost::filesystem::path;
 	mesh.writeWavefrontObject((dir_path / path(name)).string());
 }
 
 void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
-	using boost::filesystem::path;
 	mesh.writeWavefrontObjectFlat((dir_path / path(name)).string());
 }
 
@@ -144,7 +142,24 @@ Json::Value SceneAssetBundle::serializeSmallData() const {
 		light["pos"]["z"] = pos(2);
 		small_data["lights"].append(light);
 	}
+	for(const auto& oid : object_ids) {
+		small_data["objects"].append(oid);
+	}
 	return small_data;
 }
+
+void SceneAssetBundle::deserializeSmallData(const Json::Value& root){
+	for(const auto& light : root["lights"]) {
+		Eigen::Vector3f pos(
+			light["pos"]["x"].asDouble(),
+			light["pos"]["y"].asDouble(),
+			light["pos"]["z"].asDouble());
+		point_lights.push_back(pos);
+	}
+	for(auto& oid : root["objects"]) {
+		object_ids.push_back(oid.asString());
+	}
+}
+
 
 }  // namespace

@@ -353,6 +353,8 @@ void splitObjects(
 		bundle.addMesh("poly_" + std::to_string(i_cluster), tex_mesh);
 
 		bundle.addMeshFlat("flat_poly_" + std::to_string(i_cluster), tex_mesh);
+
+		bundle.object_ids.push_back(std::to_string(i_cluster));
 		i_cluster++;
 	}
 
