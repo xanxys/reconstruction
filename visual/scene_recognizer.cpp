@@ -201,17 +201,16 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	}
 	Polygon_2 room_polygon_cgal(pp.begin(), pp.end());
 	assert(room_polygon_cgal.is_simple());
-	/** CGAL-4.2 doesn't like C++11 (boost::shared_ptr cannot be implicitly casted to bool)
-	auto polys = CGAL::create_exterior_skeleton_and_offset_polygons_2(
+	// Create offseted polygon to increase robustness.
+	const K::FT offset = 0.2;
+	const auto polys = CGAL::create_exterior_skeleton_and_offset_polygons_2(
 		offset, room_polygon_cgal);
-	*/
+	assert(polys.size() == 2);
+	const auto& room_polygon_larger = *polys[1];  // it seems like the second one is offsetted polygon.
 	for(const auto& pt3 : points_merged->points) {
-		// hack to simulate offset, assuming origin is near centroid
 		Eigen::Vector2f d(pt3.x, pt3.y);
-		d *= -0.2 / d.norm();
-
-		const Point pt(pt3.x + d.x(), pt3.y + d.y());
-		if(room_polygon_cgal.bounded_side(pt) != CGAL::ON_UNBOUNDED_SIDE) {
+		const Point pt(pt3.x, pt3.y);  // pt3.x + d.x(), pt3.y + d.y());
+		if(room_polygon_larger.bounded_side(pt) != CGAL::ON_UNBOUNDED_SIDE) {
 			points_inside->points.push_back(pt3);
 		} else {
 			points_outside->points.push_back(pt3);
