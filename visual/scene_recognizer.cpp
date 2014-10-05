@@ -241,18 +241,6 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 
 	std::vector<TexturedMesh> boxes;
-	/*
-	const auto box_ticks = decomposeWallBoxes(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(cloud_interior), room_polygon);
-	INFO("Box candidates found", (int)box_ticks.size());
-	for(const auto& tick_range : box_ticks) {
-		const auto maybe_box = createWallBox(room_polygon, room_hrange, tick_range,
-			cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_interior));
-		if(maybe_box) {
-			boxes.push_back(*maybe_box);
-		}
-	}
-	INFO("Box actually created", (int)boxes.size());
-	*/
 
 	INFO("Creating assets");
 	bundle.point_lights = visual::recognize_lights(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
@@ -479,118 +467,6 @@ TexturedMesh bakeTexture(
 	tm.diffuse = film.extract();
 	tm.mesh = shape;
 	return tm;
-}
-
-boost::optional<TexturedMesh> createWallBox(
-		const std::vector<Eigen::Vector2f>& polygon,
-		std::pair<float, float> z_range,
-		std::pair<int, int> ticks,
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	const auto p0 = polygon[ticks.first];
-	const auto p1 = polygon[ticks.second];
-	const Eigen::Vector2f edge_d = p1 - p0;
-	const Eigen::Vector2f edge_d_norm = edge_d.normalized();
-	const float edge_len = edge_d.norm();
-	const Eigen::Vector2f edge_n = Eigen::Vector2f(-edge_d(1), edge_d(0)).normalized();
-
-	// Collect points.
-	const float max_distance = 0.8;
-	std::vector<float> heights;
-	std::vector<float> depths;
-	for(const auto& pt : cloud->points) {
-		const Eigen::Vector2f pt2d = pt.getVector3fMap().head(2);
-		auto dp = pt2d - p0;
-		const float distance = dp.dot(edge_n);
-		if(distance < 0 || distance > max_distance) {
-			continue;
-		}
-		const float t = dp.dot(edge_d_norm);
-		if(t < 0 || t > edge_len) {
-			continue;
-		}
-
-		heights.push_back(pt.z - z_range.first);
-		depths.push_back(distance);
-	}
-
-	const float depth = shape_fitter::robustMinMax(depths, 0.2).second;
-	const float height = shape_fitter::robustMinMax(heights, 0.2).second;
-
-	const Eigen::Vector2f center_2d = (p0 + p1) / 2 + edge_n * (depth * 0.5);
-	const Eigen::Vector3f center = cloud_base::append(center_2d, height / 2 + z_range.first);
-
-	const auto box_mesh = shape_fitter::createBox(
-		center,
-		cloud_base::append(edge_d, 0) / 2,
-		cloud_base::append(edge_n, 0) * (depth / 2),
-		Eigen::Vector3f(0, 0, height / 2));
-
-	const auto box = visual::cloud_baker::bakePointsToMesh(cloud, box_mesh);
-	return boost::optional<TexturedMesh>(box);
-}
-
-std::vector<std::pair<int, int>> decomposeWallBoxes(
-		pcl::PointCloud<pcl::PointXYZ>::Ptr interior_cloud,
-		const std::vector<Eigen::Vector2f>& polygon) {
-	std::vector<int> counts;
-	// Project points to edges of polygon.
-	const int n = polygon.size();
-	for(int i : boost::irange(0, n)) {
-		const Eigen::Vector2f v0 = polygon[i];
-		const Eigen::Vector2f edge_d = polygon[(i + 1) % n] - polygon[i];
-		const float edge_len = edge_d.norm();
-		const Eigen::Vector2f edge_d_norm = edge_d / edge_len;
-		const Eigen::Vector2f edge_n = Eigen::Vector2f(-edge_d(1), edge_d(0)).normalized();
-		const float max_distance = 0.5;
-		// Count points that falls in this region. (*counted .ignored)
-		// .  .   . distance
-		//  | *  |
-		// .|   *|
-		// -+----+-> edge_d
-		//  v0
-		counts.push_back(0);
-		for(const auto& pt : interior_cloud->points) {
-			const Eigen::Vector2f pt2d = pt.getVector3fMap().head(2);
-			auto dp = pt2d - v0;
-			const float distance = dp.dot(edge_n);
-			if(distance < 0 || distance > max_distance) {
-				continue;
-			}
-			const float t = dp.dot(edge_d_norm);
-			if(t < 0 || t > edge_len) {
-				continue;
-			}
-			counts[i] ++;
-		}
-	}
-	Json::Value wall_histogram;
-	for(const auto val : counts) {
-		wall_histogram.append(val);
-	}
-	{
-		std::ofstream of("wall_histogram.json");
-		of << Json::FastWriter().write(wall_histogram);
-	}
-
-	std::vector<std::pair<int, int>> ticks;
-	const int thresh = 10;
-	boost::optional<int> start_ix;
-	for(int i : boost::irange(0, n + 1)) {
-		const bool ir = (counts[i % n] > thresh);
-		if(start_ix) {
-			if(!ir) {
-				ticks.push_back(std::make_pair(
-					*start_ix, i % n));
-				start_ix = boost::none;
-			}
-		} else {
-			if(ir) {
-				start_ix = i % n;
-			}
-		}
-	}
-
-	return ticks;
 }
 
 }  // namespace

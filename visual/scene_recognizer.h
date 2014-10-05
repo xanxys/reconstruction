@@ -24,19 +24,6 @@ namespace scene_recognizer {
 
 TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape);
 
-// Calculate ranges (both ends of box) on wall polygon by analyzing interior point cloud.
-// Indices of polygon vertices are used to indicate position on the primeter.
-std::vector<std::pair<int, int>> decomposeWallBoxes(
-	pcl::PointCloud<pcl::PointXYZ>::Ptr interior_cloud,
-	const std::vector<Eigen::Vector2f>& polygon);
-
-// Create a geometry (box) for given ticks, if there's actually box.
-boost::optional<TexturedMesh> createWallBox(
-	const std::vector<Eigen::Vector2f>& polygon,
-	std::pair<float, float> z_range,
-	std::pair<int, int> ticks,
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
-
 // Return nearest power of 2 number >= x.
 // ceilToPowerOf2(x) = 1 for x <=0.
 int ceilToPowerOf2(int x);
