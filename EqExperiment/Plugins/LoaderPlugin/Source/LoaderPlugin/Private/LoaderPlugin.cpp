@@ -190,19 +190,28 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	// Insert exterior mesh
 	FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
 	AActor* actor = InsertAssetToScene(pose, "/Game/Auto/Object.Object");
+	if (!actor) {
+		UE_LOG(LoaderPlugin, Error, TEXT("Failed to insert exterior mesh"));
+		return;
+	}
 	auto* component = actor->FindComponentByClass<USceneComponent>();
 	if (component) {
 		component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
 	}
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
-	for(int i = 0; i < 5; i++) {
-		const std::string name = "flat_poly_" + std::to_string(i) + "object";
+	for (const auto& object : scene_root["objects"].get<picojson::array>()) {
+		const std::string oid = object.get<std::string>();
+		const std::string name = "flat_poly_" + oid + "object";
 		const std::string asset_path = "/Game/Auto/" + name + "." + name;
 
 		// Dunno why, but specifying scale in CreateActor is being ignored. Set it after actor is created.
 		FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
 		AActor* actor = InsertAssetToScene(pose, asset_path);
+		if (!actor) {
+			UE_LOG(LoaderPlugin, Warning, TEXT("Failed to insert %s, ignoring"), widen(asset_path).c_str());
+			continue;
+		}
 		auto* component = actor->FindComponentByClass<USceneComponent>();
 		if (!component) {
 			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't set actor mobility to movable"));
