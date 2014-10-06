@@ -112,24 +112,16 @@ namespace scene_recognizer {
 void test_segmentation(
 		SceneAssetBundle& bundle,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	
+
 	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
 		boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>> (new pcl::search::KdTree<pcl::PointXYZRGB>);
-	
+
 	pcl::PointCloud <pcl::Normal>::Ptr normals (new pcl::PointCloud <pcl::Normal>);
 	pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimator;
 	normal_estimator.setSearchMethod (tree);
 	normal_estimator.setInputCloud (cloud);
 	normal_estimator.setKSearch (50);
 	normal_estimator.compute (*normals);
-	
-
-	// pcl::IndicesPtr indices (new std::vector <int>);
-	// pcl::PassThrough<pcl::PointXYZ> pass;
-	// pass.setInputCloud (cloud);
-	// pass.setFilterFieldName ("z");
-	// pass.setFilterLimits (0.0, 1.0);
-	// pass.filter (*indices);
 
 	pcl::RegionGrowing<pcl::PointXYZRGB, pcl::Normal> reg;
 	reg.setMinClusterSize (50);
@@ -147,24 +139,8 @@ void test_segmentation(
 
 	INFO("Number of clusters=", (int)clusters.size());
 	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
-	/*
-	for(int i : boost::irange(0, (int)clusters.size())) {
-
-	}
-	int counter = 0;
-	while (counter < clusters[0].indices.size ())
-	{
-	std::cout << clusters[0].indices[counter] << ", ";
-	counter++;
-	if (counter % 10 == 0)
-	  std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	*/
 
 	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud = reg.getColoredCloud ();
-	//pcl::visualization::CloudViewer viewer ("Cluster viewer");
-	//viewer.showCloud(colored_cloud);
 	bundle.addDebugPointCloud("clusters", colored_cloud);
 
 }
@@ -210,7 +186,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	const auto& room_polygon_larger = *polys[1];  // it seems like the second one is offsetted polygon.
 	for(const auto& pt3 : points_merged->points) {
 		Eigen::Vector2f d(pt3.x, pt3.y);
-		const Point pt(pt3.x, pt3.y);  // pt3.x + d.x(), pt3.y + d.y());
+		const Point pt(pt3.x, pt3.y);
 		if(room_polygon_larger.bounded_side(pt) != CGAL::ON_UNBOUNDED_SIDE) {
 			points_inside->points.push_back(pt3);
 		} else {
