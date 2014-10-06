@@ -239,7 +239,8 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
 
-	bundle.addDebugPointCloud("filtered", cloud_filter::squashRegistrationError(cloud_interior));
+	auto filtered = cloud_filter::squashRegistrationError(cloud_interior);
+	bundle.addDebugPointCloud("filtered", filtered);
 
 	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
@@ -250,31 +251,9 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.point_lights = visual::recognize_lights(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
 	bundle.interior_objects = boxes;
-}
 
-
-void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
-	Json::Value cloud_json = bundle.loadJson("debug_filtered.json");
-	const AlignedScans scans_aligned(bundle, scans);
-
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
-		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-	for(const auto& point : cloud_json) {
-		pcl::PointXYZRGBNormal pt;
-		pt.x = point["x"].asDouble();
-		pt.y = point["y"].asDouble();
-		pt.z = point["z"].asDouble();
-		pt.r = point["r"].asDouble();
-		pt.g = point["g"].asDouble();
-		pt.b = point["b"].asDouble();
-		pt.normal_x = point["nx"].asDouble();
-		pt.normal_y = point["ny"].asDouble();
-		pt.normal_z = point["nz"].asDouble();
-		cloud->points.push_back(pt);
-	}
-	DEBUG("Loaded #points", (int)cloud->points.size());
-
-	splitObjects(bundle, cloud, scans_aligned);
+	INFO("Splitting objects");
+	splitObjects(bundle, filtered, scans_aligned);
 }
 
 

@@ -22,7 +22,7 @@
 
 
 # first half
-time ./recon --first --convert \
+time ./recon --convert \
 	../capturer/scan-20140827-12:57-gakusei-small \
 	../capturer/scan-20140827-13:05-gakusei-small \
 	../capturer/scan-20140827-13:11-gakusei-small \

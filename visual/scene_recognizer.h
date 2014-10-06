@@ -32,10 +32,6 @@ int ceilToPowerOf2(int x);
 // and populate given SceneAsssetBundle.
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
 
-// Second pass of scene recognition, after ./extract_shape.py is applied.
-// Create objects.
-void recognizeScene2(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
-
 void splitObjects(
 	SceneAssetBundle& bundle,
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org,

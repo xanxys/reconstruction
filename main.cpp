@@ -74,21 +74,11 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("test", "do experimental stuff")
-		("first", "do first pass")
-		("second", value<std::string>(), "do second pass")
 		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans");
 
 	variables_map vars;
 	store(parse_command_line(argc, argv, desc), vars);
 	notify(vars);
-
-	// Extract --convert arguments.
-	const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
-	INFO("Loading scans, #scans=", (int)dir_paths.size());
-	std::vector<visual::SingleScan> scans;
-	for(const auto& dir_path : dir_paths) {
-		scans.emplace_back(dir_path);
-	}
 
 	// Do specified action.
 	if(vars.count("help") > 0) {
@@ -97,24 +87,16 @@ int main(int argc, char** argv) {
 	} else if(vars.count("test") > 0) {
 		testMeshIO();
 		return 0;
-	} else if(vars.count("first") > 0) {
-		if(scans.empty()) {
-			ERROR("Need one or more scans to proceed");
-			return 1;
+	} else if(vars.count("convert") > 0) {
+		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
+		INFO("Loading scans, #scans=", (int)dir_paths.size());
+		std::vector<visual::SingleScan> scans;
+		for(const auto& dir_path : dir_paths) {
+			scans.emplace_back(dir_path);
 		}
 		INFO("Converting to a scene");
 		visual::SceneAssetBundle bundle(guessSceneName(dir_paths.front()));
 		visual::scene_recognizer::recognizeScene(bundle, scans);
-		return 0;
-	} else if(vars.count("second") > 0) {
-		if(scans.empty()) {
-			ERROR("Need one or more scans to proceed");
-			return 1;
-		}
-		const auto dir_path = vars["second"].as<std::string>();
-		INFO("Opening existing SceneAssetBundle");
-		visual::SceneAssetBundle bundle(guessSceneName(dir_path), 1000);
-		visual::scene_recognizer::recognizeScene2(bundle, scans);
 		return 0;
 	} else {
 		INFO("Launching HTTP server");
