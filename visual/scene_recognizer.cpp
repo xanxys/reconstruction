@@ -33,6 +33,7 @@
 
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
+#include <visual/cloud_filter.h>
 #include <visual/film.h>
 #include <visual/mapping.h>
 #include <visual/mesh_intersecter.h>
@@ -237,6 +238,9 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	}
 
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
+
+	bundle.addDebugPointCloud("filtered", cloud_filter::squashRegistrationError(cloud_interior));
+
 	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 
