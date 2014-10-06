@@ -28,9 +28,11 @@ namespace UnrealBuildTool.Rules
                     "Engine",
                     "LevelEditor",
                     "Slate",
+                    "SlateCore",
                     "UnrealEd",
                     "DesktopPlatform",
-                    "RawMesh"
+                    "RawMesh",
+                    "MainFrame"
 				}
 				);
 
