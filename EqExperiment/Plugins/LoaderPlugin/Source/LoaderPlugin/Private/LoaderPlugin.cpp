@@ -15,6 +15,7 @@
 #include "picojson.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+#include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 //#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Slate.h"
 
@@ -146,17 +147,21 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	UE_LOG(LoaderPlugin, Log, TEXT("Clicked"));
 	
 	// Ask input directory. OpenDirectoryDialog cannot be used because it can't expand NAS folder.
-	/*
-	Due to some unknown reason, UE4 crashes when (or after?) calling OpenFileDialog.
-
 	IDesktopPlatform* desktop = FDesktopPlatformModule::Get();
 	if (!desktop) {
 		UE_LOG(LoaderPlugin, Error, TEXT("Failed to get IDesktopPlatform"));
 		return;
 	}
+	void* ParentWindowWindowHandle = nullptr;
+	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+	if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid()) {
+		ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+	}
 	TArray<FString> paths;
+	// crash when ParentWindowWindowHandle is nullptr?
 	const bool selected = desktop->OpenFileDialog(
-		nullptr,
+		ParentWindowWindowHandle,
 		TEXT("Choose Scan Directory"),
 		TEXT(""),
 		TEXT(""),
@@ -168,8 +173,6 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	}
 	FString selected_path = paths[0];
 	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
-	*/
-
 	
 	const std::string file_path = "\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json";
 
