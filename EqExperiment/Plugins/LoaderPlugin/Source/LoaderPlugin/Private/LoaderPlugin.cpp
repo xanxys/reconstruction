@@ -174,7 +174,7 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	FString selected_path = paths[0];
 	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
 	
-	const std::string file_path = "\\\\LITHIUM\\public\\research\\2014\\reconstruction\\reconstruction-generated-c082e271\\test-20140801-1524-gakusei-table\\small_data.json";
+	const std::string file_path(TCHAR_TO_UTF8(*selected_path));
 
 	picojson::object scene_root = LoadJsonFromFile(file_path).get<picojson::object>();
 	auto lights = scene_root["lights"].get<picojson::array>();
