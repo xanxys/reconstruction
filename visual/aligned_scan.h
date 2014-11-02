@@ -63,6 +63,10 @@ private:
 	static Eigen::Affine3f finealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
 			const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source);
 
+	// Estimate color multipliers in scans_with_pose, so that
+	// color seams in corrected point cloud is minimized.
+	void correctColor();
+
 	// Make large near-horizontal planar segment (most likely ceiling) completely level
 	// by slight rotation.
 	void applyLeveling();

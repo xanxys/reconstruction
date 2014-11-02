@@ -92,6 +92,7 @@ AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleSca
 	assert(!scans.empty());
 	predefinedMerge("pose-20140827.json", scans);
 	assert(scans.size() == scans_with_pose.size());
+	correctColor();
 	applyLeveling();
 }
 
@@ -274,6 +275,52 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 }
 
 void AlignedScans::hierarchicalMerge(const std::vector<SingleScan>& scans) {
+}
+
+void AlignedScans::correctColor() {
+	// At multiple regions indexed by l,
+	// calculate average color for each scan(i),
+	// call this vector C(i, l).
+	// Also, let N(i, l) be number of points at the region.
+	// Let M(i) be color multiplier for scan i.
+	//
+	// The goal is to equalize color of each scans at all positions.
+	// Also, we need regulaizer so that avg M = 1
+	// So, J = Je + Jr
+	// where Je = sum_{i, j, l} N(i,l)N(j,l) |M(i)C(i,l) - M(j)C(j,l)|^2
+	// and Jr = |1 / N * sum_{i} M(i) - 1|^2
+	// You can see a channel is independent of each other.
+	// Let's derive for a channel.
+	//
+	// dJe/dM(i) = 2 * sum_{j, l} N(i,l)N(j,l) (M(i)C(i,l)^2 - M(j)C(j,l) * C(i, l))
+	// dJr/dM(i) = 2 / N * (1 / N * sum_{j} M(j) - 1)
+	//
+	// dJ/dM(i) = 0 gives us
+	// sum_{j, l} N(i,l)N(j,l) (M(i)C(i,l)^2 - M(j)C(j,l) * C(i, l)) +
+	// 1 / N^2 * sum_{j} M(j) = 1 / N
+	INFO("Correcting color");
+	// iterate R, G, B
+	const int n = scans_with_pose.size();
+	for(int i : boost::irange(0, 3)) {
+		Eigen::MatrixXf m = Eigen::MatrixXf::Zero(n, n);
+		Eigen::VectorXf v = Eigen::VectorXf::Zero(n);
+		// color equality condition.
+		for(int i : boost::irange(0, n)) {
+			for(int j : boost::irange(0, n)) {
+				// m(i, j) +=
+			}
+		}
+		// regularizer.
+		for(int i : boost::irange(0, n)) {
+			for(int j : boost::irange(0, n)) {
+				m(i, j) += 1.0 / (n * n);
+			}
+			v(i) += 1.0 / n;
+		}
+		// solve.
+		Eigen::VectorXf multipliers = m.colPivHouseholderQr().solve(v);
+		DEBUG("v[0]", multipliers(0));
+	}
 }
 
 void AlignedScans::applyLeveling() {
