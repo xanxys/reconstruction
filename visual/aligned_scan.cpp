@@ -139,7 +139,8 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 			fine_align_target =
 				cloud_base::applyTransform(scan.cloud, poses[scan_id]);
 		}
-		scans_with_pose.push_back(std::make_pair(scan, poses[scan_id]));
+		scans_with_pose.push_back(std::make_tuple(
+			scan, poses[scan_id], Eigen::Vector3f(1, 1, 1)));
 	}
 
 	// fine-align to target.
@@ -147,17 +148,19 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 		throw std::runtime_error("Fine-alignment target not found. id=" + fine_align_target_id);
 	}
 
-	std::vector<std::pair<SingleScan, Eigen::Affine3f>> new_scans_with_pose;
+	std::vector<std::tuple<SingleScan, Eigen::Affine3f, Eigen::Vector3f>> new_scans_with_pose;
 	for(auto& scan_with_pose : scans_with_pose) {
 		auto fine_align = Eigen::Affine3f::Identity();
-		if(scan_with_pose.first.getScanId() != fine_align_target_id) {
-			INFO("Fine-aligning scan", scan_with_pose.first.getScanId());
+		if(std::get<0>(scan_with_pose).getScanId() != fine_align_target_id) {
+			INFO("Fine-aligning scan", std::get<0>(scan_with_pose).getScanId());
 			fine_align = finealign(
 				*fine_align_target,
-				cloud_base::applyTransform(scan_with_pose.first.cloud, scan_with_pose.second));
+				cloud_base::applyTransform(std::get<0>(scan_with_pose).cloud, std::get<1>(scan_with_pose)));
 		}
-		new_scans_with_pose.push_back(std::make_pair(
-			scan_with_pose.first, fine_align * scan_with_pose.second));
+		new_scans_with_pose.push_back(std::make_tuple(
+			std::get<0>(scan_with_pose),
+			fine_align * std::get<1>(scan_with_pose),
+			Eigen::Vector3f(1, 1, 1)));
 	}
 	scans_with_pose = std::move(new_scans_with_pose);
 }
@@ -330,11 +333,12 @@ void AlignedScans::applyLeveling() {
 	INFO("Rotating by", rot_angle);
 	const Eigen::Affine3f trans(
 		Eigen::AngleAxisf(rot_angle, rot.normalized()));
-	std::vector<std::pair<SingleScan, Eigen::Affine3f>> new_scans_with_pose;
+	std::vector<std::tuple<SingleScan, Eigen::Affine3f, Eigen::Vector3f>> new_scans_with_pose;
 	for(auto& scan_w_pose : scans_with_pose) {
-		new_scans_with_pose.push_back(std::make_pair(
-			scan_w_pose.first,
-			trans * scan_w_pose.second));
+		new_scans_with_pose.push_back(std::make_tuple(
+			std::get<0>(scan_w_pose),
+			trans * std::get<1>(scan_w_pose),
+			Eigen::Vector3f(1, 1, 1)));
 	}
 	scans_with_pose = std::move(new_scans_with_pose);
 }
@@ -434,7 +438,12 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 
 
 std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPose() const {
-	return scans_with_pose;
+	std::vector<std::pair<SingleScan, Eigen::Affine3f>> result;
+	for(const auto& s_w_p : scans_with_pose) {
+		result.push_back(std::make_pair(
+			std::get<0>(s_w_p), std::get<1>(s_w_p)));
+	}
+	return result;
 }
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
@@ -444,8 +453,12 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr AlignedScans::getMergedPointsNormal() const {
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& s_w_p : scans_with_pose) {
-		const auto delta = cloud_base::applyTransform(s_w_p.first.cloud, s_w_p.second);
-		for(const auto& pt : delta->points) {
+		const auto multiplier = std::get<2>(s_w_p);
+		auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
+		for(auto& pt : delta->points) {
+			pt.r *= multiplier(0);
+			pt.g *= multiplier(1);
+			pt.b *= multiplier(2);
 			merged->points.push_back(pt);
 		}
 	}

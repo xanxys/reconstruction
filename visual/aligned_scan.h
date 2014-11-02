@@ -43,6 +43,10 @@ public:
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr getMergedPointsNormal() const;
+
+	// TODO: deprecate this!
+	// External process shouldn't depend on individual scans,
+	// and this interface collides with color-correcting alignment step.
 	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
 private:
 	// Use external json with pose for each scan.
@@ -59,12 +63,12 @@ private:
 	static Eigen::Affine3f finealign(const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target,
 			const pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source);
 
-	// Mkae large near-horizontal planar segment (most likely ceiling) completely level
+	// Make large near-horizontal planar segment (most likely ceiling) completely level
 	// by slight rotation.
 	void applyLeveling();
 private:
-	// [(original scan, local_to_world)]
-	std::vector<std::pair<SingleScan, Eigen::Affine3f>> scans_with_pose;
+	// [(original scan, local_to_world, color multiplier)]
+	std::vector<std::tuple<SingleScan, Eigen::Affine3f, Eigen::Vector3f>> scans_with_pose;
 };
 
 }  // namespace

@@ -21,12 +21,8 @@ reconstruction uses docker to build and run.
 4. `./run_local.sh` (you need to rewrite snapshot id with what you got in step 3)
 5. You're now inside bash in container.
 6. `cd /root/local` (mapped to `./` in host)
-7. `scons` (if you modified source code)
-8. `./recon --first --convert ../data/scan-*`
-9. exit container
-10. `./extract_shape.py scan-hoge
-11. enter container
-12. `./recon --second --convert ../data/scan-*`
+7. `scons -j 4` (if you modified source code. you can change 4 to any number of CPU cores for parallel compilation)
+8. `time ./recon --convert ../data/scan-20140827-*`
 
 Now move that scan- directory to somewhere accesible from UE4.
 
@@ -39,4 +35,3 @@ Now move that scan- directory to somewhere accesible from UE4.
 ```
 sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data 1c6bbe46e13e bash
 ```
-
