@@ -21,7 +21,7 @@ Json::Value call_external(const std::string& prog_path, Json::Value arg) {
 	of.close();
 
 	const int status = system(("cat " + path_in + " | " + prog_path + " > " + path_out).c_str());
-	boost::filesystem::remove(boost::filesystem::path(path_in));
+	//boost::filesystem::remove(boost::filesystem::path(path_in));
 	if(status != 0) {
 		throw std::runtime_error("call_external: system() failed with " + std::to_string(status));
 	}
@@ -29,6 +29,6 @@ Json::Value call_external(const std::string& prog_path, Json::Value arg) {
 	std::ifstream in_f(path_out);
 	Json::Value result;
 	Json::Reader().parse(in_f, result, false);
-	boost::filesystem::remove(boost::filesystem::path(path_out));
+	//boost::filesystem::remove(boost::filesystem::path(path_out));
 	return result;
 }

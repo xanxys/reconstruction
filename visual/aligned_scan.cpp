@@ -14,6 +14,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+#include <program_proxy.h>
 #include <third/ICP.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
@@ -283,21 +284,6 @@ void AlignedScans::correctColor() {
 	// call this vector C(i, l).
 	// Also, let N(i, l) be number of points at the region.
 	// Let M(i) be color multiplier for scan i.
-	//
-	// The goal is to equalize color of each scans at all positions.
-	// Also, we need regulaizer so that avg M = 1
-	// So, J = Je + Jr
-	// where Je = sum_{i, j, l} N(i,l)N(j,l) |M(i)C(i,l) - M(j)C(j,l)|^2
-	// and Jr = |1 / N * sum_{i} M(i) - 1|^2
-	// You can see a channel is independent of each other.
-	// Let's derive for a channel.
-	//
-	// dJe/dM(i) = 2 * sum_{j, l} N(i,l)N(j,l) (M(i)C(i,l)^2 - M(j)C(j,l) * C(i, l))
-	// dJr/dM(i) = 2 / N * (1 / N * sum_{j} M(j) - 1)
-	//
-	// dJ/dM(i) = 0 gives us
-	// sum_{j, l} N(i,l)N(j,l) (M(i)C(i,l)^2 - M(j)C(j,l) * C(i, l)) +
-	// 1 / N^2 * sum_{j} M(j) = 1 / N
 	INFO("Correcting color");
 	// calculate avg color.
 	// location_index -> scan_index -> (num_samples, avg_color)
@@ -331,47 +317,27 @@ void AlignedScans::correctColor() {
 	}
 	samples.push_back(sample);
 
-	// iterate R, G, B
-	const int n = scans_with_pose.size();
-	for(int channel : boost::irange(0, 3)) {
-		Eigen::MatrixXf m = Eigen::MatrixXf::Zero(n, n);
-		Eigen::VectorXf v = Eigen::VectorXf::Zero(n);
-		// color equality condition.
-		for(const auto& sample : samples) {
-			for(int i : boost::irange(0, n)) {
-				for(int j : boost::irange(0, n)) {
-					m(i, i) += sample[i].first * sample[j].first * std::pow(sample[i].second(channel), 2);
-					m(i, j) -= sample[i].first * sample[j].first * sample[i].second(channel) * sample[j].second(channel);
-				}
-			}
+	// Convert samples to json.
+	assert(!samples.empty());
+	Json::Value samples_json;
+	for(const auto& sample : samples) {
+		Json::Value sample_json;
+		for(const auto& pair : sample) {
+			Json::Value pair_json;
+			Json::Value color;
+			color.append(pair.second(0));
+			color.append(pair.second(1));
+			color.append(pair.second(2));
+			pair_json.append(color);
+			pair_json.append(pair.first);
+			sample_json.append(pair_json);
 		}
-		// regularizer.
-		for(int i : boost::irange(0, n)) {
-			for(int j : boost::irange(0, n)) {
-				m(i, j) += 1.0 / (n * n);
-			}
-			v(i) += 1.0 / n;
-		}
-		// solve.
-		Json::Value jm;
-		for(int i : boost::irange(0, n)) {
-			Json::Value row;
-			for(int j : boost::irange(0, n)) {
-				row.append(m(i, j));
-			}
-			jm.append(row);
-		}
-		Json::Value jv;
-		for(int i : boost::irange(0, n)) {
-			jv.append(v(i));
-		}
-		const Eigen::VectorXf multipliers = m.colPivHouseholderQr().solve(v);
-		Json::Value jmult;
-		for(int i : boost::irange(0, n)) {
-			jmult.append(multipliers(i));
-		}
-		DEBUG("colorCorrect:result", jm, jv, jmult);
+		samples_json.append(sample_json);
 	}
+	Json::Value v = call_external("extpy/color_correct.py", samples_json);
+	DEBUG("colorCorrect:result", v);
+
+
 }
 
 void AlignedScans::applyLeveling() {
