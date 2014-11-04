@@ -299,15 +299,50 @@ void AlignedScans::correctColor() {
 	// sum_{j, l} N(i,l)N(j,l) (M(i)C(i,l)^2 - M(j)C(j,l) * C(i, l)) +
 	// 1 / N^2 * sum_{j} M(j) = 1 / N
 	INFO("Correcting color");
+	// calculate avg color.
+	// location_index -> scan_index -> (num_samples, avg_color)
+	std::vector<std::vector<std::pair<int, Eigen::Vector3f>>> samples;
+	const Eigen::Vector3f org = Eigen::Vector3f::Zero();
+	const float radius = 0.5;
+	std::vector<std::pair<int, Eigen::Vector3f>> sample;
+	DEBUG("Calculating avg color");
+	for(const auto& s_w_p : scans_with_pose) {
+		auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
+		int n = 0;
+		Eigen::Vector3f color_accum = Eigen::Vector3f::Zero();
+		for(const auto& pt : delta->points) {
+			if((pt.getVector3fMap() - org).norm() > radius) {
+				continue;
+			}
+
+			color_accum += Eigen::Vector3f(pt.r, pt.g, pt.b);
+			n++;
+		}
+		if(n > 0) {
+			color_accum /= n;
+		}
+		Json::Value info;
+		info["n_sample"] = n;
+		info["avg_col"].append(color_accum(0));
+		info["avg_col"].append(color_accum(1));
+		info["avg_col"].append(color_accum(2));
+		DEBUG("Avg col", info);
+		sample.emplace_back(n, color_accum);
+	}
+	samples.push_back(sample);
+
 	// iterate R, G, B
 	const int n = scans_with_pose.size();
-	for(int i : boost::irange(0, 3)) {
+	for(int channel : boost::irange(0, 3)) {
 		Eigen::MatrixXf m = Eigen::MatrixXf::Zero(n, n);
 		Eigen::VectorXf v = Eigen::VectorXf::Zero(n);
 		// color equality condition.
-		for(int i : boost::irange(0, n)) {
-			for(int j : boost::irange(0, n)) {
-				// m(i, j) +=
+		for(const auto& sample : samples) {
+			for(int i : boost::irange(0, n)) {
+				for(int j : boost::irange(0, n)) {
+					m(i, i) += sample[i].first * sample[j].first * std::pow(sample[i].second(channel), 2);
+					m(i, j) -= sample[i].first * sample[j].first * sample[i].second(channel) * sample[j].second(channel);
+				}
 			}
 		}
 		// regularizer.
@@ -318,8 +353,24 @@ void AlignedScans::correctColor() {
 			v(i) += 1.0 / n;
 		}
 		// solve.
-		Eigen::VectorXf multipliers = m.colPivHouseholderQr().solve(v);
-		DEBUG("v[0]", multipliers(0));
+		Json::Value jm;
+		for(int i : boost::irange(0, n)) {
+			Json::Value row;
+			for(int j : boost::irange(0, n)) {
+				row.append(m(i, j));
+			}
+			jm.append(row);
+		}
+		Json::Value jv;
+		for(int i : boost::irange(0, n)) {
+			jv.append(v(i));
+		}
+		const Eigen::VectorXf multipliers = m.colPivHouseholderQr().solve(v);
+		Json::Value jmult;
+		for(int i : boost::irange(0, n)) {
+			jmult.append(multipliers(i));
+		}
+		DEBUG("colorCorrect:result", jm, jv, jmult);
 	}
 }
 

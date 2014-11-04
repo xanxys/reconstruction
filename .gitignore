@@ -8,3 +8,4 @@ archive/
 *.pb.h
 *.sublime-workspace
 log
+*.pyc
