@@ -336,8 +336,13 @@ void AlignedScans::correctColor() {
 	}
 	Json::Value v = call_external("extpy/color_correct.py", samples_json);
 	DEBUG("colorCorrect:result", v);
-
-
+	if(v.size() != scans_with_pose.size()) {
+		throw std::runtime_error("Invalid color multipliers returned");
+	}
+	for(int i : boost::irange(0, (int)scans_with_pose.size())) {
+		std::get<2>(scans_with_pose[i]) = Eigen::Vector3f(
+			v[i][0].asDouble(), v[i][1].asDouble(), v[i][2].asDouble());
+	}
 }
 
 void AlignedScans::applyLeveling() {
@@ -520,9 +525,9 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr AlignedScans::getMergedPointsNormal
 		const auto multiplier = std::get<2>(s_w_p);
 		auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
 		for(auto& pt : delta->points) {
-			pt.r *= multiplier(0);
-			pt.g *= multiplier(1);
-			pt.b *= multiplier(2);
+			pt.r = std::min(pt.r * multiplier(0), 255.0f);
+			pt.g = std::min(pt.g * multiplier(1), 255.0f);
+			pt.b = std::min(pt.b * multiplier(2), 255.0f);
 			merged->points.push_back(pt);
 		}
 	}
