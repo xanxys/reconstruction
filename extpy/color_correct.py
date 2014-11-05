@@ -88,6 +88,8 @@ def calculate_color_multipliers(din):
         multipliers.append(ms)
     multipliers = np.array(multipliers).T
     assert(multipliers.shape == (n_scan, 3))
+    # normalize
+    multipliers /= (multipliers.sum(axis=0)[np.newaxis, :] / n_scan)
 
     return [[float(e) for e in row] for row in multipliers]
 

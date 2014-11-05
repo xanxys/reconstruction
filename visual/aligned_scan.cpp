@@ -288,35 +288,40 @@ void AlignedScans::correctColor() {
 	// calculate avg color.
 	// location_index -> scan_index -> (num_samples, avg_color)
 	std::vector<std::vector<std::pair<int, Eigen::Vector3f>>> samples;
-	const Eigen::Vector3f org = Eigen::Vector3f::Zero();
-	const float radius = 0.5;
-	std::vector<std::pair<int, Eigen::Vector3f>> sample;
-	DEBUG("Calculating avg color");
+	// take seeds from each scan's point.
 	for(const auto& s_w_p : scans_with_pose) {
 		auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
-		int n = 0;
-		Eigen::Vector3f color_accum = Eigen::Vector3f::Zero();
-		for(const auto& pt : delta->points) {
-			if((pt.getVector3fMap() - org).norm() > radius) {
-				continue;
+		const Eigen::Vector3f org = delta->points[0].getVector3fMap();
+		const float radius = 0.5;
+		DEBUG("Adding test location", org(0), org(1), org(2), radius);
+
+		std::vector<std::pair<int, Eigen::Vector3f>> sample;
+		DEBUG("Calculating avg color");
+		for(const auto& s_w_p : scans_with_pose) {
+			auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
+			int n = 0;
+			Eigen::Vector3f color_accum = Eigen::Vector3f::Zero();
+			for(const auto& pt : delta->points) {
+				if((pt.getVector3fMap() - org).norm() > radius) {
+					continue;
+				}
+
+				color_accum += Eigen::Vector3f(pt.r, pt.g, pt.b);
+				n++;
 			}
-
-			color_accum += Eigen::Vector3f(pt.r, pt.g, pt.b);
-			n++;
+			if(n > 0) {
+				color_accum /= n;
+			}
+			Json::Value info;
+			info["n_sample"] = n;
+			info["avg_col"].append(color_accum(0));
+			info["avg_col"].append(color_accum(1));
+			info["avg_col"].append(color_accum(2));
+			DEBUG("Avg col", info);
+			sample.emplace_back(n, color_accum);
 		}
-		if(n > 0) {
-			color_accum /= n;
-		}
-		Json::Value info;
-		info["n_sample"] = n;
-		info["avg_col"].append(color_accum(0));
-		info["avg_col"].append(color_accum(1));
-		info["avg_col"].append(color_accum(2));
-		DEBUG("Avg col", info);
-		sample.emplace_back(n, color_accum);
+		samples.push_back(sample);
 	}
-	samples.push_back(sample);
-
 	// Convert samples to json.
 	assert(!samples.empty());
 	Json::Value samples_json;
