@@ -5,11 +5,10 @@
 #include <boost/range/irange.hpp>
 
 #include <logging.h>
+#include <math_util.h>
 #include <range2.h>
 
 namespace visual {
-
-const double pi = 3.14159265359;
 
 FilmRGB8U::FilmRGB8U(int width, int height, float sigma) :
 	width(width), height(height), sigma(sigma) {

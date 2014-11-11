@@ -12,14 +12,13 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+#include <math_util.h>
 #include <visual/mesh_intersecter.h>
 #include <visual/shape_fitter.h>
 #include <visual/texture_conversion.h>
 
 namespace visual {
 namespace cloud_base {
-
-const double pi = 3.14159265359;
 
 // Apply affine transform to given XYZ+RGB+Normal point cloud,
 // and return new transformed cloud.

@@ -14,7 +14,8 @@
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
 
-#include "logging.h"
+#include <logging.h>
+#include <math_util.h>
 
 namespace visual {
 namespace shape_fitter {
@@ -401,7 +402,6 @@ std::vector<Eigen::Vector2f> calculateConcaveHull(
 
 		//  Return CCW angle from prev_angle.
 		auto calc_angle = [&](int i) {
-			const float pi = 3.14159265359;
 			auto dp = points[i] - current;
 			const std::complex<float> next_angle = std::complex<float>(dp(0), dp(1));
 			float delta_angle = std::arg(next_angle / prev_angle);

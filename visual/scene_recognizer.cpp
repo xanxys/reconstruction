@@ -31,6 +31,7 @@
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+#include <math_util.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
 #include <visual/cloud_filter.h>
@@ -41,8 +42,6 @@
 #include <visual/texture_conversion.h>
 
 namespace visual {
-
-const double pi = 3.14159265359;
 
 std::vector<Eigen::Vector3f> recognize_lights(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {

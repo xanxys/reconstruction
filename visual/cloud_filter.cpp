@@ -8,11 +8,10 @@
 #include <pcl/kdtree/kdtree_flann.h>
 
 #include <logging.h>
+#include <math_util.h>
 
 namespace visual {
 namespace cloud_filter {
-
-const double pi = 3.14159265359;
 
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr squashRegistrationError(
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input,
