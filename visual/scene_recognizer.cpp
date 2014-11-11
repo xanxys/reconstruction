@@ -44,10 +44,6 @@ namespace visual {
 
 const double pi = 3.14159265359;
 
-// TODO: desirable pipeline
-// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
-// reverse lookup.
-
 std::vector<Eigen::Vector3f> recognize_lights(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
@@ -246,6 +242,34 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		const TriangleMesh<std::nullptr_t>& room_mesh,
 		const std::vector<int>& ceiling_ixs,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside) {
+
+	// TODO: desirable pipeline if similar process' needs arise elsewhere.
+	// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
+	// reverse lookup.
+	// Maybe overly complex??
+
+	// Just calculate AABB of ceiling and project to it is enough?
+	Eigen::Vector3f aabb_min(1e3, 1e3, 1e3);
+	Eigen::Vector3f aabb_max(-1e3, -1e3, -1e3);
+	for(const int ix_tri : ceiling_ixs) {
+		const auto ix_verts = room_mesh.triangles[ix_tri];
+		aabb_min = aabb_min.cwiseMin(
+			room_mesh.vertices[std::get<0>(ix_verts)].first);
+		aabb_max = aabb_max.cwiseMax(
+			room_mesh.vertices[std::get<0>(ix_verts)].first);
+		aabb_min = aabb_min.cwiseMin(
+			room_mesh.vertices[std::get<1>(ix_verts)].first);
+		aabb_max = aabb_max.cwiseMax(
+			room_mesh.vertices[std::get<1>(ix_verts)].first);
+			aabb_min = aabb_min.cwiseMin(
+			room_mesh.vertices[std::get<2>(ix_verts)].first);
+		aabb_max = aabb_max.cwiseMax(
+			room_mesh.vertices[std::get<2>(ix_verts)].first);
+	}
+	// the ceiling must be perpendicular to Z plane.
+	assert(std::abs((aabb_max - aabb_min).z()) < 1e-3);
+
+
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
