@@ -20,10 +20,17 @@ namespace shape_fitter {
 // WARNING:
 // Since this code use robust estimate, instead of min/max,
 // some points will NOT be inside of the returned mesh.
+//
+// TODO: this tuple became too complex. Also,
+// this function is now coupled with non-geometric room-specific
+// logic (different ops for ceiling vs. floor vs. wall).
+// Create a class for storing room shapes.
 std::tuple<
 	TriangleMesh<std::nullptr_t>,
 	std::vector<Eigen::Vector2f>,
-	std::pair<float, float>> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+	std::pair<float, float>,
+	std::vector<int>
+	> fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 // Fit an orinted bounding box (with Y-axis-only rotation) to
 // given point cloud, and return (6) planes of the OBB.

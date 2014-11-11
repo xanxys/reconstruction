@@ -44,6 +44,10 @@ namespace visual {
 
 const double pi = 3.14159265359;
 
+// TODO: desirable pipeline
+// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
+// reverse lookup.
+
 std::vector<Eigen::Vector3f> recognize_lights(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
@@ -160,6 +164,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	auto room_mesh = std::get<0>(extrusion);
 	auto room_polygon = std::get<1>(extrusion);
 	auto room_hrange = std::get<2>(extrusion);
+	auto room_ceiling_ixs = std::get<3>(extrusion);
 	// We're just lucky to get correct room polygon without excluding outside points first.
 	// points
 	// |-inside
@@ -224,12 +229,28 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	std::vector<TexturedMesh> boxes;
 
 	INFO("Creating assets");
-	bundle.point_lights = visual::recognize_lights(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
-	bundle.exterior_mesh = bakeTexture(scans_aligned, room_mesh);
+	const auto exterior = recognizeExterior(
+		scans_aligned, room_mesh, room_ceiling_ixs,
+		cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
+	bundle.point_lights = exterior.second;
+	bundle.exterior_mesh = exterior.first;
 	bundle.interior_objects = boxes;
 
 	INFO("Splitting objects");
 	splitObjects(bundle, filtered, scans_aligned);
+}
+
+std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
+	recognizeExterior(
+		const AlignedScans& scans_aligned,
+		const TriangleMesh<std::nullptr_t>& room_mesh,
+		const std::vector<int>& ceiling_ixs,
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside) {
+
+	// TODO: proper ceiling texture extraction.
+	return std::make_pair(
+		bakeTexture(scans_aligned, room_mesh),
+		visual::recognize_lights(cloud_inside));
 }
 
 

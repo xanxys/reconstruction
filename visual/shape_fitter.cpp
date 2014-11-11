@@ -22,7 +22,8 @@ namespace shape_fitter {
 std::tuple<
 	TriangleMesh<std::nullptr_t>,
 	std::vector<Eigen::Vector2f>,
-	std::pair<float, float>>
+	std::pair<float, float>,
+	std::vector<int>>
 		fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	TriangleMesh<std::nullptr_t> mesh;
 
@@ -72,10 +73,16 @@ std::tuple<
 	};
 
 	mesh.merge(create_cap(h_range.first, false));  // floor
+	const int ix_ceiling_begin = mesh.triangles.size();
 	mesh.merge(create_cap(h_range.second, true));  // ceiling
+	const int ix_ceiling_end = mesh.triangles.size();
+	std::vector<int> ceiling_tri_ixs;
+	for(int i : boost::irange(ix_ceiling_begin, ix_ceiling_end)) {
+		ceiling_tri_ixs.push_back(i);
+	}
 
 	DEBUG("Extruded polygon mesh #v=", (int)mesh.vertices.size());
-	return std::make_tuple(mesh, poly, h_range);
+	return std::make_tuple(mesh, poly, h_range, ceiling_tri_ixs);
 }
 
 TriangleMesh<std::nullptr_t> fitOBB(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {

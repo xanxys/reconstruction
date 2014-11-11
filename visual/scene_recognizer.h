@@ -17,6 +17,7 @@
 
 namespace visual {
 
+// deprecated. Use recognizeExterior.
 std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
 // Try avoiding classes for this kind of complex, pure operation.
@@ -31,6 +32,14 @@ int ceilToPowerOf2(int x);
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
+
+// Return textured exterior mesh and light location.
+std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
+	recognizeExterior(
+		const AlignedScans& scans,
+		const TriangleMesh<std::nullptr_t>& shape,
+		const std::vector<int>& ceiling_ixs,
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside);
 
 void splitObjects(
 	SceneAssetBundle& bundle,

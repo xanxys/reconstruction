@@ -47,6 +47,7 @@ SingleScan::SingleScan(const std::string& scan_dir) {
 	}
 	scan_id = components.back();
 
+	INFO("Parsing JSON");
 	cloud.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& point : cloud_json) {
 		pcl::PointXYZRGBNormal pt;
