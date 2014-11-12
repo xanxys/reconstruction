@@ -63,6 +63,10 @@ Eigen::Matrix3f createOrthogonalBasis(
 std::vector<Chart> divideMeshToCharts(
 	const TriangleMesh<std::nullptr_t>& mesh);
 
+// Return adjacency of triangles.
+// Two triangles are considered ajacent when they
+// share one or more vertices.
+// (NO NEED TO SHARE AN EDGE!)
 std::map<int, std::set<int>> getTriangleAdjacency(
 	const TriangleMesh<std::nullptr_t>& mesh);
 

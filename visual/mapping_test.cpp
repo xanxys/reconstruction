@@ -38,6 +38,74 @@ TEST(Chart, SingleTriangle) {
 	}
 }
 
+TEST(getTriangleAdjacency, SingleTriangleHasNoAdjacency) {
+	visual::TriangleMesh<std::nullptr_t> mesh;
+	mesh.triangles.push_back({{0, 1, 2}});
+	mesh.vertices.emplace_back(Eigen::Vector3f(0, 0, 0), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f(1, 0, 0), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f(0, 1, 0), nullptr);
+
+	const auto adj = visual::getTriangleAdjacency(mesh);
+	EXPECT_TRUE(adj.empty());
+}
+
+TEST(getTriangleAdjacency, TwoTrianglesSharingEdge) {
+	// getTriangleAdjacency is a topological operation,
+	// so positions don't matter.
+	visual::TriangleMesh<std::nullptr_t> mesh;
+	mesh.triangles.push_back({{0, 1, 2}});  // tri 0
+	mesh.triangles.push_back({{1, 0, 3}});  // tri 1
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+
+	const auto adj = visual::getTriangleAdjacency(mesh);
+	const std::map<int, std::set<int>> truth_adj = {
+		{0, {1}},
+		{1, {0}}
+	};
+	EXPECT_EQ(truth_adj, adj);
+}
+
+TEST(getTriangleAdjacency, TwoTrianglesSharingVertex) {
+	// getTriangleAdjacency is a topological operation,
+	// so positions don't matter.
+	visual::TriangleMesh<std::nullptr_t> mesh;
+	mesh.triangles.push_back({{0, 1, 2}});  // tri 0
+	mesh.triangles.push_back({{0, 3, 4}});  // tri 1
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+
+	const auto adj = visual::getTriangleAdjacency(mesh);
+	const std::map<int, std::set<int>> truth_adj = {
+		{0, {1}},
+		{1, {0}}
+	};
+	EXPECT_EQ(truth_adj, adj);
+}
+
+TEST(getTriangleAdjacency, TwoTrianglesSeparate) {
+	// getTriangleAdjacency is a topological operation,
+	// so positions don't matter.
+	visual::TriangleMesh<std::nullptr_t> mesh;
+	mesh.triangles.push_back({{0, 1, 2}});  // tri 0
+	mesh.triangles.push_back({{3, 4, 5}});  // tri 1
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
+
+	const auto adj = visual::getTriangleAdjacency(mesh);
+	const std::map<int, std::set<int>> truth_adj = {};
+	EXPECT_EQ(truth_adj, adj);
+}
+
 
 TEST(getCCTest, EmptyGraph) {
 	std::set<int> verts;

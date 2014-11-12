@@ -100,13 +100,20 @@ std::vector<Chart> divideMeshToCharts(
 	}
 	const float cos_angle_thresh = std::cos(deg_to_rad(1e-3));
 	std::map<int, std::set<int>> adj_planar;
-	for(int tri_ix : all_tris) {
+	for(const int tri_ix : all_tris) {
+		const auto it_adj = adjacency.find(tri_ix);
+		if(it_adj == adjacency.cend()) {
+			continue;
+		}
 		std::set<int> planar_neighbors;
-		for(int neighbor_tri : adjacency.find(tri_ix)->second) {
+		for(const int neighbor_tri : it_adj->second) {
 			if(tri_normals[neighbor_tri].dot(tri_normals[tri_ix]) < cos_angle_thresh) {
 				continue;
 			}
 			planar_neighbors.insert(neighbor_tri);
+		}
+		if(planar_neighbors.empty()) {
+			continue;
 		}
 		adj_planar.emplace(tri_ix, std::move(planar_neighbors));
 	}
@@ -123,6 +130,7 @@ std::vector<Chart> divideMeshToCharts(
 		std::vector<std::array<int, 3>> tris;
 		std::map<int, Eigen::Vector2f> verts_proj;
 		for(int tri_ix : planar_cc) {
+			assert(0 <= tri_ix && tri_ix < mesh.triangles.size());
 			tris.push_back(mesh.triangles[tri_ix]);
 			for(int vert_ix : mesh.triangles[tri_ix]) {
 				const auto& pos = mesh.vertices[vert_ix].first;
@@ -139,14 +147,15 @@ std::vector<Chart> divideMeshToCharts(
 
 std::map<int, std::set<int>> getTriangleAdjacency(
 		const TriangleMesh<std::nullptr_t>& mesh) {
+	const int n_tris = mesh.triangles.size();
 	std::map<int, std::set<int>> vert_to_tris;
-	for(int ix_tri : boost::irange(0, (int)mesh.triangles.size())) {
+	for(const int ix_tri : boost::irange(0, n_tris)) {
 		for(int ix_vert : mesh.triangles[ix_tri]) {
-			vert_to_tris[ix_tri].insert(ix_vert);
+			vert_to_tris[ix_vert].insert(ix_tri);
 		}
 	}
 	std::map<int, std::set<int>> adjacency;
-	for(int ix_tri : boost::irange(0, (int)mesh.triangles.size())) {
+	for(const int ix_tri : boost::irange(0, n_tris)) {
 		const auto& tri = mesh.triangles[ix_tri];
 		std::set<int> tris_neighbors;
 		for(int ix_vert : tri) {
@@ -155,6 +164,9 @@ std::map<int, std::set<int>> getTriangleAdjacency(
 				vert_to_tris[ix_vert].end());
 		}
 		tris_neighbors.erase(ix_tri);  // remove itself
+		if(tris_neighbors.empty()) {
+			continue;
+		}
 		adjacency.emplace(ix_tri, std::move(tris_neighbors));
 	}
 	return adjacency;
