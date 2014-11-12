@@ -3,6 +3,7 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <set>
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -14,6 +15,26 @@
 
 namespace visual {
 
+// Connected triangles mapped to 2-d surface without overlapping.
+// spans [0, u_size] * [0, v_size]
+class Chart {
+public:
+	Eigen::Vector2f getSize() const;
+private:
+	// [(original vertex index, local UV)]
+	std::vector<std::pair<int, Eigen::Vector2f>> vertices;
+	std::vector<std::array<int, 3>> triangles;
+};
+
+
+std::vector<Chart> divideConnectedMeshToCharts(
+	const TriangleMesh<std::nullptr_t>& mesh,
+	const std::set<int>& tri_ixs);
+
+std::vector<std::set<int>> divideMeshToCC(
+	const TriangleMesh<std::nullptr_t>& mesh);
+
+
 // Create a new TriangleMesh with automatically generated UV coordinates.
 // UV is represented as Eigen::Vector2f, and will span [0,1]^2.
 //
@@ -21,11 +42,20 @@ namespace visual {
 // since it's often necessary to split a mesh into several components,
 // thus assigning multiple UVs to vertices sharing same location
 // (originally represented by a single vertex).
+//
+// Currently, assignUV won't distort mesh; that is,
+// even a slight angle cause neighboring triangles to be placed
+// far away.
 template<typename Vertex>
 TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Vertex>& mesh) {
 	// How much space between AABB (in uv space).
 	const float packing_margin = 0.02;
 
+	// Pack charts using charts's AABBs.
+	std::vector<Chart> charts;
+
+
+	// Create charts.
 	// Wrap all triangles in rectangles.
 	std::vector<Eigen::Vector2f> uv_sizes;
 	std::vector<std::tuple<

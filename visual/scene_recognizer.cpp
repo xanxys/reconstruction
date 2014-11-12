@@ -267,12 +267,12 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	}
 	// the ceiling must be perpendicular to Z plane.
 	assert(std::abs((aabb_max - aabb_min).z()) < 1e-3);
-
+	auto tex_mesh = bakeTexture(scans_aligned, room_mesh);
 
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
-		bakeTexture(scans_aligned, room_mesh),
+		tex_mesh,
 		visual::recognize_lights(cloud_inside));
 }
 
