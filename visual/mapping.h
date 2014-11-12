@@ -1,8 +1,9 @@
 #pragma once
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <map>
 #include <set>
 #include <vector>
 
@@ -33,6 +34,11 @@ std::vector<Chart> divideConnectedMeshToCharts(
 
 std::vector<std::set<int>> divideMeshToCC(
 	const TriangleMesh<std::nullptr_t>& mesh);
+
+// Get connected components of undirected graph.
+std::vector<std::set<int>> getCC(
+	const std::set<int>& vertices,
+	const std::map<int, std::set<int>>& adjacency);
 
 
 // Create a new TriangleMesh with automatically generated UV coordinates.
