@@ -31,27 +31,34 @@ std::tuple<
 	const auto poly = extractPolygon2D(cloud);
 	const auto h_range = extractHeightRange(cloud);
 
-	// Create wall
+	// Create all vertices, as composition of CCW top ring
+	// and bottom ring.
+	std::vector<int> verts_bottom;
+	std::vector<int> verts_top;
+	for(const auto& xy : poly) {
+		verts_bottom.push_back(mesh.vertices.size());
+		mesh.vertices.emplace_back(
+			Eigen::Vector3f(xy.x(), xy.y(), h_range.first),
+			nullptr);
+		verts_top.push_back(mesh.vertices.size());
+		mesh.vertices.emplace_back(
+			Eigen::Vector3f(xy.x(), xy.y(), h_range.second),
+			nullptr);
+	}
+
+	// Append wall quads.
 	for(int i : boost::irange(0, (int)poly.size())) {
-		const auto xy0 = poly[(i + 1) % poly.size()];
-		const auto xy1 = poly[i];
-
 		// Looked from inside, vertices are laid out like this:
-		// 3----2  -- h_range.second
+		// o----o  -- verts_top
 		// | \  |
-		// 0----1  -- h_range.first
-		// xy0 xy1
-		// i+1 <- i
-		TriangleMesh<std::nullptr_t> quad;
-		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.first), nullptr);
-		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.first), nullptr);
-		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.second), nullptr);
-		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.second), nullptr);
+		// o----o  -- verts_bottom
+		// j <- i
+		const int j = (i + 1) % poly.size();
 
-		quad.triangles.push_back({0, 1, 3});
-		quad.triangles.push_back({2, 3, 1});
-
-		mesh.merge(quad);
+		mesh.triangles.push_back({
+			verts_bottom[i], verts_top[i], verts_top[j]});
+		mesh.triangles.push_back({
+			verts_bottom[j], verts_bottom[i], verts_top[j]});
 	}
 
 	// Create floor + ceiling.
@@ -59,28 +66,27 @@ std::tuple<
 	// when projected onto XY plane,
 	// floor looks CCW (identical to tris), ceiling CW (flipped).
 	const auto tris = triangulatePolygon(poly);
-	auto create_cap = [&](const float z, const bool flip) {
-		TriangleMesh<std::nullptr_t> cap;
-		for(const auto& pt2d : poly) {
-			const Eigen::Vector3f pt3d(pt2d(0), pt2d(1), z);
-			cap.vertices.push_back(std::make_pair(pt3d, nullptr));
-		}
+	auto append_cap = [&](const bool is_ceiling) {
+		std::vector<int> tri_ixs;
 		for(const auto& tri : tris) {
-			cap.triangles.push_back(flip ?
-				std::array<int, 3>{{tri[2], tri[1], tri[0]}} :
-				std::array<int, 3>{{tri[0], tri[1], tri[2]}});
+			tri_ixs.push_back(mesh.triangles.size());
+			if(is_ceiling) {
+				mesh.triangles.push_back({{
+					verts_top[tri[2]],
+					verts_top[tri[1]],
+					verts_top[tri[0]]}});
+			} else {
+				mesh.triangles.push_back({{
+					verts_bottom[tri[0]],
+					verts_bottom[tri[1]],
+					verts_bottom[tri[2]]}});
+			}
 		}
-		return cap;
+		return tri_ixs;
 	};
 
-	mesh.merge(create_cap(h_range.first, false));  // floor
-	const int ix_ceiling_begin = mesh.triangles.size();
-	mesh.merge(create_cap(h_range.second, true));  // ceiling
-	const int ix_ceiling_end = mesh.triangles.size();
-	std::vector<int> ceiling_tri_ixs;
-	for(int i : boost::irange(ix_ceiling_begin, ix_ceiling_end)) {
-		ceiling_tri_ixs.push_back(i);
-	}
+	append_cap(false);
+	std::vector<int> ceiling_tri_ixs = append_cap(true);
 
 	DEBUG("Extruded polygon mesh #v=", (int)mesh.vertices.size());
 	return std::make_tuple(mesh, poly, h_range, ceiling_tri_ixs);

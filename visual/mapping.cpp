@@ -1,16 +1,36 @@
 #include "mapping.h"
 
+#include <cmath>
 #include <map>
 #include <set>
 #include <stack>
+#include <stdexcept>
 
 #include <logging.h>
 #include <math_util.h>
 
 namespace visual {
 
+Eigen::Matrix3f createOrthogonalBasis(
+		const Eigen::Vector3f& z) {
+	// Choose an arbitrary unit vector
+	// not too parallel to z, to increase stability.
+	const auto seed = (std::abs(z.x()) > 0.5) ?
+		Eigen::Vector3f(0, 1, 0) :
+		Eigen::Vector3f(1, 0, 0);
+
+	Eigen::Matrix3f basis;
+	basis.col(0) = z.cross(seed).normalized();
+	basis.col(1) = z.cross(basis.col(0));
+	basis.col(2) = z;
+	return basis;
+}
+
+
 std::vector<Chart> divideMeshToCharts(
 		const TriangleMesh<std::nullptr_t>& mesh) {
+	INFO("Starting chart decomposition (#tri, #vert)",
+		(int)mesh.triangles.size(), (int)mesh.vertices.size());
 	std::set<int> all_tris;
 	for(int i : boost::irange(0, (int)mesh.triangles.size())) {
 		all_tris.insert(i);
@@ -43,6 +63,13 @@ std::vector<Chart> divideMeshToCharts(
 		(int)all_tris.size(), (int)planar_ccs.size());
 
 	std::vector<Chart> charts;
+	for(const auto& planar_cc : planar_ccs) {
+		const auto basis = createOrthogonalBasis(
+			tri_normals[*planar_cc.begin()]);
+
+		basis.col(0);
+		basis.col(1);
+	}
 	return charts;
 }
 
@@ -58,14 +85,14 @@ std::map<int, std::set<int>> getTriangleAdjacency(
 	std::map<int, std::set<int>> adjacency;
 	for(int ix_tri : boost::irange(0, (int)mesh.triangles.size())) {
 		const auto& tri = mesh.triangles[ix_tri];
-		std::set<int> tris_all;
+		std::set<int> tris_neighbors;
 		for(int ix_vert : tri) {
-			tris_all.insert(
+			tris_neighbors.insert(
 				vert_to_tris[ix_vert].begin(),
 				vert_to_tris[ix_vert].end());
 		}
-		tris_all.erase(ix_tri);  // remove itself
-		adjacency.emplace(ix_tri, std::move(tris_all));
+		tris_neighbors.erase(ix_tri);  // remove itself
+		adjacency.emplace(ix_tri, std::move(tris_neighbors));
 	}
 	return adjacency;
 }
@@ -90,7 +117,11 @@ std::vector<std::set<int>> getCC(
 			}
 			visited.insert(current);
 			remaining_verts.erase(current);
-			for(int tri : adjacency.find(current)->second) {
+			const auto children = adjacency.find(current);
+			if(children == adjacency.cend()) {
+				continue;
+			}
+			for(int tri : children->second) {
 				frontier.push(tri);
 			}
 		}
