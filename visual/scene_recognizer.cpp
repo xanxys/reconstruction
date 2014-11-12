@@ -73,8 +73,8 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	quad.vertices.push_back(std::make_pair(
 		Eigen::Vector3f(-10, 10, z_ceiling),
 		Eigen::Vector2f(0, 1)));
-	quad.triangles.push_back(std::make_tuple(0, 1, 2));
-	quad.triangles.push_back(std::make_tuple(2, 3, 0));
+	quad.triangles.push_back({{0, 1, 2}});
+	quad.triangles.push_back({{2, 3, 0}});
 
 	// Make it grayscale and remove image noise by blurring.
 	const TexturedMesh ceiling_geom = cloud_baker::bakePointsToMesh(cloud, quad);
@@ -332,8 +332,7 @@ void splitObjects(
 					nullptr));
 				it_e++;
 			}
-			mesh.triangles.push_back(std::make_tuple(
-				v0, v0 + 1, v0 + 2));
+			mesh.triangles.push_back({{v0, v0 + 1, v0 + 2}});
 		}
 
 		bundle.addMesh("poly_" + std::to_string(i_cluster), mesh);

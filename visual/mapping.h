@@ -143,7 +143,8 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 				(offset + std::get<2>(local_uvs[i])) * scale));
 
 		// Put tri.
-		mesh_with_uv.triangles.emplace_back(i * 3 + 0, i * 3 + 1, i * 3 + 2);
+		mesh_with_uv.triangles.push_back(
+			std::array<int, 3>{{i * 3 + 0, i * 3 + 1, i * 3 + 2}});
 	}
 	return mesh_with_uv;
 }

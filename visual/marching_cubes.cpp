@@ -114,10 +114,11 @@ TriangleMesh<Eigen::Vector3f> tesselateCube(float v_surface,
 	}
 	for(const int i_face :
 			boost::irange(0, (int)(tri_template.size() / 3))) {
-		delta.triangles.push_back(std::make_tuple(
+		delta.triangles.push_back({{
 			compressed_vertex_index[tri_template[i_face * 3 + 0]],
 			compressed_vertex_index[tri_template[i_face * 3 + 1]],
-			compressed_vertex_index[tri_template[i_face * 3 + 2]]));
+			compressed_vertex_index[tri_template[i_face * 3 + 2]]
+			}});
 	}
 	return delta;
 }

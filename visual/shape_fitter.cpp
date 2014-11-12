@@ -48,8 +48,8 @@ std::tuple<
 		quad.vertices.emplace_back(Eigen::Vector3f(xy1.x(), xy1.y(), h_range.second), nullptr);
 		quad.vertices.emplace_back(Eigen::Vector3f(xy0.x(), xy0.y(), h_range.second), nullptr);
 
-		quad.triangles.push_back(std::make_tuple(0, 1, 3));
-		quad.triangles.push_back(std::make_tuple(2, 3, 1));
+		quad.triangles.push_back({0, 1, 3});
+		quad.triangles.push_back({2, 3, 1});
 
 		mesh.merge(quad);
 	}
@@ -67,8 +67,8 @@ std::tuple<
 		}
 		for(const auto& tri : tris) {
 			cap.triangles.push_back(flip ?
-				std::make_tuple(tri[2], tri[1], tri[0]) :
-				std::make_tuple(tri[0], tri[1], tri[2]));
+				std::array<int, 3>{{tri[2], tri[1], tri[0]}} :
+				std::array<int, 3>{{tri[0], tri[1], tri[2]}});
 		}
 		return cap;
 	};
@@ -539,23 +539,23 @@ TriangleMesh<std::nullptr_t> createBox(
 	// Draw a cube with 000-111 to understand this.
 	box.triangles = {
 		// X-
-		std::make_tuple(0, 2, 4),
-		std::make_tuple(6, 4, 2),
+		{{0, 2, 4}},
+		{{6, 4, 2}},
 		// X+
-		std::make_tuple(5, 7, 1),
-		std::make_tuple(3, 1, 7),
+		{{5, 7, 1}},
+		{{3, 1, 7}},
 		// Y-
-		std::make_tuple(0, 4, 1),
-		std::make_tuple(5, 1, 4),
+		{{0, 4, 1}},
+		{{5, 1, 4}},
 		// Y+
-		std::make_tuple(6, 2, 7),
-		std::make_tuple(3, 7, 2),
+		{{6, 2, 7}},
+		{{3, 7, 2}},
 		// Z-
-		std::make_tuple(0, 1, 2),
-		std::make_tuple(3, 2, 1),
+		{{0, 1, 2}},
+		{{3, 2, 1}},
 		// Z+
-		std::make_tuple(6, 7, 4),
-		std::make_tuple(5, 4, 7)
+		{{6, 7, 4}},
+		{{5, 4, 7}}
 	};
 
 	return box;

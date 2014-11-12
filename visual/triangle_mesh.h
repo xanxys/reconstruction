@@ -19,10 +19,10 @@ public:
 	void merge(const TriangleMesh<Vertex>& delta) {
 		const int base_index = vertices.size();
 		for(const auto& face : delta.triangles) {
-			triangles.emplace_back(
-				std::get<0>(face) + base_index,
-				std::get<1>(face) + base_index,
-				std::get<2>(face) + base_index);
+			triangles.push_back({{
+				face[0] + base_index,
+				face[1] + base_index,
+				face[2] + base_index}});
 		}
 		vertices.insert(vertices.end(),
 			delta.vertices.begin(), delta.vertices.end());
@@ -31,9 +31,9 @@ public:
 	float area() const {
 		float area = 0;
 		for(const auto& face : triangles) {
-			const auto v0 = vertices[std::get<0>(face)].first;
-			const auto v1 = vertices[std::get<1>(face)].first;
-			const auto v2 = vertices[std::get<2>(face)].first;
+			const auto v0 = vertices[face[0]].first;
+			const auto v1 = vertices[face[1]].first;
+			const auto v2 = vertices[face[2]].first;
 			area += (v1 - v0).cross(v2 - v0).norm() * 0.5;
 		}
 		return area;
@@ -188,7 +188,7 @@ public:
 		}
 	}
 public:
-	std::vector<std::tuple<int, int, int>> triangles;
+	std::vector<std::array<int, 3>> triangles;
 	std::vector<std::pair<Eigen::Vector3f, Vertex>> vertices;
 };
 
