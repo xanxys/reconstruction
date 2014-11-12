@@ -248,6 +248,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// Maybe overly complex??
 
 	// Just calculate AABB of ceiling and project to it is enough?
+		/*
 	Eigen::Vector3f aabb_min(1e3, 1e3, 1e3);
 	Eigen::Vector3f aabb_max(-1e3, -1e3, -1e3);
 	for(const int ix_tri : ceiling_ixs) {
@@ -267,8 +268,9 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	}
 	// the ceiling must be perpendicular to Z plane.
 	assert(std::abs((aabb_max - aabb_min).z()) < 1e-3);
+	
+	*/
 	auto tex_mesh = bakeTexture(scans_aligned, room_mesh);
-
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(

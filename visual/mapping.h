@@ -28,11 +28,10 @@ private:
 };
 
 
-std::vector<Chart> divideConnectedMeshToCharts(
-	const TriangleMesh<std::nullptr_t>& mesh,
-	const std::set<int>& tri_ixs);
+std::vector<Chart> divideMeshToCharts(
+	const TriangleMesh<std::nullptr_t>& mesh);
 
-std::vector<std::set<int>> divideMeshToCC(
+std::map<int, std::set<int>> getTriangleAdjacency(
 	const TriangleMesh<std::nullptr_t>& mesh);
 
 // Get connected components of undirected graph.
@@ -58,7 +57,7 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(const TriangleMesh<Ver
 	const float packing_margin = 0.02;
 
 	// Pack charts using charts's AABBs.
-	std::vector<Chart> charts;
+	const auto charts = divideMeshToCharts(dropAttrib(mesh));
 
 
 	// Create charts.
