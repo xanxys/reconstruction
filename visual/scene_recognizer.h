@@ -23,7 +23,10 @@ std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>:
 // Try avoiding classes for this kind of complex, pure operation.
 namespace scene_recognizer {
 
-TexturedMesh bakeTexture(const AlignedScans& scans, const TriangleMesh<std::nullptr_t>& shape);
+TexturedMesh bakeTexture(
+	const AlignedScans& scans,
+	const TriangleMesh<std::nullptr_t>& shape,
+	float accept_dist = 0.1);
 
 // Return nearest power of 2 number >= x.
 // ceilToPowerOf2(x) = 1 for x <=0.

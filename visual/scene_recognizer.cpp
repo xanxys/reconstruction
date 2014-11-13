@@ -270,7 +270,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	assert(std::abs((aabb_max - aabb_min).z()) < 1e-3);
 	
 	*/
-	auto tex_mesh = bakeTexture(scans_aligned, room_mesh);
+	auto tex_mesh = bakeTexture(scans_aligned, room_mesh, 0.3);
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
@@ -399,7 +399,8 @@ int ceilToPowerOf2(int x) {
 
 TexturedMesh bakeTexture(
 		const AlignedScans& scans,
-		const TriangleMesh<std::nullptr_t>& shape_wo_uv) {
+		const TriangleMesh<std::nullptr_t>& shape_wo_uv,
+		const float accept_dist) {
 	// Calculate good texture size.
 	// * must be pow of 2 (not mandatory, but for efficiency)
 	// * texture pixel area \propto actual area
@@ -440,7 +441,6 @@ TexturedMesh bakeTexture(
 					l_to_w * org_local,
 					l_to_w.rotation() * dir_local);
 
-				const float accept_dist = 0.1;
 				const auto isect = intersecter.intersect(ray);
 				if(isect) {
 					const float t = std::get<2>(*isect);
