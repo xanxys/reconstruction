@@ -22,7 +22,7 @@
 
 
 # Exclude 13:23 (because of messed up reflection by window)
-time ./recon --convert \
+time build/recon --convert \
 	../data/scan-20140827-12:57-gakusei-small \
 	../data/scan-20140827-13:05-gakusei-small \
 	../data/scan-20140827-13:11-gakusei-small \

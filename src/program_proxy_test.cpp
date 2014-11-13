@@ -8,6 +8,6 @@ TEST(CallExternalTest, EchoObject) {
 	arg["foo"] = 123;
 	arg["hoge"] = 45;
 
-	Json::Value result = call_external("./program_proxy_test_echo.py", arg);
+	Json::Value result = call_external("extpy/program_proxy_test_echo.py", arg);
 	EXPECT_EQ(arg, result);
 }

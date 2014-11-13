@@ -1,11 +1,7 @@
-recon
-recon_test
-*.o
+build/
 .sconsign.dblite
 data/
 archive/
-*.pb.cc
-*.pb.h
 *.sublime-workspace
 log
 *.pyc
