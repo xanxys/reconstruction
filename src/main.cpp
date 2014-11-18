@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("test", "do experimental stuff")
+		("debug", "output debug / visualization data (slow)")
 		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans");
 
 	variables_map vars;
@@ -95,7 +96,9 @@ int main(int argc, char** argv) {
 			scans.emplace_back(dir_path);
 		}
 		INFO("Converting to a scene");
-		visual::SceneAssetBundle bundle(guessSceneName(dir_paths.front()));
+		const bool debug = vars.count("debug");
+		visual::SceneAssetBundle bundle(
+			guessSceneName(dir_paths.front()), debug);
 		visual::scene_recognizer::recognizeScene(bundle, scans);
 		return 0;
 	} else {

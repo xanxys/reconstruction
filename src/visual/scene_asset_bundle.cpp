@@ -8,8 +8,8 @@ namespace visual {
 
 using boost::filesystem::path;
 
-SceneAssetBundle::SceneAssetBundle(std::string dir_path) :
-		debug_count(0), dir_path(dir_path), do_finalize(true) {
+SceneAssetBundle::SceneAssetBundle(std::string dir_path, bool debug) :
+		debug_count(0), dir_path(dir_path), do_finalize(true), debug(debug) {
 	recreateDirectory(dir_path);
 }
 
@@ -30,6 +30,10 @@ SceneAssetBundle::~SceneAssetBundle() {
 		std::ofstream json_file((dir_path / path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}
+}
+
+bool SceneAssetBundle::isDebugEnabled() const {
+	return debug;
 }
 
 void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {

@@ -25,7 +25,7 @@ public:
 	// Initialize empty data with output directory.
 	// The output directory will be filled by files as data
 	// become available.
-	SceneAssetBundle(std::string dir_path);
+	SceneAssetBundle(std::string dir_path, bool debug);
 	// open with existing incomplete asset bundle.
 	SceneAssetBundle(std::string dir_path, int count_start);
 	~SceneAssetBundle();
@@ -42,6 +42,8 @@ public:
 	void addMeshFlat(std::string name, const TexturedMesh& mesh);
 
 	Json::Value loadJson(std::string name) const;
+
+	bool isDebugEnabled() const;
 private:
 	void recreateDirectory(std::string dir_path) const;
 
@@ -68,6 +70,7 @@ public:
 	std::vector<std::string> object_ids;
 	std::vector<TexturedMesh> interior_objects;
 private:
+	bool debug;
 	bool do_finalize;
 	int debug_count;
 	const std::string dir_path;
