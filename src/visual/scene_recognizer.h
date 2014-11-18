@@ -1,12 +1,10 @@
 #pragma once
 
-#include <map>
 #include <tuple>
+#include <vector>
 
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
-#include <jsoncpp/json/json.h>
-#include <opencv2/opencv.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 

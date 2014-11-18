@@ -19,6 +19,8 @@
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/convex_hull_3.h>
 // insanity ends here
+#include <jsoncpp/json/json.h>
+#include <opencv2/opencv.hpp>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/ModelCoefficients.h>

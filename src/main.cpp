@@ -1,53 +1,12 @@
-#include <array>
 #include <iostream>
-#include <fstream>
-#include <limits>
-#include <map>
-#include <random>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 
 #include <logging.h>
 #include <server/recon_server.h>
-#include <visual/cloud_baker.h>
-#include <visual/cloud_conversion.h>
-#include <visual/mapping.h>
-#include <visual/marching_cubes.h>
+#include <visual/scene_asset_bundle.h>
 #include <visual/scene_recognizer.h>
-#include <visual/shape_fitter.h>
-#include <visual/texture_conversion.h>
-
-/* Bunch of examples on how to use codes */
-
-void testMeshIO() {
-	INFO("creating metaball");
-	const auto mesh_n = visual::extractIsosurface(
-		3, [](Eigen::Vector3f p) {
-			return (
-				1 / (0.01 + p.norm()) +
-				1 / (0.01 + (p - Eigen::Vector3f(0.9,0.9,0.9)).norm())
-				);
-		}, std::make_pair(
-			Eigen::Vector3f(-3, -3, -3),
-			Eigen::Vector3f(3, 3, 3)),
-		0.1);
-	std::ofstream test("test.ply");
-	mesh_n.serializePLY(test);
-
-	const auto mesh_n_uv = visual::assignUV(mesh_n);
-	const auto mesh_uv = visual::mapSecond(mesh_n_uv);
-	cv::imwrite("uv.png", visual::visualizeUVMap(mesh_uv));
-	cv::imwrite("uv_3d.png", visual::bake3DTexture(mesh_uv,
-		[](Eigen::Vector3f p) {
-			return p;
-		}));
-
-	std::ofstream test_uv("test_uv.obj");
-	std::ofstream test_mat("test_uv.mtl");
-	mesh_uv.serializeObjWithUv(test_uv, "test_uv.mtl");
-	visual::writeObjMaterial(test_mat, "uv_3d.png");
-}
 
 std::string guessSceneName(const std::string& scan_path) {
 	std::vector<std::string> components;
@@ -61,7 +20,6 @@ std::string guessSceneName(const std::string& scan_path) {
 	}
 }
 
-
 int main(int argc, char** argv) {
 	using boost::program_options::notify;
 	using boost::program_options::options_description;
@@ -73,7 +31,6 @@ int main(int argc, char** argv) {
 	options_description desc("Reconstruct 3D scene from scans.");
 	desc.add_options()
 		("help", "show this message")
-		("test", "do experimental stuff")
 		("debug", "output debug / visualization data (slow)")
 		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans");
 
@@ -84,9 +41,6 @@ int main(int argc, char** argv) {
 	// Do specified action.
 	if(vars.count("help") > 0) {
 		std::cout << desc << std::endl;
-		return 0;
-	} else if(vars.count("test") > 0) {
-		testMeshIO();
 		return 0;
 	} else if(vars.count("convert") > 0) {
 		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
