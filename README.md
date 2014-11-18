@@ -23,6 +23,7 @@ reconstruction uses docker to build and run.
 6. `cd /root/local` (mapped to `./` in host)
 7. `scons -j 4` (if you modified source code. you can change 4 to any number of CPU cores for parallel compilation)
 8. `time build/recon --convert ../data/scan-20140827-*`
+(You can supply `--debug` to see useful stuff)
 
 Now move that scan- directory to somewhere accesible from UE4.
 
