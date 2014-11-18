@@ -12,7 +12,7 @@ public:
 	FilmRGB8U(int width, int height, float sigma);
 
 	// Put a sample.
-	void record(Eigen::Vector2f pos, cv::Vec3b value);
+	void record(Eigen::Vector2f pos, cv::Vec3f value);
 
 	// return CV_8UC3 interpolated image.
 	cv::Mat extract() const;

@@ -90,6 +90,15 @@ std::string SingleScan::getScanId() const {
 }
 
 
+CorrectedSingleScan::CorrectedSingleScan(
+		const SingleScan& raw_scan,
+		const Eigen::Affine3f& local_to_world,
+		const Eigen::Vector3f& color_multiplier) :
+		raw_scan(raw_scan), local_to_world(local_to_world),
+		color_multiplier(color_multiplier) {
+}
+
+
 AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 	predefinedMerge("pose-20140827.json", scans);
@@ -512,11 +521,13 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 }
 
 
-std::vector<std::pair<SingleScan, Eigen::Affine3f>> AlignedScans::getScansWithPose() const {
-	std::vector<std::pair<SingleScan, Eigen::Affine3f>> result;
+std::vector<CorrectedSingleScan> AlignedScans::getScansWithPose() const {
+	std::vector<CorrectedSingleScan> result;
 	for(const auto& s_w_p : scans_with_pose) {
-		result.push_back(std::make_pair(
-			std::get<0>(s_w_p), std::get<1>(s_w_p)));
+		result.emplace_back(
+			std::get<0>(s_w_p),
+			std::get<1>(s_w_p),
+			std::get<2>(s_w_p));
 	}
 	return result;
 }

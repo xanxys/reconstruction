@@ -270,7 +270,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	assert(std::abs((aabb_max - aabb_min).z()) < 1e-3);
 	
 	*/
-	auto tex_mesh = bakeTexture(scans_aligned, room_mesh, 0.3);
+	auto tex_mesh = bakeTexture(scans_aligned, room_mesh, 0.4);
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
@@ -415,18 +415,22 @@ TexturedMesh bakeTexture(
 	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
 	int n_hits = 0;
 	int n_all = 0;
-	for(const auto& scan_and_pose : scans.getScansWithPose()) {
-		const auto scan = scan_and_pose.first;
-		const auto l_to_w = scan_and_pose.second;
+	for(const auto& corrected_scan : scans.getScansWithPose()) {
+		const auto scan = corrected_scan.raw_scan;
+		const auto l_to_w = corrected_scan.local_to_world;
 		for(int y : boost::irange(0, scan.er_rgb.rows)) {
 			for(int x : boost::irange(0, scan.er_rgb.cols)) {
 				// Ignore N/A samples.
 				// TODO: 0,0,0 rarely occurs naturaly, but when it does,
 				// consider migration to RGBA image.
-				const cv::Vec3b color = scan.er_rgb(y, x);
-				if(color == cv::Vec3b(0, 0, 0)) {
+				const cv::Vec3b raw_color = scan.er_rgb(y, x);
+				if(raw_color == cv::Vec3b(0, 0, 0)) {
 					continue;
 				}
+				cv::Vec3f color = raw_color;  // BGR
+				color[0] *= corrected_scan.color_multiplier(2);
+				color[1] *= corrected_scan.color_multiplier(1);
+				color[2] *= corrected_scan.color_multiplier(0);
 				n_all++;
 
 				const float theta = (float)y / scan.er_rgb.rows * pi;

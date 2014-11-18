@@ -5,6 +5,7 @@
 
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/point_cloud.h>
@@ -35,6 +36,20 @@ private:
 };
 
 
+// An aligned, color-corrected, SingleScan.
+class CorrectedSingleScan {
+public:
+	CorrectedSingleScan(
+		const SingleScan& raw_scan,
+		const Eigen::Affine3f& local_to_world,
+		const Eigen::Vector3f& color_multiplier);
+public:
+	SingleScan raw_scan;
+	Eigen::Affine3f local_to_world;
+	Eigen::Vector3f color_multiplier;
+};
+
+
 // All scans succesfully aligned.
 class AlignedScans {
 public:
@@ -47,7 +62,7 @@ public:
 	// TODO: deprecate this!
 	// External process shouldn't depend on individual scans,
 	// and this interface collides with color-correcting alignment step.
-	std::vector<std::pair<SingleScan, Eigen::Affine3f>> getScansWithPose() const;
+	std::vector<CorrectedSingleScan> getScansWithPose() const;
 private:
 	// Use external json with pose for each scan.
 	void predefinedMerge(std::string path, const std::vector<SingleScan>& scans);

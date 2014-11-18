@@ -30,7 +30,7 @@ FilmRGB8U::FilmRGB8U(int width, int height, float sigma) :
 	}
 }
 
-void FilmRGB8U::record(Eigen::Vector2f pos, cv::Vec3b value) {
+void FilmRGB8U::record(Eigen::Vector2f pos, cv::Vec3f value) {
 	const Eigen::Vector2i ipos = pos.cast<int>();
 	const Eigen::Vector2i imin =
 		ipos - Eigen::Vector2i(kernel_margin, kernel_margin);
