@@ -192,6 +192,16 @@ public:
 	std::vector<std::pair<Eigen::Vector3f, Vertex>> vertices;
 };
 
+// Replace any Vertex attribute with nullptr.
+template<typename Vertex>
+TriangleMesh<std::nullptr_t> dropAttrib(const TriangleMesh<Vertex>& mesh) {
+	TriangleMesh<std::nullptr_t> new_mesh;
+	new_mesh.triangles = mesh.triangles;
+	for(const auto& vert : mesh.vertices) {
+		new_mesh.vertices.push_back(std::make_pair(vert.first, nullptr));
+	}
+	return new_mesh;
+}
 
 namespace triangle_mesh {
 

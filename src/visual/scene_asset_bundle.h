@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <tuple>
+#include <vector>
 
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
@@ -59,6 +60,8 @@ private:
 	// Behavior is undefined when the directory already exists.
 	// The directory might be nested.
 	void serializeIntoDirectory(std::string dir_path);
+
+	void serializeWholeScene() const;
 
 	// Serialize relative small data that nicely fits into a JSON
 	// (e.g. <100MB).

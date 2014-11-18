@@ -125,14 +125,4 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(
 	return mesh_with_uv;
 }
 
-template<typename Vertex>
-TriangleMesh<std::nullptr_t> dropAttrib(const TriangleMesh<Vertex>& mesh) {
-	TriangleMesh<std::nullptr_t> new_mesh;
-	new_mesh.triangles = mesh.triangles;
-	for(const auto& vert : mesh.vertices) {
-		new_mesh.vertices.push_back(std::make_pair(vert.first, nullptr));
-	}
-	return new_mesh;
-}
-
 }  // namespace

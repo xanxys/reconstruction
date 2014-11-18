@@ -20,6 +20,9 @@ SceneAssetBundle::~SceneAssetBundle() {
 		std::ofstream json_file((dir_path / path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}
+	if(debug) {
+		serializeWholeScene();
+	}
 }
 
 bool SceneAssetBundle::isDebugEnabled() const {
@@ -111,6 +114,17 @@ void SceneAssetBundle::addMesh(std::string name, const TexturedMesh& mesh) {
 
 void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
 	mesh.writeWavefrontObjectFlat((dir_path / path(name)).string());
+}
+
+void SceneAssetBundle::serializeWholeScene() const {
+	TriangleMesh<std::nullptr_t> whole_scene;
+	whole_scene.merge(dropAttrib(exterior_mesh.mesh));
+	for(const auto& interior_object : interior_objects) {
+		whole_scene.merge(dropAttrib(interior_object.mesh));
+	}
+
+	std::ofstream mesh_f((dir_path / path("whole.ply")).string());
+	whole_scene.serializePLY(mesh_f);
 }
 
 
