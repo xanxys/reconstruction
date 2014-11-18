@@ -3,19 +3,14 @@
 #include <array>
 #include <iostream>
 #include <fstream>
-#include <limits>
 
 #include <boost/filesystem.hpp>
 #include <boost/range/irange.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <analyzer/voxel_traversal.h>
-#include <logging.h>
 #include <range2.h>
 #include <visual/cloud_conversion.h>
-#include <visual/mapping.h>
-#include <visual/marching_cubes.h>
 #include <visual/texture_conversion.h>
 
 namespace visual {

@@ -12,7 +12,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <analyzer/voxel_traversal.h>
+#include <geom/voxel_traversal.h>
 #include <logging.h>
 #include <range2.h>
 #include <visual/marching_cubes.h>

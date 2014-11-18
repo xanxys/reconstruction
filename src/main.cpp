@@ -4,7 +4,6 @@
 #include <boost/program_options.hpp>
 
 #include <logging.h>
-#include <server/recon_server.h>
 #include <visual/scene_asset_bundle.h>
 #include <visual/scene_recognizer.h>
 
@@ -56,13 +55,7 @@ int main(int argc, char** argv) {
 		visual::scene_recognizer::recognizeScene(bundle, scans);
 		return 0;
 	} else {
-		INFO("Launching HTTP server");
-		server::ReconServer server;
-		server.launch();
-		while(true) {
-			std::string dummy;
-			std::cin >> dummy;
-		}
+		std::cout << desc << std::endl;
 		return 0;
 	}
 }

@@ -5,7 +5,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <asset.pb.h>
 #include <logging.h>
 #include <visual/triangle_mesh.h>
 
