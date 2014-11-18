@@ -146,6 +146,11 @@ void test_segmentation(
 
 }
 
+void splitEachScan(
+		SceneAssetBundle& bundle, CorrectedSingleScan& ccs) {
+	INFO("Reognizing single scan");
+}
+
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
@@ -154,6 +159,10 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	const auto points_merged = scans_aligned.getMergedPointsNormal();
 	bundle.addDebugPointCloud("points_merged", points_merged);
 	INFO("# of points after merge:", (int)points_merged->points.size());
+
+	for(auto& ccs :  scans_aligned.getScansWithPose()) {
+		splitEachScan(bundle, ccs);
+	}
 
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
@@ -223,15 +232,12 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 
-	std::vector<TexturedMesh> boxes;
-
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
 		scans_aligned, room_mesh, room_ceiling_ixs,
 		cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
 	bundle.exterior_mesh = exterior.first;
-	bundle.interior_objects = boxes;
 
 	INFO("Splitting objects");
 	splitObjects(bundle, filtered, scans_aligned);
@@ -313,7 +319,6 @@ void splitObjects(
 	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
 
 	// create polyhedron.
-	int i_cluster = 0;
 	for(const auto& indices : clusters) {
 		std::vector<Point_3> points;
 		for(int ix : indices.indices) {
@@ -339,17 +344,10 @@ void splitObjects(
 			mesh.triangles.push_back({{v0, v0 + 1, v0 + 2}});
 		}
 
-		bundle.addMesh("poly_" + std::to_string(i_cluster), mesh);
-
 		// bake texture
 		//const auto tex_mesh = visual::cloud_baker::bakePointsToMesh(cloud, mesh);
 		const auto tex_mesh = bakeTexture(scans, mesh);
-		bundle.addMesh("poly_" + std::to_string(i_cluster), tex_mesh);
-
-		bundle.addMeshFlat("flat_poly_" + std::to_string(i_cluster), tex_mesh);
-
-		bundle.object_ids.push_back(std::to_string(i_cluster));
-		i_cluster++;
+		bundle.addInteriorObject(tex_mesh);
 	}
 
 	std::default_random_engine generator;

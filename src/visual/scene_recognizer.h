@@ -30,6 +30,8 @@ TexturedMesh bakeTexture(
 // ceilToPowerOf2(x) = 1 for x <=0.
 int ceilToPowerOf2(int x);
 
+void splitEachScan(SceneAssetBundle& bundle, CorrectedSingleScan& ccs);
+
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);

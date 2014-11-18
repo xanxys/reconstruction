@@ -13,16 +13,6 @@ SceneAssetBundle::SceneAssetBundle(std::string dir_path, bool debug) :
 	recreateDirectory(dir_path);
 }
 
-SceneAssetBundle::SceneAssetBundle(std::string dir_path, int count_start) :
-		debug_count(count_start), dir_path(dir_path), do_finalize(false) {
-	std::ifstream json_file((dir_path / path("small_data.json")).string());
-	Json::Value small_data;
-	if(!Json::Reader().parse(json_file, small_data)) {
-		throw std::runtime_error("Failed to import json metadata");
-	}
-	deserializeSmallData(small_data);
-}
-
 SceneAssetBundle::~SceneAssetBundle() {
 	if(do_finalize) {
 		serializeIntoDirectory(dir_path);
@@ -48,7 +38,7 @@ void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {
 	create_directory(dir_path);
 }
 
-void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
+void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) {
 	using boost::filesystem::create_directory;
 	using boost::filesystem::remove_all;
 
@@ -62,8 +52,9 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) const {
 	}
 	int count = 0;
 	for(const auto& interior : interior_objects) {
-		const std::string name = "interior_" + std::to_string(count++);
-		interior.writeWavefrontObject((dir_path / name).string());
+		object_ids.push_back(std::to_string(count));
+		const std::string name = "flat_poly_" + std::to_string(count++);
+		interior.writeWavefrontObjectFlat((dir_path / name).string());
 	}
 }
 
@@ -78,6 +69,14 @@ Json::Value SceneAssetBundle::loadJson(std::string name) const {
 	return root;
 }
 
+void SceneAssetBundle::addInteriorObject(const TexturedMesh& mesh) {
+	if(debug) {
+		addMesh(
+			"poly_" + std::to_string(interior_objects.size()),
+			mesh);
+	}
+	interior_objects.push_back(mesh);
+}
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	const int id = debug_count++;
@@ -151,19 +150,5 @@ Json::Value SceneAssetBundle::serializeSmallData() const {
 	}
 	return small_data;
 }
-
-void SceneAssetBundle::deserializeSmallData(const Json::Value& root){
-	for(const auto& light : root["lights"]) {
-		Eigen::Vector3f pos(
-			light["pos"]["x"].asDouble(),
-			light["pos"]["y"].asDouble(),
-			light["pos"]["z"].asDouble());
-		point_lights.push_back(pos);
-	}
-	for(auto& oid : root["objects"]) {
-		object_ids.push_back(oid.asString());
-	}
-}
-
 
 }  // namespace
