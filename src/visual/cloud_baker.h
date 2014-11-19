@@ -9,7 +9,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <asset.pb.h>
 #include <logging.h>
 #include <visual/cloud_conversion.h>
 #include <visual/dense_voxel.h>
