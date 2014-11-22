@@ -37,7 +37,7 @@ typename pcl::PointCloud<Point>::Ptr colorPointsByDistance(
 		const auto normal = std::get<2>(dist_and_uv);
 		// inside == very far from walls
 		// OR somewhat far from walls and have very different normals
-		if(dist > 0.2 || (dist > 0.05 && normal.dot(point.getNormalVector3fMap()) < 0.5)) {
+		if(dist > 0.3 || (dist > 0.05 && normal.dot(point.getNormalVector3fMap()) < 0.5)) {
 			if(!dont_color) {
 				point.r = dist * 255;
 				point.g = dist * 255;

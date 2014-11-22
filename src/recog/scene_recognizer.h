@@ -30,7 +30,34 @@ TexturedMesh bakeTexture(
 // ceilToPowerOf2(x) = 1 for x <=0.
 int ceilToPowerOf2(int x);
 
-void splitEachScan(SceneAssetBundle& bundle, CorrectedSingleScan& ccs);
+// Represents Manhattan indoor room coordinates.
+// But RoomFrame doesn't hold raw scans.
+// (aligned scans and RoomFrame are implicitly tied by having
+// shared world coordinate system)
+//
+// RoomFrames defines not just entire 3-d coordinates, but
+// * boundary of room (maybe fuzzy around windows)
+// * wall / ceiling / floor coodinates
+//
+// Z+ is assumed to be up, but Z offset and other Manhattan axes
+// are arbitrary.
+class RoomFrame {
+public:
+	RoomFrame();
+public:
+	std::vector<Eigen::Vector2f> wall_polygon;
+private:
+	// up and principle directions.
+	Eigen::Vector3f up;
+	Eigen::Vector3f prin0;
+	Eigen::Vector3f prin1;
+};
+
+// Label each point as part of room boundary, inside, or outside.
+// Small error between RoomFrame and aligned coordinate will be
+// compensated, but CorrectedSingleScan must not have ghosting.
+void splitEachScan(
+	SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe);
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.

@@ -110,6 +110,10 @@ std::vector<Eigen::Vector3f> recognize_lights(
 
 namespace scene_recognizer {
 
+RoomFrame::RoomFrame() {
+	up = Eigen::Vector3f(0, 0, 1);
+}
+
 void test_segmentation(
 		SceneAssetBundle& bundle,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
@@ -147,8 +151,10 @@ void test_segmentation(
 }
 
 void splitEachScan(
-		SceneAssetBundle& bundle, CorrectedSingleScan& ccs) {
-	INFO("Reognizing single scan");
+		SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe) {
+	INFO("Recognizing single scan", ccs.raw_scan.getScanId());
+	// Fit polygon to ccs.
+
 }
 
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
@@ -160,10 +166,6 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.addDebugPointCloud("points_merged", points_merged);
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
-	for(auto& ccs :  scans_aligned.getScansWithPose()) {
-		splitEachScan(bundle, ccs);
-	}
-
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
 	const auto extrusion = shape_fitter::fitExtrusion(cloud_colorless);
@@ -171,6 +173,12 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	auto room_polygon = std::get<1>(extrusion);
 	auto room_hrange = std::get<2>(extrusion);
 	auto room_ceiling_ixs = std::get<3>(extrusion);
+
+	RoomFrame rframe;
+	rframe.wall_polygon = room_polygon;
+	for(auto& ccs :  scans_aligned.getScansWithPose()) {
+		splitEachScan(bundle, ccs, rframe);
+	}
 	// We're just lucky to get correct room polygon without excluding outside points first.
 	// points
 	// |-inside
