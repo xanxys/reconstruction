@@ -9,8 +9,8 @@
 #include <pcl/point_types.h>
 
 #include <logging.h>
-#include <visual/aligned_scan.h>
-#include <visual/scene_asset_bundle.h>
+#include <recog/aligned_scan.h>
+#include <recog/scene_asset_bundle.h>
 #include <visual/textured_mesh.h>
 
 namespace visual {

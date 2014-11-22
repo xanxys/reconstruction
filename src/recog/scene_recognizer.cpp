@@ -34,13 +34,13 @@
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <math_util.h>
+#include <recog/shape_fitter.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
 #include <visual/cloud_filter.h>
 #include <visual/film.h>
 #include <visual/mapping.h>
 #include <visual/mesh_intersecter.h>
-#include <visual/shape_fitter.h>
 #include <visual/texture_conversion.h>
 
 namespace visual {
@@ -308,7 +308,7 @@ void splitObjects(
 	pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
 	ec.setClusterTolerance(0.02); // 2cm
 	ec.setMinClusterSize(100);
-	ec.setMaxClusterSize(100000);  // 100000: most small objects / 500000: everything incl. tabgles
+	ec.setMaxClusterSize(10000000);  // 100000: most small objects / 500000: everything incl. tabgles
 	ec.setSearchMethod(tree);
 	ec.setInputCloud(cloud);
 

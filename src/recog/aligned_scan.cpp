@@ -15,13 +15,13 @@
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <program_proxy.h>
+#include <recog/shape_fitter.h>
 #include <third/ICP.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
 #include <visual/film.h>
 #include <visual/mapping.h>
 #include <visual/mesh_intersecter.h>
-#include <visual/shape_fitter.h>
 #include <visual/texture_conversion.h>
 
 namespace visual {

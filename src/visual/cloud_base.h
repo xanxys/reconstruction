@@ -5,6 +5,7 @@
 
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
+#include <pcl/common/io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 

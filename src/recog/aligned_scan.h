@@ -12,7 +12,7 @@
 #include <pcl/point_types.h>
 
 #include <logging.h>
-#include <visual/scene_asset_bundle.h>
+#include <recog/scene_asset_bundle.h>
 #include <visual/textured_mesh.h>
 
 namespace visual {

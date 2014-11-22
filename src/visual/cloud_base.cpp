@@ -1,4 +1,4 @@
-#include "scene_recognizer.h"
+#include "cloud_base.h"
 
 #include <fstream>
 
@@ -13,8 +13,8 @@
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <math_util.h>
+#include <recog/shape_fitter.h>
 #include <visual/mesh_intersecter.h>
-#include <visual/shape_fitter.h>
 #include <visual/texture_conversion.h>
 
 namespace visual {

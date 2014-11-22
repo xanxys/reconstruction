@@ -15,8 +15,8 @@
 #include <geom/voxel_traversal.h>
 #include <logging.h>
 #include <range2.h>
+#include <recog/shape_fitter.h>
 #include <visual/marching_cubes.h>
-#include <visual/shape_fitter.h>
 #include <visual/voxel_conversion.h>
 
 namespace visual {

@@ -4,8 +4,8 @@
 #include <boost/program_options.hpp>
 
 #include <logging.h>
-#include <visual/scene_asset_bundle.h>
-#include <visual/scene_recognizer.h>
+#include <recog/scene_asset_bundle.h>
+#include <recog/scene_recognizer.h>
 
 std::string guessSceneName(const std::string& scan_path) {
 	std::vector<std::string> components;
