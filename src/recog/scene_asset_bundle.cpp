@@ -29,6 +29,18 @@ bool SceneAssetBundle::isDebugEnabled() const {
 	return debug;
 }
 
+bool SceneAssetBundle::hasAlignmentCheckpoint() {
+	return false;
+}
+
+Json::Value SceneAssetBundle::getAlignmentCheckpoint() {
+
+}
+
+void SceneAssetBundle::setAlignmentCheckpoint(const Json::Value& cp) {
+
+}
+
 void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {
 	using boost::filesystem::create_directory;
 	using boost::filesystem::remove_all;

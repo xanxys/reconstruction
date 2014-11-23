@@ -63,9 +63,21 @@ public:
 	// External process shouldn't depend on individual scans,
 	// and this interface collides with color-correcting alignment step.
 	std::vector<CorrectedSingleScan> getScansWithPose() const;
+
+	// pose (de)serialization for checkpointing.
+	// This checkpoint doesn't include color correction or leveling.
+	Json::Value saveCheckpoint() const;
+	void loadCheckpoint(const Json::Value& cp);
+
+	// (row-major, whole-matrix encoding).
+	static Json::Value encodeAffine(const Eigen::Affine3f& affine);
+	static Eigen::Affine3f decodeAffine(const Json::Value& json, bool require_rigid=false);
 private:
-	// Use external json with pose for each scan.
-	void predefinedMerge(std::string path, const std::vector<SingleScan>& scans);
+	// Load external json that contains poses, and initialize internal scan structure using it.
+	void loadInitialPoses(const std::string& path, const std::vector<SingleScan>& scans);
+
+	// Do finealignment to target scan id. (pose target of will not change)
+	void finealignToTarget(const std::string& fine_align_target_id);
 
 	void createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const;
 	void hierarchicalMerge(const std::vector<SingleScan>& scans);

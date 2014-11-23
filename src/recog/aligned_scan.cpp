@@ -101,13 +101,33 @@ CorrectedSingleScan::CorrectedSingleScan(
 
 AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
-	predefinedMerge("pose-20140827.json", scans);
-	assert(scans.size() == scans_with_pose.size());
+	loadInitialPoses("pose-20140827.json", scans);
+	if(bundle.hasAlignmentCheckpoint()) {
+		loadCheckpoint(bundle.getAlignmentCheckpoint());
+	} else {
+		finealignToTarget("scan-20140827-13:26-gakusei-small");
+		assert(scans.size() == scans_with_pose.size());
+		bundle.setAlignmentCheckpoint(saveCheckpoint());
+	}
 	correctColor();
 	applyLeveling();
 }
 
-void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleScan>& scans) {
+Json::Value AlignedScans::saveCheckpoint() const {
+	Json::Value cp;
+	for(const auto& swp : scans_with_pose) {
+		cp[std::get<0>(swp).getScanId()] = encodeAffine(std::get<1>(swp));
+	}
+	return cp;
+}
+
+void AlignedScans::loadCheckpoint(const Json::Value& cp) {
+	for(auto& swp : scans_with_pose) {
+		std::get<1>(swp) = decodeAffine(cp[std::get<0>(swp).getScanId()]);
+	}
+}
+
+void AlignedScans::loadInitialPoses(const std::string& path, const std::vector<SingleScan>& scans) {
 	// Load pose json (scan_id -> local_to_world)
 	std::map<std::string, Eigen::Affine3f> poses;
 	{
@@ -121,45 +141,74 @@ void AlignedScans::predefinedMerge(std::string path, const std::vector<SingleSca
 		}
 
 		for(auto& entry : root) {
-			// Load affine transform.
-			if(entry["affine"].size() != 4) {
-				throw std::runtime_error("Invalid affine transform (#rows !=4)");
-			}
-			Eigen::Matrix4f m;
-			for(int i : boost::irange(0, 4)) {
-				if(entry["affine"][i].size() != 4) {
-					throw std::runtime_error("Invalid affine transform (#cols != 4)");
-				}
-				for(int j : boost::irange(0, 4)) {
-					m(i, j) = entry["affine"][i][j].asDouble();
-				}
-			}
-			Eigen::Affine3f trans(m);
-			poses[entry["scan_id"].asString()] = trans;
+			poses[entry["scan_id"].asString()] =
+				decodeAffine(entry["affine"]);
 		}
 	}
-
-	// Apply predefined pose, finding fine_align_target_ix.
-	const std::string fine_align_target_id = "scan-20140827-13:26-gakusei-small";
-	boost::optional<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> fine_align_target;
+	// Apply predefined pose.
 	for(const auto& scan : scans) {
 		const std::string scan_id = scan.getScanId();
 		if(poses.find(scan_id) == poses.end()) {
 			throw std::runtime_error("Pose undefined for scan_id=" + scan_id);
 		}
-		if(scan_id == fine_align_target_id) {
-			fine_align_target =
-				cloud_base::applyTransform(scan.cloud, poses[scan_id]);
-		}
 		scans_with_pose.push_back(std::make_tuple(
 			scan, poses[scan_id], Eigen::Vector3f(1, 1, 1)));
 	}
+}
 
-	// fine-align to target.
+Json::Value AlignedScans::encodeAffine(const Eigen::Affine3f& affine) {
+	Eigen::Matrix4f m = affine.matrix();
+	Json::Value json;
+	for(int i : boost::irange(0, 4)) {
+		Json::Value row;
+		for(int j : boost::irange(0, 4)) {
+			row.append(m(i, j));
+		}
+		json.append(row);
+	}
+	return json;
+}
+
+Eigen::Affine3f AlignedScans::decodeAffine(const Json::Value& json, bool require_rigid) {
+	if(json.size() != 4) {
+		throw std::runtime_error("Invalid affine transform (#rows !=4)");
+	}
+	Eigen::Matrix4f m;
+	for(int i : boost::irange(0, 4)) {
+		if(json[i].size() != 4) {
+			throw std::runtime_error("Invalid affine transform (#cols != 4)");
+		}
+		for(int j : boost::irange(0, 4)) {
+			m(i, j) = json[i][j].asDouble();
+		}
+	}
+	Eigen::Affine3f trans(m);
+	if(require_rigid) {
+		if(std::abs(trans.linear().determinant() - 1) > 1e-3) {
+			throw std::runtime_error(
+				"Given affine transform is not a rigid transform");
+		}
+	}
+	return trans;
+}
+
+void AlignedScans::finealignToTarget(const std::string& fine_align_target_id) {
+	assert(!scans_with_pose.empty());
+	// Find alignment target and conver it to world coordinate.
+	boost::optional<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> fine_align_target;
+	for(const auto& swp : scans_with_pose) {
+		if(std::get<0>(swp).getScanId() != fine_align_target_id) {
+			continue;
+		}
+		fine_align_target = cloud_base::applyTransform(
+			std::get<0>(swp).cloud, std::get<1>(swp));
+		break;
+	}
 	if(!fine_align_target) {
 		throw std::runtime_error("Fine-alignment target not found. id=" + fine_align_target_id);
 	}
 
+	// fine-align to target.
 	std::vector<std::tuple<SingleScan, Eigen::Affine3f, Eigen::Vector3f>> new_scans_with_pose;
 	for(auto& scan_with_pose : scans_with_pose) {
 		auto fine_align = Eigen::Affine3f::Identity();

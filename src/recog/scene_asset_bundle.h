@@ -29,6 +29,13 @@ public:
 	SceneAssetBundle(std::string dir_path, bool debug);
 	~SceneAssetBundle();
 
+	// Checkpoints.
+	// These data are opaque Json value to SceneAssetBundle.
+	// (i.e. SceneAssetBundle won't perform any kind of verification / sanitization)
+	bool hasAlignmentCheckpoint();
+	Json::Value getAlignmentCheckpoint();
+	void setAlignmentCheckpoint(const Json::Value& cp);
+
 	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 	void addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 
