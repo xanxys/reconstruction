@@ -17,9 +17,12 @@ def fix_contour(points=None, vis_path=None):
     ctx = cairo.Context(surf)
     ctx.scale(px_per_meter, -px_per_meter)
 
-    surf.write_to_png(vis_path)
+    if vis_path:
+        surf.write_to_png(str(vis_path))
 
-    return None
+    return {
+        "vp": vis_path
+    }
 
 
 # input: {

@@ -8,8 +8,9 @@ using boost::filesystem::path;
 
 SceneAssetBundle::SceneAssetBundle(
 		const std::string& dir_path, bool debug) :
-		debug_count(0), dir_path(dir_path), do_finalize(true),
-		debug(debug) {
+		debug_count(0),
+		dir_path(boost::filesystem::absolute(dir_path)),
+		do_finalize(true), debug(debug) {
 	cleanDirectory(dir_path);
 }
 
