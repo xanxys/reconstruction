@@ -17,7 +17,7 @@ reconstruction uses docker to build and run.
 
 1. `git clone`
 2. `cd reconstrction`
-3. `sudo docker build` . (take note on final snapshot id)
+3. `sudo docker build ./docker` . (take note on final snapshot id)
 4. `./run_local.sh` (you need to rewrite snapshot id with what you got in step 3)
 5. You're now inside bash in container.
 6. `cd /root/local` (mapped to `./` in host)

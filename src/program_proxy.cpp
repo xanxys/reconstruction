@@ -8,6 +8,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <logging.h>
+
 
 Json::Value call_external(const std::string& prog_path, Json::Value arg) {
 	std::random_device rd;
@@ -20,6 +22,7 @@ Json::Value call_external(const std::string& prog_path, Json::Value arg) {
 	of << Json::FastWriter().write(arg) << std::endl;
 	of.close();
 
+	INFO("Calling external program", prog_path);
 	const int status = system(("cat " + path_in + " | " + prog_path + " > " + path_out).c_str());
 	if(status != 0) {
 		throw std::runtime_error("call_external: system() failed with " + std::to_string(status));

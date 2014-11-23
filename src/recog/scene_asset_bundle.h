@@ -45,6 +45,9 @@ public:
 	void addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh);
 	void addMesh(std::string name, const TexturedMesh& mesh);
 
+	// Reserve given filename and return path for that.
+	std::string reservePath(const std::string& filename);
+
 	// Don't create directory and expand multiple files (obj & material & texture)
 	// into sigle directory ("flat"-ly).
 	void addMeshFlat(std::string name, const TexturedMesh& mesh);

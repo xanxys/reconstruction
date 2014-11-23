@@ -34,6 +34,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <math_util.h>
+#include <program_proxy.h>
 #include <recog/shape_fitter.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
@@ -174,6 +175,19 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	auto room_hrange = std::get<2>(extrusion);
 	auto room_ceiling_ixs = std::get<3>(extrusion);
 
+	Json::Value fc_arg;
+	Json::Value poly_json;
+	for(const auto& pt : room_polygon) {
+		Json::Value pt_json;
+		pt_json.append(pt(0));
+		pt_json.append(pt(1));
+		poly_json.append(pt_json);
+	}
+	fc_arg["points"] = poly_json;
+	if(bundle.isDebugEnabled()) {
+		fc_arg["vis_path"] = bundle.reservePath("contour.png");
+	}
+	call_external("extpy/fix_contour.py", fc_arg);
 	RoomFrame rframe;
 	rframe.wall_polygon = room_polygon;
 	for(auto& ccs :  scans_aligned.getScansWithPose()) {

@@ -12,7 +12,7 @@ RUN yum install -y \
 	pcl pcl-devel eigen3-devel opencv-devel \
 	glew-devel glfw glfw-devel \
 	jsoncpp-devel CGAL CGAL-devel \
-	numpy scipy; \
+	numpy scipy pycairo; \
 	yum clean all
 # pcl: 1.7.1
 # eigen: 3.2.2

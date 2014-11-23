@@ -61,6 +61,9 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) {
 	}
 }
 
+std::string SceneAssetBundle::reservePath(const std::string& filename) {
+	return (path(dir_path) / path(filename)).string();
+}
 
 Json::Value SceneAssetBundle::loadJson(std::string name) const {
 	std::ifstream f_input((path(dir_path) / path(name)).string());
