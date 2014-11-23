@@ -1,16 +1,16 @@
 #include "scene_asset_bundle.h"
 
-#include <boost/filesystem.hpp>
-
 #include <fstream>
 
 namespace visual {
 
 using boost::filesystem::path;
 
-SceneAssetBundle::SceneAssetBundle(std::string dir_path, bool debug) :
-		debug_count(0), dir_path(dir_path), do_finalize(true), debug(debug) {
-	recreateDirectory(dir_path);
+SceneAssetBundle::SceneAssetBundle(
+		const std::string& dir_path, bool debug) :
+		debug_count(0), dir_path(dir_path), do_finalize(true),
+		debug(debug) {
+	cleanDirectory(dir_path);
 }
 
 SceneAssetBundle::~SceneAssetBundle() {
@@ -30,34 +30,48 @@ bool SceneAssetBundle::isDebugEnabled() const {
 }
 
 bool SceneAssetBundle::hasAlignmentCheckpoint() {
-	return false;
+	return boost::filesystem::exists(dir_path / cp_alignment_path);
 }
 
 Json::Value SceneAssetBundle::getAlignmentCheckpoint() {
-
+	assert(hasAlignmentCheckpoint());
+	std::ifstream fs((dir_path / cp_alignment_path).string());
+	Json::Value v;
+	Json::Reader().parse(fs, v);
+	return v;
 }
 
 void SceneAssetBundle::setAlignmentCheckpoint(const Json::Value& cp) {
-
+	std::ofstream fs((dir_path / cp_alignment_path).string());
+	fs << Json::FastWriter().write(cp);
 }
 
-void SceneAssetBundle::recreateDirectory(std::string dir_path_raw) const {
-	using boost::filesystem::create_directory;
-	using boost::filesystem::remove_all;
+void SceneAssetBundle::cleanDirectory(const path& dir_path) {
+	using boost::filesystem::directory_iterator;
 
-	const path dir_path(dir_path_raw);
-
-	// Remove directory if exists, mimicing overwriting semantics
-	// of a single file.
-	remove_all(dir_path);
-	create_directory(dir_path);
+	const path cp_dir_path = dir_path / path("checkpoints");
+	// Create the directory if there's none.
+	if(!boost::filesystem::exists(dir_path)) {
+		boost::filesystem::create_directory(dir_path);
+	}
+	// Traverse and remove non-checkpoints files & directories.
+	for(auto it = directory_iterator(dir_path); it != directory_iterator(); it++) {
+		const path& p = *it;
+		INFO("aaa", p.string());
+		if(p.filename() == "checkpoints") {
+			continue;
+		}
+		boost::filesystem::remove_all(p);
+	}
+	// Create checkpoint directory if there's nothing.
+	if(!boost::filesystem::exists(cp_dir_path)) {
+		boost::filesystem::create_directory(cp_dir_path);
+	}
 }
 
-void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) {
+void SceneAssetBundle::serializeIntoDirectory(const path& dir_path) {
 	using boost::filesystem::create_directory;
 	using boost::filesystem::remove_all;
-
-	const path dir_path(dir_path_raw);
 
 	exterior_mesh.writeWavefrontObject(
 		(dir_path / path("exterior_mesh")).string());
@@ -74,11 +88,11 @@ void SceneAssetBundle::serializeIntoDirectory(std::string dir_path_raw) {
 }
 
 std::string SceneAssetBundle::reservePath(const std::string& filename) {
-	return (path(dir_path) / path(filename)).string();
+	return (dir_path / path(filename)).string();
 }
 
 Json::Value SceneAssetBundle::loadJson(std::string name) const {
-	std::ifstream f_input((path(dir_path) / path(name)).string());
+	std::ifstream f_input((dir_path / path(name)).string());
 	if(!f_input.is_open()) {
 		throw std::runtime_error("Cloudn't open " + name);
 	}

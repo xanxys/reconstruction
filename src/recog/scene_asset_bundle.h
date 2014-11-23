@@ -5,6 +5,7 @@
 #include <tuple>
 #include <vector>
 
+#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
 #include <jsoncpp/json/json.h>
@@ -26,7 +27,7 @@ public:
 	// Initialize empty data with output directory.
 	// The output directory will be filled by files as data
 	// become available.
-	SceneAssetBundle(std::string dir_path, bool debug);
+	SceneAssetBundle(const std::string& dir_path, bool debug);
 	~SceneAssetBundle();
 
 	// Checkpoints.
@@ -62,14 +63,15 @@ public:
 	Json::Value loadJson(std::string name) const;
 
 	bool isDebugEnabled() const;
-private:
-	void recreateDirectory(std::string dir_path) const;
 
+	// Remove everything other than checkpoints.
+	static void cleanDirectory(const boost::filesystem::path& dir_path);
+private:
 	// Put bunch of files into specified directory.
 	// Directory must exist and be empty.
 	// Behavior is undefined when the directory already exists.
 	// The directory might be nested.
-	void serializeIntoDirectory(std::string dir_path);
+	void serializeIntoDirectory(const boost::filesystem::path& dir_path);
 
 	void serializeWholeScene() const;
 
@@ -96,7 +98,8 @@ private:
 	bool debug;
 	bool do_finalize;
 	int debug_count;
-	const std::string dir_path;
+	const boost::filesystem::path dir_path;
+	const boost::filesystem::path cp_alignment_path = "checkpoints/alignment.json";
 };
 
 }  // namespace
