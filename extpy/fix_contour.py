@@ -90,6 +90,21 @@ class ContourAnalyzer(object):
         self.ticks0 = best_kmeans(np.array(vs0), sigma_dist)
         self.ticks1 = best_kmeans(np.array(vs1), sigma_dist)
 
+        # snap to irregular grid formed by ticks
+        snap_thresh = sigma_dist * 2
+        for p_w in self.points:
+            p_prin = np.dot(self.world_to_prin, p_w)
+            x_snap = min(self.ticks0, key=lambda x: abs(x - p_prin[0]))
+            if abs(p_prin[0] - x_snap) < snap_thresh:
+                p_prin[0] = x_snap
+            y_snap = min(self.ticks1, key=lambda x: abs(x - p_prin[1]))
+            if abs(p_prin[1] - y_snap) < snap_thresh:
+                p_prin[1] = y_snap
+            p_w_snap = np.dot(self.prin_to_world, p_prin)
+            p_w[:] = p_w_snap[:]
+
+        # create features to describe non-snapped points
+
 
     def calc_normals(self):
         edge_to_normal = rotation(math.pi / 2)
@@ -127,6 +142,9 @@ class ContourAnalyzer(object):
         self.prin0 = max(self.normals, key=similarity)
         self.prin1 = np.dot(rotation(math.pi / 2), self.prin0)
         assert(abs(np.dot(self.prin0, self.prin1)) < 1e-6)
+        # create basis converters
+        self.world_to_prin = np.array([self.prin0, self.prin1])
+        self.prin_to_world = self.world_to_prin.T
 
     def get_result(self):
         px_per_meter = 80
