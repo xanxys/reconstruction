@@ -7,7 +7,6 @@ import scipy.cluster.vq
 import json
 import sys
 import math
-import itertools
 
 
 def rotation(angle):
@@ -75,6 +74,10 @@ class ContourAnalyzer(object):
 
         We're assuming target indoor is of a single room.
         Thus, we can discretize each principle axis separately.
+
+        ticks
+        -> segments
+        -> segments + features
         """
         # Choose "ticks" of each axis.
         # Almost everything will be quantized afterwards.
@@ -92,18 +95,108 @@ class ContourAnalyzer(object):
 
         # snap to irregular grid formed by ticks
         snap_thresh = sigma_dist * 2
+        flags_snapped = []
+        points_snapped = []
         for p_w in self.points:
+            snapped = False
             p_prin = np.dot(self.world_to_prin, p_w)
             x_snap = min(self.ticks0, key=lambda x: abs(x - p_prin[0]))
             if abs(p_prin[0] - x_snap) < snap_thresh:
                 p_prin[0] = x_snap
+                snapped = True
             y_snap = min(self.ticks1, key=lambda x: abs(x - p_prin[1]))
             if abs(p_prin[1] - y_snap) < snap_thresh:
                 p_prin[1] = y_snap
+                snapped = True
             p_w_snap = np.dot(self.prin_to_world, p_prin)
-            p_w[:] = p_w_snap[:]
+            points_snapped.append(p_w_snap)
+            flags_snapped.append(snapped)
+        assert(len(flags_snapped) == len(self.points))
+        assert(len(points_snapped) == len(self.points))
+
+        # After snapping, most (90+%) edges must form continous
+        # segments, and only occasionaly have several
+        # unsnapped vertices between segments.
+        # Othrewise, we can assume that given points are
+        # terribly broken, or room is non-Manhattan.
+        if np.sum(flags_snapped) / len(self.points) < 0.8:
+            raise RuntimeError(
+                "Too few snapped vertices; contour is broken or non-Manhattan")
+
+        # cycle points to align a segment boundary to head.
+        # boundary vertex: perpendicular segments or
+        # (only) one of neighbor is a non-snapped.
+        def is_seam_vertex(i):
+            n = len(flags_snapped)
+            i %= n
+            if not flags_snapped[i]:
+                return False
+            pc = points_snapped[i]
+            pp = points_snapped[i - 1]
+            pn = points_snapped[(i + 1) % n]
+            fp = flags_snapped[i - 1]
+            fn = flags_snapped[(i + 1) % n]
+
+            enext = pn - pc
+            eprev = pc - pp
+            enext /= la.norm(enext)
+            eprev /= la.norm(eprev)
+
+            if abs(np.dot(enext, eprev)) < 1e-6:
+                # orthogonal segments
+                return True
+            elif (fp or fn) and not (fp and fn):
+                # segment - residue
+                return i
+            elif not (fp or fn):
+                # non-orthogonal segment-segment
+                raise RuntimeError(
+                    "Unknown type of segment-segment boundary")
+            else:
+                assert(fp and fn)
+                if np.dot(enext, eprev) >= 0.99:
+                    # middle of a residual edge
+                    return False
+                else:
+                    # single non-snapped edge
+                    # e.g.
+                    # |
+                    # \___
+                    return True
+
+
+        def find_segment_seam():
+            """
+            Return seam index.
+            """
+            for i in range(len(points_snapped)):
+                if is_seam_vertex(i):
+                    return i
+            raise RuntimeError(
+                "Segment seam not found;  topology too strange to continue")
+
+        ix0 = find_segment_seam()
 
         # create features to describe non-snapped points
+        # feature is expansion of single (virtual) vertex
+        # two types of features:
+        # 1. betwen orthogonal segments
+        #  |        |
+        #  |         \
+        #  .----      \____
+        # 2. between parallel segments
+        #                   _____
+        # _____.____   _____|   |_____
+        pts = []
+        for ix in range(ix0, ix0 + len(points_snapped)):
+            ix %= len(points_snapped)
+            if is_seam_vertex(ix):
+                pts.append(points_snapped[ix])
+        self.points = pts
+
+
+#        self.features = []
+        #self.points = points_snapped
 
 
     def calc_normals(self):
