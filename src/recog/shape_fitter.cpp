@@ -10,6 +10,11 @@
 
 #include <boost/math/constants/constants.hpp>
 #include <boost/range/irange.hpp>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Constrained_Delaunay_triangulation_2.h>
+#include <CGAL/Triangulation_face_base_with_info_2.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
+#include <CGAL/Polygon_2.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
@@ -198,110 +203,122 @@ bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points) {
 	return area > 0;
 }
 
-// Use ear-clipping to triangulate.
-// ear: a triangle formed by 3 adjacent vertices, in which
-// 2 edges are part of boundary, and the other is part of inside.
-//
-// It's proven any simple polygon with N>=4 contains an ear.
-std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vector2f>& points) {
-	assert(points.size() >= 3);
-
-	// O(1)
-	auto cross2d = [](const Eigen::Vector2f& a, const Eigen::Vector2f& b) {
-		return a(0) * b(1) - a(1) * b(0);
-	};
-	auto is_ear = [&](int pred, int curr, int succ) {
-		// This will only work when pred-curr-succ are in CCW order!
-		// (pred-curr, succ-curr are boundary) is always true
-		// since this is called when N>=4,
-		// pred-succ cannot be boundary; it's either outside or inside.
-		// pred-succ is inside
-		// == curr is convex vertex
-		// e.g.
-		// pred
-		//  |
-		//  |  inside
-		//  |-------
-		// curr    succ
-
-		// cross product = sin, positive when curr is convex.
-		auto sin_angle = cross2d(points[succ] - points[curr], points[pred] - points[curr]);
-		if(sin_angle < 0) {
-			return false;
-		}
-		if(sin_angle == 0) {
-			WARN("Colinear adjacent segments found. Results might contain degerate triangles.");
-		}
-		// Reject this non-ear condition.
-		// (vertex present in pred-curr-succ triangle)
-		// pred
-		//  |    /
-		//  |   /-------
-		//  |-------
-		// curr    succ
-		const Eigen::Vector2f d_pred = points[pred] - points[curr];
-		const Eigen::Vector2f d_succ = points[succ] - points[curr];
-		// p[i] = p[c] + d_pred * s + d_succ * t
-		Eigen::Matrix2f m;
-		m.col(0) = d_pred;
-		m.col(1) = d_succ;
-		const Eigen::Matrix2f m_inv = m.inverse();
-		for(int i : boost::irange(0, (int)points.size())) {
-			if(i == pred || i == curr || i == succ) {
-				continue;
-			}
-			const Eigen::Vector2f v = points[i] - points[curr];
-			const Eigen::Vector2f st = m_inv * v;
-			if(st(0) >= 0 && st(1) >= 0 && st.sum() <= 1) {
-				return false;
-			}
-		}
-		return true;
-	};
-
-	std::vector<int> indices;
-	for(int i : boost::irange(0, (int)points.size())) {
-		indices.push_back(i);
+struct FaceInfo2 {
+	FaceInfo2() {}
+	int nesting_level;
+	bool in_domain(){
+		return nesting_level%2 == 1;
 	}
+};
 
-	// Removing 1 ear = removing 1 vertex
-	// O(N^2) (=N + N-1 + ...)
+using K =  CGAL::Exact_predicates_inexact_constructions_kernel;
+using Vb =  CGAL::Triangulation_vertex_base_with_info_2<int, K>;
+using Fbb =  CGAL::Triangulation_face_base_with_info_2<FaceInfo2,K>;
+using Fb =  CGAL::Constrained_triangulation_face_base_2<K,Fbb>;
+using TDS =  CGAL::Triangulation_data_structure_2<Vb,Fb>;
+using Itag =  CGAL::Exact_predicates_tag;
+using CDT =  CGAL::Constrained_Delaunay_triangulation_2<K, TDS, Itag>;
+using Point =  CDT::Point;
+using Polygon_2 =  CGAL::Polygon_2<K>;
+
+void  mark_domains(CDT& ct,
+		CDT::Face_handle start,
+		int index,
+		std::list<CDT::Edge>& border) {
+	if(start->info().nesting_level != -1){
+		return;
+	}
+	std::list<CDT::Face_handle> queue;
+	queue.push_back(start);
+	while(!queue.empty()) {
+		CDT::Face_handle fh = queue.front();
+		queue.pop_front();
+		if(fh->info().nesting_level != -1) {
+			continue;
+		}
+		fh->info().nesting_level = index;
+		for(int i = 0; i < 3; i++) {
+			CDT::Edge e(fh,i);
+			CDT::Face_handle n = fh->neighbor(i);
+			if(n->info().nesting_level == -1){
+					if(ct.is_constrained(e)) {
+						border.push_back(e);
+					}
+					else {
+						queue.push_back(n);
+					}
+			}
+		}
+	}
+}
+
+//explore set of facets connected with non constrained edges,
+//and attribute to each such set a nesting level.
+//We start from facets incident to the infinite vertex, with a nesting
+//level of 0. Then we recursively consider the non-explored facets incident 
+//to constrained edges bounding the former set and increase the nesting level by 1.
+//Facets in the domain are those with an odd nesting level.
+void mark_domains(CDT& cdt) {
+	for(CDT::All_faces_iterator it = cdt.all_faces_begin(); it != cdt.all_faces_end(); ++it) {
+		it->info().nesting_level = -1;
+	}
+	std::list<CDT::Edge> border;
+	mark_domains(cdt, cdt.infinite_face(), 0, border);
+	while(! border.empty()){
+		CDT::Edge e = border.front();
+		border.pop_front();
+		CDT::Face_handle n = e.first->neighbor(e.second);
+		if(n->info().nesting_level == -1){
+			mark_domains(cdt, n, e.first->info().nesting_level+1, border);
+		}
+	}
+}
+
+void insert_polygon(CDT& cdt, const std::vector<Point>& polygon) {
+	const int n = polygon.size();
+	assert(n >= 3);
+	// Insert all vertices with their indicies as info().
+	std::vector<CDT::Vertex_handle> vertex_handles;
+	for(const int ix : boost::irange(0, n)) {
+		CDT::Vertex_handle v_handle = cdt.insert(polygon[ix]);
+		v_handle->info() = ix;
+		vertex_handles.push_back(v_handle);
+	}
+	// Now insert edges as constraints.
+	for(const int ix : boost::irange(0, n)) {
+		cdt.insert_constraint(
+			vertex_handles[ix], vertex_handles[(ix + 1) % n]);
+	}
+}
+
+// Use CGAL to triangulate a polygon.
+// cf. https://stackoverflow.com/questions/17680321/retrive-vertices-from-cgals-delaunay-constrained-triangulation
+std::vector<std::array<int, 3>> triangulatePolygon(
+		const std::vector<Eigen::Vector2f>& points_eigen) {
+	assert(points_eigen.size() >= 3);
+
+	// Setup triangulation.
+	std::vector<Point> poly;
+	for(const auto& pt : points_eigen) {
+		poly.emplace_back(pt(0), pt(1));
+	}
+	CDT cdt;
+	insert_polygon(cdt, poly);
+	mark_domains(cdt);
+
+	// Retrieve data.
 	std::vector<std::array<int, 3>> tris;
-	while(indices.size() > 3) {
-		const int n = indices.size();
-		// Make current polygon CCW.
-		std::vector<Eigen::Vector2f> pts;
-		for(int ix : indices) {
-			pts.push_back(points[ix]);
+	for(auto fit = cdt.finite_faces_begin(); fit != cdt.finite_faces_end(); fit++) {
+		if(!fit->info().in_domain()) {
+			continue;
 		}
-		assert(isPolygonCCW(pts));
-
-		// finding ear: O(N)
-		bool ear_found = false;
-		for(int i : boost::irange(0, n)) {
-			if(is_ear(indices[i], indices[(i + 1) % n], indices[(i + 2) % n])) {
-				tris.push_back(std::array<int, 3>({
-					indices[i], indices[(i + 1) % n], indices[(i + 2) % n]}));
-				// It takes O(N) times to find an ear,
-				// so don't care about deletion taking O(N) time.
-				indices.erase(indices.begin() + ((i+1) % n));
-				ear_found = true;
-				break;
-			}
-		}
-		if(!ear_found) {
-			WARN("Ear not found: remaining points: ", (int)indices.size());
-			for(int ix : indices) {
-				DEBUG("Index", ix, points[ix].x(), points[ix].y());
-			}
-			return tris;
-			throw std::runtime_error("Ear not found when triangulating polygon. Something is wrong!");
-		}
+		tris.push_back({{
+			static_cast<int>(fit->vertex(0)->info()),
+			static_cast<int>(fit->vertex(1)->info()),
+			static_cast<int>(fit->vertex(2)->info())
+			}});
 	}
-
-	assert(indices.size() == 3);
-	tris.push_back(std::array<int, 3>({
-		indices[0], indices[1], indices[2]}));
+	assert(tris.size() == points_eigen.size() - 2);
 	return tris;
 }
 
