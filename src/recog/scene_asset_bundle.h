@@ -48,6 +48,9 @@ public:
 	// while final results are written at destruction.
 	void addInteriorObject(const TexturedMesh& mesh);
 
+	// Set the exterior mesh.
+	void setExteriorMesh(const TexturedMesh& mesh);
+
 	// Queue to serialize given mesh, create a directory to contain
 	// bunch of material/texture files if necessary.
 	void addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh);
@@ -85,9 +88,10 @@ private:
 public:
 	// actual room contents
 	// TODO: make these private for instant serialziation.
-	TexturedMesh exterior_mesh;
 	std::vector<Eigen::Vector3f> point_lights;
 private:
+	TexturedMesh exterior_mesh;
+
 	std::vector<TexturedMesh> interior_objects;
 	// wtf???!
 	// this should be derived from interior_objects in serializer,

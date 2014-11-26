@@ -74,8 +74,6 @@ void SceneAssetBundle::serializeIntoDirectory(const path& dir_path) {
 	using boost::filesystem::create_directory;
 	using boost::filesystem::remove_all;
 
-	exterior_mesh.writeWavefrontObject(
-		(dir_path / path("exterior_mesh")).string());
 	{
 		std::ofstream json_file((dir_path / path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
@@ -109,6 +107,12 @@ void SceneAssetBundle::addInteriorObject(const TexturedMesh& mesh) {
 			mesh);
 	}
 	interior_objects.push_back(mesh);
+}
+
+void SceneAssetBundle::setExteriorMesh(const TexturedMesh& mesh) {
+	exterior_mesh = mesh;
+	exterior_mesh.writeWavefrontObject(
+		(dir_path / path("exterior_mesh")).string());
 }
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {

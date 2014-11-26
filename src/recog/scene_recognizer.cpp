@@ -266,7 +266,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 		scans_aligned, room_mesh, room_ceiling_ixs,
 		cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
-	bundle.exterior_mesh = exterior.first;
+	bundle.setExteriorMesh(exterior.first);
 
 	INFO("Splitting objects");
 	splitObjects(bundle, filtered, scans_aligned);
