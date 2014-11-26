@@ -169,11 +169,11 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
-	const auto extrusion = shape_fitter::fitExtrusion(cloud_colorless);
-	auto room_mesh = std::get<0>(extrusion);
-	auto room_polygon = std::get<1>(extrusion);
-	auto room_hrange = std::get<2>(extrusion);
-	auto room_ceiling_ixs = std::get<3>(extrusion);
+	const auto extrusion = shape_fitter::fitExtrudedPolygon(cloud_colorless);
+	//auto room_mesh = std::get<0>(extrusion);
+	auto room_polygon = std::get<0>(extrusion);
+	auto room_hrange = std::get<1>(extrusion);
+	//auto room_ceiling_ixs = std::get<3>(extrusion);
 
 	Json::Value fc_arg;
 	Json::Value poly_json;
@@ -187,9 +187,15 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	if(bundle.isDebugEnabled()) {
 		fc_arg["vis_path"] = bundle.reservePath("contour.png");
 	}
-	call_external("extpy/fix_contour.py", fc_arg);
+	const Json::Value contour_result = call_external("extpy/fix_contour.py", fc_arg);
+	std::vector<Eigen::Vector2f> contour_points;
+	for(const auto& pt_json : contour_result["points"]) {
+		contour_points.emplace_back(
+			pt_json[0].asDouble(), pt_json[1].asDouble());
+	}
+
 	RoomFrame rframe;
-	rframe.wall_polygon = room_polygon;
+	rframe.wall_polygon = contour_points;
 	for(auto& ccs :  scans_aligned.getScansWithPose()) {
 		splitEachScan(bundle, ccs, rframe);
 	}
@@ -228,11 +234,12 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	}
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
-	INFO("Recalculating extrusion");
-	const auto extrusion_refined = shape_fitter::fitExtrusion(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_inside));
-	room_mesh = std::get<0>(extrusion_refined);
-	room_polygon = std::get<1>(extrusion_refined);
-	room_hrange = std::get<2>(extrusion_refined);
+	INFO("Materializing extruded polygon mesh");
+	//const auto extrusion_refined = shape_fitter::fitExtrusion(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_inside));
+	const auto extrusion_mesh = shape_fitter::generateExtrusion(
+		rframe.wall_polygon, room_hrange);
+	const auto room_mesh = std::get<0>(extrusion_mesh);
+	const auto room_ceiling_ixs = std::get<1>(extrusion_mesh);
 
 	INFO("Modeling boxes along wall");
 	auto cloud_interior_pre = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);

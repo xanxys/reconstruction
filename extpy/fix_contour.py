@@ -192,12 +192,13 @@ class ContourAnalyzer(object):
             ix %= len(points_snapped)
             if is_seam_vertex(ix):
                 pts.append(points_snapped[ix])
+            else:
+                if not flags_snapped[ix]:
+                    pts.append(points_snapped[ix])
         self.points = pts
 
-
+        # TODO: implement features
 #        self.features = []
-        #self.points = points_snapped
-
 
     def calc_normals(self):
         edge_to_normal = rotation(math.pi / 2)
@@ -263,7 +264,8 @@ class ContourAnalyzer(object):
             surf.write_to_png(str(self.vis_path))
 
         return {
-            "vp": self.vis_path
+            "vp": self.vis_path,
+            "points": [[float(e) for e in row] for row in self.points]
         }
 
     def draw_ticks(self, ctx):

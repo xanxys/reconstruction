@@ -21,15 +21,22 @@ namespace visual {
 namespace shape_fitter {
 
 std::tuple<
-	TriangleMesh<std::nullptr_t>,
 	std::vector<Eigen::Vector2f>,
-	std::pair<float, float>,
-	std::vector<int>>
-		fitExtrusion(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-	TriangleMesh<std::nullptr_t> mesh;
-
+	std::pair<float, float>>
+		fitExtrudedPolygon(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	const auto poly = extractPolygon2D(cloud);
 	const auto h_range = extractHeightRange(cloud);
+	return std::make_tuple(poly, h_range);
+}
+
+// Return TriangleMesh and indices for ceiling.
+std::tuple<
+	TriangleMesh<std::nullptr_t>,
+	std::vector<int>
+		> generateExtrusion(
+			const std::vector<Eigen::Vector2f>& poly,
+			const std::pair<float, float>& h_range) {
+	TriangleMesh<std::nullptr_t> mesh;
 
 	// Create all vertices, as composition of CCW top ring
 	// and bottom ring.
@@ -89,8 +96,9 @@ std::tuple<
 	std::vector<int> ceiling_tri_ixs = append_cap(true);
 
 	DEBUG("Extruded polygon mesh #v=", (int)mesh.vertices.size());
-	return std::make_tuple(mesh, poly, h_range, ceiling_tri_ixs);
+	return std::make_tuple(mesh, ceiling_tri_ixs);
 }
+
 
 TriangleMesh<std::nullptr_t> fitOBB(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	const float angle_step = 0.05;
