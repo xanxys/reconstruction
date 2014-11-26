@@ -114,6 +114,23 @@ class ContourAnalyzer(object):
         assert(len(flags_snapped) == len(self.points))
         assert(len(points_snapped) == len(self.points))
 
+        # When vertices snap to both X and Y axes,
+        # they can end up exactly same to each other.
+        # We remove it by set.
+        snapped_vs = set()
+        new_points = []
+        new_flags = []
+        for (pt, flag) in zip(points_snapped, flags_snapped):
+            pt_key = (float(pt[0]), float(pt[1]))
+            if pt_key in snapped_vs:
+                continue
+            else:
+                snapped_vs.add(pt_key)
+                new_points.append(pt)
+                new_flags.append(flag)
+        flags_snapped = new_flags
+        points_snapped = new_points
+
         # After snapping, most (90+%) edges must form continous
         # segments, and only occasionaly have several
         # unsnapped vertices between segments.
