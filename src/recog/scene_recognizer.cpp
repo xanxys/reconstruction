@@ -158,6 +158,41 @@ void splitEachScan(
 
 }
 
+std::pair<
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr,
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> splitInOut(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr points_merged,
+		const std::vector<Eigen::Vector2f>& room_polygon) {
+	auto points_inside = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	auto points_outside = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Point = K::Point_2;
+	using Polygon_2 = CGAL::Polygon_2<K>;
+	std::vector<Point> pp;
+	for(const auto& pt : room_polygon) {
+		pp.emplace_back(pt.x(), pt.y());
+	}
+	Polygon_2 room_polygon_cgal(pp.begin(), pp.end());
+	assert(room_polygon_cgal.is_simple());
+
+	// Create offseted polygon to increase robustness.
+	const K::FT offset = 0.2;
+	const auto polys = CGAL::create_exterior_skeleton_and_offset_polygons_2(
+		offset, room_polygon_cgal);
+	assert(polys.size() == 2);
+	const auto& room_polygon_larger = *polys[1];  // it seems like the second one is offsetted polygon.
+	for(const auto& pt3 : points_merged->points) {
+		Eigen::Vector2f d(pt3.x, pt3.y);
+		const Point pt(pt3.x, pt3.y);
+		if(room_polygon_larger.bounded_side(pt) != CGAL::ON_UNBOUNDED_SIDE) {
+			points_inside->points.push_back(pt3);
+		} else {
+			points_outside->points.push_back(pt3);
+		}
+	}
+	return std::make_pair(points_inside, points_outside);
+}
+
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
@@ -170,10 +205,8 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("Approximating exterior shape by an extruded polygon");
 	const auto cloud_colorless = cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
 	const auto extrusion = shape_fitter::fitExtrudedPolygon(cloud_colorless);
-	//auto room_mesh = std::get<0>(extrusion);
 	auto room_polygon = std::get<0>(extrusion);
 	auto room_hrange = std::get<1>(extrusion);
-	//auto room_ceiling_ixs = std::get<3>(extrusion);
 
 	Json::Value fc_arg;
 	Json::Value poly_json;
@@ -199,43 +232,14 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	for(auto& ccs :  scans_aligned.getScansWithPose()) {
 		splitEachScan(bundle, ccs, rframe);
 	}
-	// We're just lucky to get correct room polygon without excluding outside points first.
-	// points
-	// |-inside
-	// | |-exterior
-	// | |-interior
-	// |-outside (either mirror or window, there's a case RGB is transparent and IR is reflected)
+
 	INFO("Splitting inside/outside");
-	auto points_inside = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	auto points_outside = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-	typedef K::Point_2 Point;
-	typedef CGAL::Polygon_2<K> Polygon_2;
-	std::vector<Point> pp;
-	for(const auto& pt : room_polygon) {
-		pp.emplace_back(pt.x(), pt.y());
-	}
-	Polygon_2 room_polygon_cgal(pp.begin(), pp.end());
-	assert(room_polygon_cgal.is_simple());
-	// Create offseted polygon to increase robustness.
-	const K::FT offset = 0.2;
-	const auto polys = CGAL::create_exterior_skeleton_and_offset_polygons_2(
-		offset, room_polygon_cgal);
-	assert(polys.size() == 2);
-	const auto& room_polygon_larger = *polys[1];  // it seems like the second one is offsetted polygon.
-	for(const auto& pt3 : points_merged->points) {
-		Eigen::Vector2f d(pt3.x, pt3.y);
-		const Point pt(pt3.x, pt3.y);
-		if(room_polygon_larger.bounded_side(pt) != CGAL::ON_UNBOUNDED_SIDE) {
-			points_inside->points.push_back(pt3);
-		} else {
-			points_outside->points.push_back(pt3);
-		}
-	}
+	auto points_inout = splitInOut(points_merged, room_polygon);
+	auto points_inside = points_inout.first;
+	auto points_outside = points_inout.second;
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Materializing extruded polygon mesh");
-	//const auto extrusion_refined = shape_fitter::fitExtrusion(cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_inside));
 	const auto extrusion_mesh = shape_fitter::generateExtrusion(
 		rframe.wall_polygon, room_hrange);
 	const auto room_mesh = std::get<0>(extrusion_mesh);
@@ -283,30 +287,6 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
 	// reverse lookup.
 	// Maybe overly complex??
-
-	// Just calculate AABB of ceiling and project to it is enough?
-		/*
-	Eigen::Vector3f aabb_min(1e3, 1e3, 1e3);
-	Eigen::Vector3f aabb_max(-1e3, -1e3, -1e3);
-	for(const int ix_tri : ceiling_ixs) {
-		const auto ix_verts = room_mesh.triangles[ix_tri];
-		aabb_min = aabb_min.cwiseMin(
-			room_mesh.vertices[std::get<0>(ix_verts)].first);
-		aabb_max = aabb_max.cwiseMax(
-			room_mesh.vertices[std::get<0>(ix_verts)].first);
-		aabb_min = aabb_min.cwiseMin(
-			room_mesh.vertices[std::get<1>(ix_verts)].first);
-		aabb_max = aabb_max.cwiseMax(
-			room_mesh.vertices[std::get<1>(ix_verts)].first);
-			aabb_min = aabb_min.cwiseMin(
-			room_mesh.vertices[std::get<2>(ix_verts)].first);
-		aabb_max = aabb_max.cwiseMax(
-			room_mesh.vertices[std::get<2>(ix_verts)].first);
-	}
-	// the ceiling must be perpendicular to Z plane.
-	assert(std::abs((aabb_max - aabb_min).z()) < 1e-3);
-	
-	*/
 	auto tex_mesh = bakeTexture(scans_aligned, room_mesh, 0.4);
 
 	// TODO: proper ceiling texture extraction.

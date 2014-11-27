@@ -53,6 +53,18 @@ private:
 	Eigen::Vector3f prin1;
 };
 
+// points
+// |-inside
+// | |-exterior
+// | |-interior
+// |-outside (either mirror or window)
+std::pair<
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr,
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> splitInOut(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr points_merged,
+		const std::vector<Eigen::Vector2f>& room_polygon);
+
+
 // Label each point as part of room boundary, inside, or outside.
 // Small error between RoomFrame and aligned coordinate will be
 // compensated, but CorrectedSingleScan must not have ghosting.
