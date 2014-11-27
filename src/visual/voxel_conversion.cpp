@@ -1,7 +1,6 @@
 #include "voxel_conversion.h"
 
-namespace visual {
-namespace voxel_conversion {
+namespace recon {
 
 TriangleMesh<std::nullptr_t> extractVoxelSurface(
 		const DenseVoxel<bool>& dv,
@@ -37,11 +36,10 @@ TriangleMesh<std::nullptr_t> extractVoxelSurface(
 
 		if(!can_skip && dv[i]) {
 			const Eigen::Vector3f pos = (imin + i).cast<float>() * voxel_size;
-			mesh.merge(triangle_mesh::createBox(pos + Eigen::Vector3f::Ones() * (0.5 * voxel_size), voxel_size));
+			mesh.merge(createBox(pos + Eigen::Vector3f::Ones() * (0.5 * voxel_size), voxel_size));
 		}
 	}
 	return mesh;
 }
 
-}  // namespace
 }  // namespace

@@ -44,15 +44,15 @@ int main(int argc, char** argv) {
 	} else if(vars.count("convert") > 0) {
 		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
 		INFO("Loading scans, #scans=", (int)dir_paths.size());
-		std::vector<visual::SingleScan> scans;
+		std::vector<recon::SingleScan> scans;
 		for(const auto& dir_path : dir_paths) {
 			scans.emplace_back(dir_path);
 		}
 		INFO("Converting to a scene");
 		const bool debug = vars.count("debug");
-		visual::SceneAssetBundle bundle(
+		recon::SceneAssetBundle bundle(
 			guessSceneName(dir_paths.front()), debug);
-		visual::scene_recognizer::recognizeScene(bundle, scans);
+		recon::scene_recognizer::recognizeScene(bundle, scans);
 		return 0;
 	} else {
 		std::cout << desc << std::endl;

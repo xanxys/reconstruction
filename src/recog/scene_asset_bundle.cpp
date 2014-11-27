@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-namespace visual {
+namespace recon {
 
 using boost::filesystem::path;
 

@@ -1,6 +1,6 @@
 #include "texture_conversion.h"
 
-namespace visual {
+namespace recon {
 
 Eigen::Vector2f swapY(const Eigen::Vector2f& v) {
 	return Eigen::Vector2f(v(0), 1 - v(1));

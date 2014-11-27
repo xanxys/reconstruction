@@ -8,7 +8,7 @@
 #include <math_util.h>
 #include <range2.h>
 
-namespace visual {
+namespace recon {
 
 FilmRGB8U::FilmRGB8U(int width, int height, float sigma) :
 	width(width), height(height), sigma(sigma) {

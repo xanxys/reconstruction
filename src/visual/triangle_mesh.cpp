@@ -2,8 +2,7 @@
 
 #include <boost/range/irange.hpp>
 
-namespace visual {
-namespace triangle_mesh {
+namespace recon {
 
 TriangleMesh<std::nullptr_t> createBox(
 		Eigen::Vector3f center,Eigen::Vector3f half_dx,
@@ -51,5 +50,4 @@ TriangleMesh<std::nullptr_t> createBox(
 		Eigen::Vector3f::UnitZ() * half_size);
 }
 
-}  // namespace
 }  // namespace

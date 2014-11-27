@@ -9,7 +9,7 @@
 #include <logging.h>
 #include <math_util.h>
 
-namespace visual {
+namespace recon {
 
 Chart::Chart(
 		const std::vector<std::array<int, 3>>& tris,
@@ -204,7 +204,5 @@ std::vector<std::set<int>> getCC(
 	}
 	return ccs;
 }
-
-
 
 }  // namespace

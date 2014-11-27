@@ -9,7 +9,7 @@
 
 #include <Eigen/Dense>
 
-namespace visual {
+namespace recon {
 
 template<typename Vertex>
 class TriangleMesh {
@@ -203,8 +203,7 @@ TriangleMesh<std::nullptr_t> dropAttrib(const TriangleMesh<Vertex>& mesh) {
 	return new_mesh;
 }
 
-namespace triangle_mesh {
-
+// Create outward-facing cuboids.
 TriangleMesh<std::nullptr_t> createBox(
 		Eigen::Vector3f center,Eigen::Vector3f half_dx,
 		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
@@ -212,5 +211,4 @@ TriangleMesh<std::nullptr_t> createBox(
 TriangleMesh<std::nullptr_t> createBox(
 	Eigen::Vector3f center, float half_size);
 
-}  // namespace
 }  // namespace

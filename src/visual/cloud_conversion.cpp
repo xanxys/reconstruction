@@ -1,6 +1,6 @@
 #include "cloud_conversion.h"
 
-namespace visual {
+namespace recon {
 
 // Get barycentric coordinate of the narest point on triangle surface.
 Eigen::Vector2f nearestBarycentricApprox(

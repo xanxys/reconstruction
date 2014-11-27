@@ -10,8 +10,7 @@
 #include <logging.h>
 #include <math_util.h>
 
-namespace visual {
-namespace cloud_filter {
+namespace recon {
 
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr squashRegistrationError(
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input,
@@ -110,33 +109,4 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr squashRegistrationError(
 	return result;
 }
 
-/*
-def squash_reg_error_3d(pts, error_radius=0.2):
-	kdt = scipy.spatial.cKDTree(pts[:, :3])
-
-	cos_thresh = math.cos(math.pi / 8)
-	new_pts = []
-	for p in pts:
-		ixs = kdt.query_ball_point(p[:3], error_radius)
-		if len(ixs) <= 1:
-			new_pts.append(p)
-		else:
-			pts_subset = pts[ixs]
-			cos = np.dot(pts_subset[:, 6:9], p[6:9])
-			delta = pts_subset[:, :3] - p[:3]
-			proj_v = np.outer(
-				np.dot(delta, p[6:9]),
-				p[6:9])
-			perp_v = delta - proj_v
-			perp = (perp_v ** 2).sum(axis=1) ** 0.5
-
-			pts_subset = pts_subset[(cos > cos_thresh) & (perp < ortho_error_radius)]
-			if len(pts_subset) <= 1:
-				new_pts.append(p)
-			else:
-				new_pts.append(pts_subset.mean(axis=0))
-	return np.array(new_pts)
-*/
-
-}  // namespace
 }  // namespace

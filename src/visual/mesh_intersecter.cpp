@@ -5,7 +5,7 @@
 
 #include <visual/raytracing.h>
 
-namespace visual {
+namespace recon {
 
 MeshIntersecter::MeshIntersecter(const TriangleMesh<std::nullptr_t>& mesh) :
 		mesh(mesh) {

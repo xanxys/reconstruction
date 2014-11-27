@@ -24,7 +24,7 @@
 #include <visual/mesh_intersecter.h>
 #include <visual/texture_conversion.h>
 
-namespace visual {
+namespace recon {
 
 const double pi = 3.14159265359;
 
@@ -200,7 +200,7 @@ void AlignedScans::finealignToTarget(const std::string& fine_align_target_id) {
 		if(std::get<0>(swp).getScanId() != fine_align_target_id) {
 			continue;
 		}
-		fine_align_target = cloud_base::applyTransform(
+		fine_align_target = applyTransform(
 			std::get<0>(swp).cloud, std::get<1>(swp));
 		break;
 	}
@@ -216,7 +216,7 @@ void AlignedScans::finealignToTarget(const std::string& fine_align_target_id) {
 			INFO("Fine-aligning scan", std::get<0>(scan_with_pose).getScanId());
 			fine_align = finealign(
 				*fine_align_target,
-				cloud_base::applyTransform(std::get<0>(scan_with_pose).cloud, std::get<1>(scan_with_pose)));
+				applyTransform(std::get<0>(scan_with_pose).cloud, std::get<1>(scan_with_pose)));
 		}
 		new_scans_with_pose.push_back(std::make_tuple(
 			std::get<0>(scan_with_pose),
@@ -234,8 +234,8 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 		for(int j : boost::irange(i, n)) {
 			const auto pre_align = prealign(scans[j], scans[i]);
 
-			const float dist = cloud_base::cloudDistance(
-				cloud_base::applyTransform(scans[i].cloud, pre_align),
+			const float dist = cloudDistance(
+				applyTransform(scans[i].cloud, pre_align),
 				scans[j].cloud);
 
 			closeness(i, j) = dist;
@@ -291,12 +291,12 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 
 		// Align.
 		const auto pre_align = prealign(remaining[best_pair.second], remaining[best_pair.first]);
-		const auto fine_align = finealign(remaining[best_pair.second], cloud_base::applyTransform(remaining[best_pair.first], pre_align));
+		const auto fine_align = finealign(remaining[best_pair.second], applyTransform(remaining[best_pair.first], pre_align));
 		const Eigen::Affine3f trans = fine_align * pre_align;
 		nodes[agg_id] = std::make_tuple(best_pair.second, best_pair.first, trans);
-		remaining[agg_id] = cloud_base::merge<pcl::PointXYZRGBNormal>(
+		remaining[agg_id] = merge<pcl::PointXYZRGBNormal>(
 			remaining[best_pair.second],
-			cloud_base::applyTransform(remaining[best_pair.first], trans));
+			applyTransform(remaining[best_pair.first], trans));
 		remaining.erase(best_pair.first);
 		remaining.erase(best_pair.second);
 
@@ -325,8 +325,8 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 			const int j = new_pair.second;
 			assert(i < j);
 			const auto pre_align = prealign(remaining[j], remaining[i]);
-			const float dist = cloud_base::cloudDistance(
-				cloud_base::applyTransform(remaining[i], pre_align),
+			const float dist = cloudDistance(
+				applyTransform(remaining[i], pre_align),
 				remaining[j]);
 			sparse_dist[new_pair] = dist;
 		}
@@ -349,7 +349,7 @@ void AlignedScans::correctColor() {
 	std::vector<std::vector<std::pair<int, Eigen::Vector3f>>> samples;
 	// take seeds from each scan's point.
 	for(const auto& s_w_p : scans_with_pose) {
-		auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
+		auto delta = applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
 		const Eigen::Vector3f org = delta->points[0].getVector3fMap();
 		const float radius = 0.5;
 		DEBUG("Adding test location", org(0), org(1), org(2), radius);
@@ -357,7 +357,7 @@ void AlignedScans::correctColor() {
 		std::vector<std::pair<int, Eigen::Vector3f>> sample;
 		DEBUG("Calculating avg color");
 		for(const auto& s_w_p : scans_with_pose) {
-			auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
+			auto delta = applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
 			int n = 0;
 			Eigen::Vector3f color_accum = Eigen::Vector3f::Zero();
 			for(const auto& pt : delta->points) {
@@ -501,19 +501,19 @@ Eigen::Affine3f AlignedScans::prealign(const pcl::PointCloud<pcl::PointXYZRGBNor
 			ys.push_back(pt.y);
 		}
 		return Eigen::Vector2f(
-			shape_fitter::mean(shape_fitter::robustMinMax(xs, 0.01)),
-			shape_fitter::mean(shape_fitter::robustMinMax(ys, 0.01)));
+			mean(robustMinMax(xs, 0.01)),
+			mean(robustMinMax(ys, 0.01)));
 	};
 
 	// source --seed--> source' --centroid-align--> source'' ==? target
 	float best_dist = 1e6;
 	Eigen::Affine3f best_trans;
 	for(const auto& seed_trans : seeds) {
-		const auto cloud_seeded = cloud_base::applyTransform(source, seed_trans);
+		const auto cloud_seeded = applyTransform(source, seed_trans);
 		const auto dp = extract_centroid(target) - extract_centroid(cloud_seeded);
 		const Eigen::Affine3f trans_centroid(Eigen::Translation3f(Eigen::Vector3f(dp(0), dp(1), 0)));
 
-		const float dist = cloud_base::cloudDistance(cloud_base::applyTransform(cloud_seeded, trans_centroid), target);
+		const float dist = cloudDistance(applyTransform(cloud_seeded, trans_centroid), target);
 		DEBUG("Dist(angle)", dist);
 		if(dist < best_dist) {
 			best_dist = dist;
@@ -537,7 +537,7 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 	// 1,2,..: source
 	// return: (position matrix, normal matrix)
 	auto to_matrix = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-		const auto ds_cloud = cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+		const auto ds_cloud = downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
 		const int n = ds_cloud->points.size();
 		Eigen::Matrix3Xd mat(3, n);
 		Eigen::Matrix3Xd mat_n(3, n);
@@ -549,7 +549,7 @@ Eigen::Affine3f AlignedScans::finealign(const pcl::PointCloud<pcl::PointXYZRGBNo
 	};
 
 	auto to_cloud = [](pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-		// return cloud_base::downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
+		// return downsample<pcl::PointXYZRGBNormal>(cloud, 0.05);
 		return cloud;
 	};
 
@@ -582,14 +582,14 @@ std::vector<CorrectedSingleScan> AlignedScans::getScansWithPose() const {
 }
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr AlignedScans::getMergedPoints() const {
-	return cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(getMergedPointsNormal());
+	return cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(getMergedPointsNormal());
 }
 
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr AlignedScans::getMergedPointsNormal() const {
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
 	for(const auto& s_w_p : scans_with_pose) {
 		const auto multiplier = std::get<2>(s_w_p);
-		auto delta = cloud_base::applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
+		auto delta = applyTransform(std::get<0>(s_w_p).cloud, std::get<1>(s_w_p));
 		for(auto& pt : delta->points) {
 			pt.r = std::min(pt.r * multiplier(0), 255.0f);
 			pt.g = std::min(pt.g * multiplier(1), 255.0f);

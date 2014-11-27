@@ -12,7 +12,7 @@ TEST(SceneAssetBundle, CleanDirectoryWorksForEmptyDirectory) {
 	const fs::path target = "/tmp/recon-test-bundle-empty";
 	fs::remove_all(target);
 
-	visual::SceneAssetBundle::cleanDirectory(target);
+	recon::SceneAssetBundle::cleanDirectory(target);
 	EXPECT_TRUE(fs::exists(target));
 	EXPECT_TRUE(fs::is_directory(target));
 	EXPECT_TRUE(fs::exists(target / fs::path("checkpoints")));
@@ -25,7 +25,7 @@ TEST(SceneAssetBundle, CleanDirectoryCreatesCheckpointsDirectory) {
 	fs::remove_all(target);
 	fs::create_directory(target);
 
-	visual::SceneAssetBundle::cleanDirectory(target);
+	recon::SceneAssetBundle::cleanDirectory(target);
 	EXPECT_TRUE(fs::exists(target));
 	EXPECT_TRUE(fs::is_directory(target));
 	// "checkpoints" dir must be created.
@@ -52,7 +52,7 @@ TEST(SceneAssetBundle, CleanDirectoryWorksForMessyDirectory) {
 		std::ofstream foo_txt((target / fs::path("checkpoints") / fs::path("foo.txt")).string());
 	}
 
-	visual::SceneAssetBundle::cleanDirectory(target);
+	recon::SceneAssetBundle::cleanDirectory(target);
 	EXPECT_TRUE(fs::exists(target));
 	EXPECT_TRUE(fs::is_directory(target));
 	EXPECT_FALSE(fs::exists(target / fs::path("hoge.txt")));

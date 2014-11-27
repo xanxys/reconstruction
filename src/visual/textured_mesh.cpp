@@ -13,7 +13,7 @@
 #include <visual/cloud_conversion.h>
 #include <visual/texture_conversion.h>
 
-namespace visual {
+namespace recon {
 
 using Tuple3i = std::tuple<int, int, int>;
 

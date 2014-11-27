@@ -14,7 +14,7 @@
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
 
-namespace visual {
+namespace recon {
 
 Eigen::Vector2f swapY(const Eigen::Vector2f& v);
 

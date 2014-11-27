@@ -5,8 +5,7 @@
 
 #include <Eigen/Dense>
 
-namespace geom {
-namespace packing {
+namespace recon {
 
 // Try to find packing of rectangles in a (minimum) square region.
 // Obviously, it's NP-hard problem, so don't expect near-optimal result.
@@ -19,5 +18,4 @@ namespace packing {
 std::pair<float, std::vector<Eigen::Vector2f>>
 	packRectangles(std::vector<Eigen::Vector2f> rectangles);
 
-}  // namespace
 }  // namespace

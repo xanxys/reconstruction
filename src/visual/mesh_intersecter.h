@@ -6,7 +6,7 @@
 #include <visual/raytracing.h>
 #include <visual/triangle_mesh.h>
 
-namespace visual {
+namespace recon {
 
 class MeshIntersecter {
 public:

@@ -1,5 +1,11 @@
 #pragma once
 
-const double pi = 3.14159265359;
+namespace recon {
 
-double deg_to_rad(double deg);
+constexpr double pi = 3.14159265359;
+
+constexpr double deg_to_rad(double deg) {
+	return deg * (pi / 180.0);
+}
+
+}  // namespace

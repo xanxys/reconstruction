@@ -1,5 +1,7 @@
 #include "range2.h"
 
+namespace recon {
+
 range2::range2(Eigen::Vector2i vmax) :
 	x0(0), y0(0),
 	x1(vmax.x()), y1(vmax.y()) {
@@ -49,3 +51,5 @@ Eigen::Vector2i range2::iterator::operator*() {
 bool range2::iterator::operator!=(const iterator& that) {
 	return (x != that.x) || (y != that.y);
 }
+
+}  // namespace

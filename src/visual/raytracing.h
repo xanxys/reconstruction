@@ -9,9 +9,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
 
-// #include <visual/camera_parameters.h>
-
-namespace visual {
+namespace recon {
 
 // Linear sRGB color.
 // It can be reflectance, radiance, irradiance, or anything.

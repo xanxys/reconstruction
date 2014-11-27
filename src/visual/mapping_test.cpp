@@ -15,7 +15,7 @@ TEST(Chart, SingleTriangle) {
 		{5, {-1, 0}}
 	};
 	// Current packer won't rotate triangle.
-	visual::Chart chart(tris, pre_uv);
+	recon::Chart chart(tris, pre_uv);
 	const auto size = chart.getSize();
 	EXPECT_FLOAT_EQ(size(0), 1);
 	EXPECT_FLOAT_EQ(size(1), 1);
@@ -39,20 +39,20 @@ TEST(Chart, SingleTriangle) {
 }
 
 TEST(getTriangleAdjacency, SingleTriangleHasNoAdjacency) {
-	visual::TriangleMesh<std::nullptr_t> mesh;
+	recon::TriangleMesh<std::nullptr_t> mesh;
 	mesh.triangles.push_back({{0, 1, 2}});
 	mesh.vertices.emplace_back(Eigen::Vector3f(0, 0, 0), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f(1, 0, 0), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f(0, 1, 0), nullptr);
 
-	const auto adj = visual::getTriangleAdjacency(mesh);
+	const auto adj = recon::getTriangleAdjacency(mesh);
 	EXPECT_TRUE(adj.empty());
 }
 
 TEST(getTriangleAdjacency, TwoTrianglesSharingEdge) {
 	// getTriangleAdjacency is a topological operation,
 	// so positions don't matter.
-	visual::TriangleMesh<std::nullptr_t> mesh;
+	recon::TriangleMesh<std::nullptr_t> mesh;
 	mesh.triangles.push_back({{0, 1, 2}});  // tri 0
 	mesh.triangles.push_back({{1, 0, 3}});  // tri 1
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
@@ -60,7 +60,7 @@ TEST(getTriangleAdjacency, TwoTrianglesSharingEdge) {
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
 
-	const auto adj = visual::getTriangleAdjacency(mesh);
+	const auto adj = recon::getTriangleAdjacency(mesh);
 	const std::map<int, std::set<int>> truth_adj = {
 		{0, {1}},
 		{1, {0}}
@@ -71,7 +71,7 @@ TEST(getTriangleAdjacency, TwoTrianglesSharingEdge) {
 TEST(getTriangleAdjacency, TwoTrianglesSharingVertex) {
 	// getTriangleAdjacency is a topological operation,
 	// so positions don't matter.
-	visual::TriangleMesh<std::nullptr_t> mesh;
+	recon::TriangleMesh<std::nullptr_t> mesh;
 	mesh.triangles.push_back({{0, 1, 2}});  // tri 0
 	mesh.triangles.push_back({{0, 3, 4}});  // tri 1
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
@@ -80,7 +80,7 @@ TEST(getTriangleAdjacency, TwoTrianglesSharingVertex) {
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
 
-	const auto adj = visual::getTriangleAdjacency(mesh);
+	const auto adj = recon::getTriangleAdjacency(mesh);
 	const std::map<int, std::set<int>> truth_adj = {
 		{0, {1}},
 		{1, {0}}
@@ -91,7 +91,7 @@ TEST(getTriangleAdjacency, TwoTrianglesSharingVertex) {
 TEST(getTriangleAdjacency, TwoTrianglesSeparate) {
 	// getTriangleAdjacency is a topological operation,
 	// so positions don't matter.
-	visual::TriangleMesh<std::nullptr_t> mesh;
+	recon::TriangleMesh<std::nullptr_t> mesh;
 	mesh.triangles.push_back({{0, 1, 2}});  // tri 0
 	mesh.triangles.push_back({{3, 4, 5}});  // tri 1
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
@@ -101,7 +101,7 @@ TEST(getTriangleAdjacency, TwoTrianglesSeparate) {
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f::Zero(), nullptr);
 
-	const auto adj = visual::getTriangleAdjacency(mesh);
+	const auto adj = recon::getTriangleAdjacency(mesh);
 	const std::map<int, std::set<int>> truth_adj = {};
 	EXPECT_EQ(truth_adj, adj);
 }
@@ -110,7 +110,7 @@ TEST(getTriangleAdjacency, TwoTrianglesSeparate) {
 TEST(getCCTest, EmptyGraph) {
 	std::set<int> verts;
 	std::map<int, std::set<int>> adj;
-	EXPECT_TRUE(visual::getCC(verts, adj).empty());
+	EXPECT_TRUE(recon::getCC(verts, adj).empty());
 }
 
 TEST(getCCTest, TwoCC) {
@@ -119,7 +119,7 @@ TEST(getCCTest, TwoCC) {
 		{1, {}},
 		{2, {}}
 	};
-	const auto ccs = visual::getCC(verts, adj);
+	const auto ccs = recon::getCC(verts, adj);
 	EXPECT_EQ(2, ccs.size());
 	EXPECT_EQ(1, ccs[0].size());
 	EXPECT_EQ(1, ccs[1].size());
@@ -131,20 +131,20 @@ TEST(getCCTest, OneCC) {
 		{1, {2}},
 		{2, {1}}
 	};
-	const auto ccs = visual::getCC(verts, adj);
+	const auto ccs = recon::getCC(verts, adj);
 	EXPECT_EQ(1, ccs.size());
 	EXPECT_EQ(2, ccs[0].size());
 }
 
 TEST(assignUV, UVIsInsideUnitSquare) {
 	// single chart
-	visual::TriangleMesh<std::nullptr_t> mesh;
+	recon::TriangleMesh<std::nullptr_t> mesh;
 	mesh.triangles.push_back({{0, 1, 2}});
 	mesh.vertices.emplace_back(Eigen::Vector3f(0, 0, 0), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f(1, 0, 0), nullptr);
 	mesh.vertices.emplace_back(Eigen::Vector3f(0, 1, 0), nullptr);
 
-	const auto mesh_with_uv = visual::assignUV(mesh);
+	const auto mesh_with_uv = recon::assignUV(mesh);
 	EXPECT_EQ(mesh_with_uv.triangles.size(), 1);
 	EXPECT_EQ(mesh_with_uv.vertices.size(), 3);
 	for(const auto& vert : mesh_with_uv.vertices) {

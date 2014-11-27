@@ -4,6 +4,8 @@
 
 #include <Eigen/Dense>
 
+namespace recon {
+
 using VoxelIndex = std::tuple<int, int, int>;
 
 Eigen::Vector3i indexToVector(VoxelIndex index);
@@ -19,3 +21,5 @@ private:
 	Eigen::Vector3i index;
 	Eigen::Vector3f frac;
 };
+
+}  // namespace

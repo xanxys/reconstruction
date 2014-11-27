@@ -7,7 +7,7 @@
 
 #include <visual/triangle_mesh.h>
 
-namespace visual {
+namespace recon {
 
 class F32Array3 {
 public:

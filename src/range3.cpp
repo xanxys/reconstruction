@@ -1,5 +1,7 @@
 #include "range3.h"
 
+namespace recon {
+
 range3::range3(Eigen::Vector3i max) :
 	x0(0), y0(0), z0(0),
 	x1(max.x()), y1(max.y()), z1(max.z()) {
@@ -44,3 +46,5 @@ Eigen::Vector3i range3::iterator::operator*() {
 bool range3::iterator::operator!=(const iterator& that) {
 	return (x != that.x) || (y != that.y) || (z != that.z);
 }
+
+}  // namespace

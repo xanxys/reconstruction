@@ -11,7 +11,7 @@
 
 #include "triangle_mesh.h"
 
-namespace visual {
+namespace recon {
 
 // Get barycentric coordinate of the narest point on triangle surface.
 Eigen::Vector2f nearestBarycentricApprox(
@@ -26,6 +26,5 @@ std::pair<float, Eigen::Vector2f> nearestCoordinate(
 // return: (distance, UV coords)
 std::tuple<float, Eigen::Vector2f, Eigen::Vector3f> nearestCoordinateWithNormal(
 	const TriangleMesh<Eigen::Vector2f>& mesh, const Eigen::Vector3f p);
-
 
 }  // namespace

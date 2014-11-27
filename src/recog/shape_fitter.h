@@ -10,10 +10,7 @@
 
 #include <visual/triangle_mesh.h>
 
-namespace visual {
-
-// internal functions. maybe useful elsewhere, but not well documented nor stable.
-namespace shape_fitter {
+namespace recon {
 
 // Fit an Z-extruded concave, inward-facing shape.
 // WARNING:
@@ -35,18 +32,6 @@ std::tuple<
 	> generateExtrusion(
 		const std::vector<Eigen::Vector2f>& poly,
 		const std::pair<float, float>& h_range);
-
-
-// Fit an orinted bounding box (with Y-axis-only rotation) to
-// given point cloud, and return (6) planes of the OBB.
-//
-// WARNING:
-// Since this code use robust estimate, instead of min/max,
-// some points will NOT be inside of the returned OBB.
-//
-// Return a box with 12 triangles.
-TriangleMesh<std::nullptr_t> fitOBB(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-
 
 float mean(const std::pair<float, float>& pair);
 float half(const std::pair<float, float>& pair);
@@ -91,9 +76,4 @@ bool intersectSegments(
 	std::pair<Eigen::Vector2f, Eigen::Vector2f> a0,
 	std::pair<Eigen::Vector2f, Eigen::Vector2f> b0);
 
-TriangleMesh<std::nullptr_t> createBox(
-	Eigen::Vector3f center, Eigen::Vector3f half_dx,
-	Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
-
-}  // namespace
 }  // namespace

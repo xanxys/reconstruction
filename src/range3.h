@@ -2,6 +2,8 @@
 
 #include <Eigen/Dense>
 
+namespace recon {
+
 // Convenient class to iterate rectangular 3D region.
 // range3(vmin, vmax) scans [vmin, vmax).
 // e.g. range3([0,0,0], [2,2,2])
@@ -33,3 +35,5 @@ private:
 	int x0, y0, z0;
 	int x1, y1, z1;
 };
+
+}  // namespace

@@ -7,7 +7,7 @@
 
 #include <range3.h>
 
-namespace visual {
+namespace recon {
 
 template<typename Cell>
 class DenseVoxel {

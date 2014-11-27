@@ -15,7 +15,7 @@
 #include <recog/scene_asset_bundle.h>
 #include <visual/textured_mesh.h>
 
-namespace visual {
+namespace recon {
 
 // Immutable data that holds a single scan.
 class SingleScan {

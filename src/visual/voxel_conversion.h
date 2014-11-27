@@ -11,8 +11,7 @@
 #include <visual/dense_voxel.h>
 #include <visual/triangle_mesh.h>
 
-namespace visual {
-namespace voxel_conversion {
+namespace recon {
 
 template<typename VertexAttrib>
 DenseVoxel<bool> meshToVoxel(
@@ -53,5 +52,4 @@ TriangleMesh<std::nullptr_t> extractVoxelSurface(
 	const Eigen::Vector3i& imin,
 	const float voxel_size);
 
-}  // namespace
 }  // namespace

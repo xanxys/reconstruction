@@ -14,7 +14,7 @@
 #include <geom/packing.h>
 #include <visual/triangle_mesh.h>
 
-namespace visual {
+namespace recon {
 
 // Partial TriangleMesh that can be represented as
 // connected region in 2-d plane.
@@ -98,8 +98,7 @@ TriangleMesh<std::pair<Vertex, Eigen::Vector2f>> assignUV(
 		uv_sizes.push_back(chart.getSize());
 	}
 
-
-	const auto result = geom::packing::packRectangles(uv_sizes);
+	const auto result = packRectangles(uv_sizes);
 	const float scale = 1 / std::get<0>(result);
 	const auto offsets = std::get<1>(result);
 

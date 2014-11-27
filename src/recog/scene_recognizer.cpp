@@ -44,7 +44,7 @@
 #include <visual/mesh_intersecter.h>
 #include <visual/texture_conversion.h>
 
-namespace visual {
+namespace recon {
 
 std::vector<Eigen::Vector3f> recognize_lights(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
@@ -53,7 +53,7 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	for(const auto& pt : cloud->points) {
 		zs.push_back(pt.z);
 	}
-	const auto zs_range = visual::shape_fitter::robustMinMax(zs);
+	const auto zs_range = robustMinMax(zs);
 	const float z_ceiling = zs_range.second;
 
 	// Project points to ceiling quad.
@@ -80,7 +80,7 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	quad.triangles.push_back({{2, 3, 0}});
 
 	// Make it grayscale and remove image noise by blurring.
-	const TexturedMesh ceiling_geom = cloud_baker::bakePointsToMesh(cloud, quad);
+	const TexturedMesh ceiling_geom = bakePointsToMesh(cloud, quad);
 	cv::Mat ceiling_gray;
 	cv::cvtColor(ceiling_geom.diffuse, ceiling_gray, cv::COLOR_BGR2GRAY);
 	cv::GaussianBlur(ceiling_gray, ceiling_gray, cv::Size(31, 31), 10);
@@ -203,8 +203,8 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
 	INFO("Approximating exterior shape by an extruded polygon");
-	const auto cloud_colorless = cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
-	const auto extrusion = shape_fitter::fitExtrudedPolygon(cloud_colorless);
+	const auto cloud_colorless = cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
+	const auto extrusion = fitExtrudedPolygon(cloud_colorless);
 	auto room_polygon = std::get<0>(extrusion);
 	auto room_hrange = std::get<1>(extrusion);
 
@@ -240,13 +240,13 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Materializing extruded polygon mesh");
-	const auto extrusion_mesh = shape_fitter::generateExtrusion(
+	const auto extrusion_mesh = generateExtrusion(
 		rframe.wall_polygon, room_hrange);
 	const auto room_mesh = std::get<0>(extrusion_mesh);
 	const auto room_ceiling_ixs = std::get<1>(extrusion_mesh);
 
 	INFO("Modeling boxes along wall");
-	auto cloud_interior_pre = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
+	auto cloud_interior_pre = colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
 	INFO("Rejecting near-ceiling points");
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 	const float ceiling_range = 0.65;
@@ -259,16 +259,16 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	bundle.addDebugPointCloud("points_interior", cloud_interior);
 
-	auto filtered = cloud_filter::squashRegistrationError(cloud_interior);
+	auto filtered = squashRegistrationError(cloud_interior);
 	bundle.addDebugPointCloud("filtered", filtered);
 
-	const auto cloud_interior_dist = visual::cloud_baker::colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
+	const auto cloud_interior_dist = colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
 		scans_aligned, room_mesh, room_ceiling_ixs,
-		cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
+		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
 	bundle.setExteriorMesh(exterior.first);
 
@@ -292,7 +292,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
 		tex_mesh,
-		visual::recognize_lights(cloud_inside));
+		recognize_lights(cloud_inside));
 }
 
 
@@ -309,8 +309,8 @@ void splitObjects(
 			new pcl::search::KdTree<pcl::PointXYZRGB>);
 
 	// decompose to XYZRGB + Normal
-	auto cloud = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_org);
-	auto normals = visual::cloud_base::cast<pcl::PointXYZRGBNormal, pcl::Normal>(cloud_org);
+	auto cloud = cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_org);
+	auto normals = cast<pcl::PointXYZRGBNormal, pcl::Normal>(cloud_org);
 
 	INFO("Doing EC");
 	std::vector<pcl::PointIndices> cluster_indices;
@@ -339,7 +339,7 @@ void splitObjects(
 		INFO("Polyhedron #vert", (int)poly.size_of_vertices());
 		assert(poly.is_pure_triangle());
 
-		visual::TriangleMesh<std::nullptr_t> mesh;
+		TriangleMesh<std::nullptr_t> mesh;
 		for(auto it_f = poly.facets_begin(); it_f != poly.facets_end(); it_f++) {
 			const int v0 = mesh.vertices.size();
 			auto it_e = it_f->facet_begin();
@@ -354,7 +354,7 @@ void splitObjects(
 		}
 
 		// bake texture
-		//const auto tex_mesh = visual::cloud_baker::bakePointsToMesh(cloud, mesh);
+		//const auto tex_mesh = bakePointsToMesh(cloud, mesh);
 		const auto tex_mesh = bakeTexture(scans, mesh);
 		bundle.addInteriorObject(tex_mesh);
 	}

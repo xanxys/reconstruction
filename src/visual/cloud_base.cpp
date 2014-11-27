@@ -17,8 +17,7 @@
 #include <visual/mesh_intersecter.h>
 #include <visual/texture_conversion.h>
 
-namespace visual {
-namespace cloud_base {
+namespace recon {
 
 // Apply affine transform to given XYZ+RGB+Normal point cloud,
 // and return new transformed cloud.
@@ -107,5 +106,4 @@ float cloudDistance(
 	return 1.0 / n_bins; //accum_distance / (n_bins * std::sqrt(n_bins));  // More bins == more similar
 }
 
-}  // namespace
 }  // namespace

@@ -8,7 +8,7 @@
 #include <logging.h>
 #include <visual/triangle_mesh.h>
 
-namespace visual {
+namespace recon {
 
 // A triangle mesh with single diffuse texture.
 class TexturedMesh {

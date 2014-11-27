@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 
 TEST(VoxelTraversalTest, StraightCase) {
-	VoxelTraversal tr(1, Eigen::Vector3f(0.5, 0.5, 0.5), Eigen::Vector3f(0, 0, 1));
+	recon::VoxelTraversal tr(1, Eigen::Vector3f(0.5, 0.5, 0.5), Eigen::Vector3f(0, 0, 1));
 
 	for(int i : boost::irange(0, 10)) {
 		const auto key = tr.next();
@@ -18,7 +18,7 @@ TEST(VoxelTraversalTest, StraightCase) {
 }
 
 TEST(VoxelTraversalTest, StraightCaseNegative) {
-	VoxelTraversal tr(1, Eigen::Vector3f(0.5, 0.5, 0.5), Eigen::Vector3f(0, 0, -1));
+	recon::VoxelTraversal tr(1, Eigen::Vector3f(0.5, 0.5, 0.5), Eigen::Vector3f(0, 0, -1));
 
 	for(int i : boost::irange(0, 10)) {
 		const auto key = tr.next();
@@ -40,7 +40,7 @@ TEST(VoxelTraversalTest, PathIsValid) {
 			std::uniform_real_distribution<float>(-1, 1)(gen),
 			std::uniform_real_distribution<float>(-1, 1)(gen)).normalized();
 
-		VoxelTraversal tr(
+		recon::VoxelTraversal tr(
 			std::uniform_real_distribution<float>(1e-3, 1e3)(gen),
 			org, dir);
 

@@ -16,7 +16,7 @@
 #include <logging.h>
 #include <visual/textured_mesh.h>
 
-namespace visual {
+namespace recon {
 
 // A complete information to be loaded by EqExperiment/LoaderPlugin.
 // Also contains bunch of data for debugging purpose.

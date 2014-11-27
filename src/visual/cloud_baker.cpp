@@ -19,8 +19,7 @@
 #include <visual/marching_cubes.h>
 #include <visual/voxel_conversion.h>
 
-namespace visual {
-namespace cloud_baker {
+namespace recon {
 
 TexturedMesh bakePointsToMesh(
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
@@ -86,5 +85,4 @@ void fillHoles(cv::Mat& image, const cv::Vec3b undefined, int iteration) {
 }
 
 
-}  // namespace
 }  // namespace

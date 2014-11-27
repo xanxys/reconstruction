@@ -18,7 +18,7 @@ std::vector<Eigen::Vector2f> arbRectangles() {
 
 TEST(packRectanglesTest, ResultFitsInsideSquare) {
 	const auto rects = arbRectangles();
-	const auto result = geom::packing::packRectangles(rects);
+	const auto result = recon::packRectangles(rects);
 	const auto size = result.first;
 	const auto offsets = result.second;
 

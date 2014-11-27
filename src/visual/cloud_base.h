@@ -11,8 +11,7 @@
 
 #include <logging.h>
 
-namespace visual {
-namespace cloud_base {
+namespace recon {
 
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud, const Eigen::Affine3f& trans);
 
@@ -74,5 +73,4 @@ typename pcl::PointCloud<PointOut>::Ptr cast(typename pcl::PointCloud<PointIn>::
 	return cloud_out;
 }
 
-}  // namespace
 }  // namespace

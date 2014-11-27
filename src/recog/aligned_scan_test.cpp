@@ -13,7 +13,7 @@ TEST(AlignedScans, AffineEncodingIdentity) {
 
 	const Eigen::Affine3f aff(m);
 	const Eigen::Affine3f aff_de_en =
-		visual::AlignedScans::decodeAffine(
-			visual::AlignedScans::encodeAffine(aff));
+		recon::AlignedScans::decodeAffine(
+			recon::AlignedScans::encodeAffine(aff));
 	EXPECT_FLOAT_EQ(0, (aff.matrix() - aff_de_en.matrix()).norm());
 }

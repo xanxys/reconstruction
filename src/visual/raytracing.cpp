@@ -12,7 +12,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 
-namespace visual {
+namespace recon {
 
 using std::shared_ptr;
 using std::vector;

@@ -6,10 +6,12 @@
 #include <jsoncpp/json/json.h>
 
 
-#define INFO(...) logJson("INFO", __FILE__, __LINE__, __VA_ARGS__)
-#define DEBUG(...) logJson("DEBUG", __FILE__, __LINE__, __VA_ARGS__)
-#define WARN(...) logJson("WARN", __FILE__, __LINE__, __VA_ARGS__)
-#define ERROR(...) logJson("ERROR", __FILE__, __LINE__, __VA_ARGS__)
+#define INFO(...) recon::logJson("INFO", __FILE__, __LINE__, __VA_ARGS__)
+#define DEBUG(...) recon::logJson("DEBUG", __FILE__, __LINE__, __VA_ARGS__)
+#define WARN(...) recon::logJson("WARN", __FILE__, __LINE__, __VA_ARGS__)
+#define ERROR(...) recon::logJson("ERROR", __FILE__, __LINE__, __VA_ARGS__)
+
+namespace recon {
 
 void logJsonRaw(std::string level, std::string path, int line, Json::Value& msg);
 
@@ -36,3 +38,5 @@ void logJson(std::string level, std::string path, int line, MessageType... msgs)
 		logJsonRaw(level, path, line, array);
 	}
 }
+
+}  // namespace

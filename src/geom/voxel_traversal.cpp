@@ -1,5 +1,7 @@
 #include "voxel_traversal.h"
 
+namespace recon {
+
 Eigen::Vector3i indexToVector(VoxelIndex index) {
 	return Eigen::Vector3i(
 		std::get<0>(index),
@@ -50,3 +52,5 @@ std::tuple<int, int, int> VoxelTraversal::next() {
 
 	return key;
 }
+
+}  // namespace

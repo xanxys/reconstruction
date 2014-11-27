@@ -10,6 +10,7 @@
 
 #include <logging.h>
 
+namespace recon {
 
 Json::Value call_external(const std::string& prog_path, Json::Value arg) {
 	std::random_device rd;
@@ -33,3 +34,5 @@ Json::Value call_external(const std::string& prog_path, Json::Value arg) {
 	Json::Reader().parse(in_f, result, false);
 	return result;
 }
+
+}  // namespace recon

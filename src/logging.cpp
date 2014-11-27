@@ -3,6 +3,8 @@
 #include <limits>
 #include <random>
 
+namespace recon {
+
 void logJsonRaw(std::string level, std::string path, int line, Json::Value& msg) {
 	static std::string session_id = "";
 	if(session_id == "") {
@@ -24,3 +26,5 @@ void logJsonRaw(std::string level, std::string path, int line, Json::Value& msg)
 Json::Value packMessageReversed() {
 	return Json::arrayValue;
 }
+
+}  // namespace

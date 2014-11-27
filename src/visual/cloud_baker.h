@@ -17,8 +17,7 @@
 #include <visual/triangle_mesh.h>
 #include <visual/mapping.h>
 
-namespace visual {
-namespace cloud_baker {
+namespace recon {
 
 // Assign color to point cloud based on distance from mesh.
 // Point type must have RGB and XYZ and Normal.
@@ -67,5 +66,4 @@ TexturedMesh bakePointsToMesh(
 // worst time: O(iteration * number of pixels)
 void fillHoles(cv::Mat& image, cv::Vec3b undefined, int iteration);
 
-}  // namespace
 }  // namespace

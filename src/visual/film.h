@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
-namespace visual {
+namespace recon {
 
 // An RGB film that reconstruct image from samples.
 class FilmRGB8U {
@@ -26,4 +26,4 @@ private:
 	cv::Mat_<float> weight;
 };
 
-}
+}  // namespace

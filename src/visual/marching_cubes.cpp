@@ -7,7 +7,7 @@
 
 #include <range3.h>
 
-namespace visual {
+namespace recon {
 
 F32Array3::F32Array3(int nx, int ny, int nz) : nx(nx), ny(ny), nz(nz) {
 	data.resize(nx * ny * nz);
