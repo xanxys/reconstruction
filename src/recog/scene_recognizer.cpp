@@ -109,8 +109,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	return lights;
 }
 
-namespace scene_recognizer {
-
 RoomFrame::RoomFrame() {
 	up = Eigen::Vector3f(0, 0, 1);
 }
@@ -325,9 +323,28 @@ void splitObjects(
 	ec.extract(clusters);
 
 	INFO("Number of clusters=", (int)clusters.size());
-	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
 
-	// create polyhedron.
+	if(bundle.isDebugEnabled()) {
+		std::default_random_engine generator;
+		std::uniform_int_distribution<int> distribution(1, 255);
+		pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
+			new pcl::PointCloud <pcl::PointXYZRGB>);
+		for(const auto& indices : clusters) {
+			const int r = distribution(generator);
+			const int g = distribution(generator);
+			const int b = distribution(generator);
+			for(int ix : indices.indices) {
+				auto pt = cloud->points[ix];
+				pt.r = r;
+				pt.g = g;
+				pt.b = b;
+				colored_cloud->points.push_back(pt);
+			}
+		}
+		bundle.addDebugPointCloud("second_clusters", colored_cloud);
+	}
+
+	// create a polyhedron for each cluster.
 	for(const auto& indices : clusters) {
 		std::vector<Point_3> points;
 		for(int ix : indices.indices) {
@@ -354,48 +371,10 @@ void splitObjects(
 		}
 
 		// bake texture
-		//const auto tex_mesh = bakePointsToMesh(cloud, mesh);
 		const auto tex_mesh = bakeTexture(scans, mesh);
 		bundle.addInteriorObject(tex_mesh);
 	}
-
-	std::default_random_engine generator;
-	std::uniform_int_distribution<int> distribution(1, 255);
-
-	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
-		new pcl::PointCloud <pcl::PointXYZRGB>);
-	for(const auto& indices : clusters) {
-		const int r = distribution(generator);
-		const int g = distribution(generator);
-		const int b = distribution(generator);
-		for(int ix : indices.indices) {
-			auto pt = cloud->points[ix];
-			pt.r = r;
-			pt.g = g;
-			pt.b = b;
-			colored_cloud->points.push_back(pt);
-		}
-	}
-
-	bundle.addDebugPointCloud("second_clusters", colored_cloud);
 }
-
-
-// Apply affine transform to given XYZ+RGB+Normal point cloud,
-// and return new transformed cloud.
-pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(
-		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud,
-		const Eigen::Affine3f& trans) {
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr new_cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-	for(auto& pt : cloud->points) {
-		pcl::PointXYZRGBNormal pt_new = pt;
-		pt_new.getVector3fMap() = trans * pt.getVector3fMap();
-		pt_new.getNormalVector3fMap() = trans.rotation() * pt.getNormalVector3fMap();
-		new_cloud->points.push_back(pt_new);
-	}
-	return new_cloud;
-}
-
 
 int ceilToPowerOf2(int x) {
 	int r = 1;
@@ -486,5 +465,4 @@ TexturedMesh bakeTexture(
 	return tm;
 }
 
-}  // namespace
 }  // namespace

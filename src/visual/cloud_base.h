@@ -13,7 +13,8 @@
 
 namespace recon {
 
-pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud, const Eigen::Affine3f& trans);
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr applyTransform(
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud, const Eigen::Affine3f& trans);
 
 template<typename Scalar>
 Eigen::Vector3f append(Eigen::Vector2f v, Scalar x) {

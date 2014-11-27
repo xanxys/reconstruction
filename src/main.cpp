@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 		const bool debug = vars.count("debug");
 		recon::SceneAssetBundle bundle(
 			guessSceneName(dir_paths.front()), debug);
-		recon::scene_recognizer::recognizeScene(bundle, scans);
+		recon::recognizeScene(bundle, scans);
 		return 0;
 	} else {
 		std::cout << desc << std::endl;
