@@ -113,6 +113,18 @@ RoomFrame::RoomFrame() {
 	up = Eigen::Vector3f(0, 0, 1);
 }
 
+void RoomFrame::setHRange(float z0, float z1) {
+	assert(z0 < z1);
+	this.z0 = z0;
+	this.z1 = z1;
+}
+
+std::vector<Eigen::Vector2f> RoomFrame::getSimplifiedContour() const {
+	assert(wall_polygon.size() >= 3);
+	return wall_polygon;
+}
+
+
 void test_segmentation(
 		SceneAssetBundle& bundle,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
@@ -152,7 +164,21 @@ void test_segmentation(
 void splitEachScan(
 		SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe) {
 	INFO("Recognizing single scan", ccs.raw_scan.getScanId());
-	// Fit polygon to ccs.
+	// Generate mesh that represents the wall. (with vertex normals)
+	const auto contour = rframe.getSimplifiedContour();
+	TriangleMesh<Eigen::Vector3f> wrapping;
+
+	// Wiggle mesh so that points will be close to faces.
+	// A vertex can move around more freely in normal direction.
+
+	// Free parameters: vertex displacements.
+	// Cost function: avg. squared distance to points
+	// Cut off at 3sigma (99.6%).
+	const float dist_sigma = 0.01;  // Spec of UTM-30LX says 3cm error bounds for <10m.
+
+
+
+
 
 }
 
@@ -226,6 +252,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	}
 
 	RoomFrame rframe;
+	rframe.setHRange(room_hrange.first, room_hrange.second);
 	rframe.wall_polygon = contour_points;
 	for(auto& ccs :  scans_aligned.getScansWithPose()) {
 		splitEachScan(bundle, ccs, rframe);

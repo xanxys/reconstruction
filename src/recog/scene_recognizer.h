@@ -41,6 +41,15 @@ int ceilToPowerOf2(int x);
 class RoomFrame {
 public:
 	RoomFrame();
+
+	// Set Z range that corresponds to min and max inside the room.
+	// (ill-defined when there's holes in ceiling etc.)
+	void setHRange(float z0, float z1);
+
+	// Get wall contour after Manhattan enforcement as CCW ordered
+	// vertices.
+	// Warning: result will not align well with world X, Y axes.
+	std::vector<Eigen::Vector2f> getSimplifiedContour() const;
 public:
 	std::vector<Eigen::Vector2f> wall_polygon;
 private:
@@ -48,6 +57,10 @@ private:
 	Eigen::Vector3f up;
 	Eigen::Vector3f prin0;
 	Eigen::Vector3f prin1;
+
+	// z range
+	float z0;
+	float z1;
 };
 
 // points
