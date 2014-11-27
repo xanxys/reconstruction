@@ -14,6 +14,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+#include <math_util.h>
 #include <program_proxy.h>
 #include <recog/shape_fitter.h>
 #include <third/ICP.h>
@@ -25,9 +26,6 @@
 #include <visual/texture_conversion.h>
 
 namespace recon {
-
-const double pi = 3.14159265359;
-
 
 SingleScan::SingleScan(const std::string& scan_dir) {
 	using boost::filesystem::path;
