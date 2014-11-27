@@ -3,5 +3,6 @@ build/
 data/
 archive/
 *.sublime-workspace
+*.sublime-project
 log
 *.pyc

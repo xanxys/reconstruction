@@ -36,3 +36,8 @@ Now move that scan- directory to somewhere accesible from UE4.
 ```
 sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data 1c6bbe46e13e bash
 ```
+
+### Related Repositories ###
+* [reconstruction](https://bitbucket.org/xanxys/reconstruction): this one
+* [capturer](https://bitbucket.org/xanxys/capturer)
+* [thesis-master](https://bitbucket.org/xanxys/thesis-master)
