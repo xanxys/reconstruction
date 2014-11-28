@@ -115,8 +115,8 @@ RoomFrame::RoomFrame() {
 
 void RoomFrame::setHRange(float z0, float z1) {
 	assert(z0 < z1);
-	this.z0 = z0;
-	this.z1 = z1;
+	this->z0 = z0;
+	this->z1 = z1;
 }
 
 std::vector<Eigen::Vector2f> RoomFrame::getSimplifiedContour() const {
