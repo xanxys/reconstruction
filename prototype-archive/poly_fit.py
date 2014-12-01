@@ -69,6 +69,8 @@ def eval_param(ds, param):
     cost = 0
     n_reachable = 0
     poly_adjusted = ds.vertices + param.reshape(ds.vertices.shape)
+
+    # point cost
     for p in ds.points:
         t = proj_to_segment(poly_adjusted[0], poly_adjusted[1], p)
         if not (0 <= t <= 1):
@@ -77,6 +79,10 @@ def eval_param(ds, param):
         p_proj = t * (poly_adjusted[1] - poly_adjusted[0]) + poly_adjusted[0]
         dist = la.norm(p - p_proj)
         cost += dist ** 2
+
+    # param regularizer
+    for p in param:
+        cost += la.norm(p)
 
     # print("reachable points: %d / %d" % (n_reachable, len(param)))
     return (cost, param * 0)
@@ -154,7 +160,7 @@ def test_poly_fitting():
             param,
             method='Nelder-Mead',
             options={
-                "maxiter": 100
+                "maxiter": 200
             },
             callback=record_param)
         print(result)
