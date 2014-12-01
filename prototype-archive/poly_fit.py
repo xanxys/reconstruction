@@ -30,26 +30,36 @@ def seg_intersect(a1, a2, b1, b2):
         return False
 
 
-def gen_dataset(bias_perp=0):
+def gen_dataset(bias_perp=0, distortion=0):
     """
     Returns PolygonAndPoints
     """
-    pt0 = np.array([0.1, 0.1])
-    pt1 = np.array([0.3, 0.5])
+    vertices = np.array([
+        [0.1, 0.1],
+        [0.3, 0.5],
+        [0.8, 0.8]])
+    edges = [(0, 1), (1, 2), (2, 0)]
     rot = np.array([[0, -1], [1, 0]])
-    normal = np.dot(rot, pt1 - pt0)
-    normal /= la.norm(normal)
 
-    sigma = 0.01
-    n_points = 100
+    # sample points
+    sigma = 0.005
+    n_points_per_edge = 100
     points = []
-    for i in range(n_points):
-        pt_center = pt0 + (pt1 - pt0) * i / n_points
-        points.append(pt_center + np.random.randn(2) * sigma + normal * bias_perp)
+    for (ix0, ix1) in edges:
+        pt0 = vertices[ix0]
+        pt1 = vertices[ix1]
+        normal = np.dot(rot, pt1 - pt0)
+        normal /= la.norm(normal)
+        for i in range(n_points_per_edge):
+            pt_center = pt0 + (pt1 - pt0) * i / n_points_per_edge
+            points.append(pt_center + np.random.randn(2) * sigma + normal * bias_perp)
+    points = np.array(points)
 
-    return PolygonAndPoints(
-        np.array([pt0, pt1]),
-        np.array(points))
+    # apply distortion
+    # x: [0, 1], x^2: [0, 1]
+    points += points ** 2 * distortion
+
+    return PolygonAndPoints( vertices, edges, points)
 
 
 def proj_to_segment(p0, p1, query):
@@ -65,32 +75,28 @@ def eval_param(ds, param):
 
     return: (cost, dcost/dparam)
     """
-    assert(ds.vertices.size == param.size)
+    verts_adjusted = ds.get_adjusted_vertices(param)
+
+    def dist_to_edge(p, i0, i1):
+        t = proj_to_segment(verts_adjusted[i0], verts_adjusted[i1], p)
+        t = max(0, min(1, t))
+        p_nearest = verts_adjusted[i0] + (verts_adjusted[i1] - verts_adjusted[i0]) * t
+        return la.norm(p - p_nearest)
+
+    def dist_to_mesh(p):
+        return min(dist_to_edge(p, *edge) for edge in ds.edges)
+
     cost = 0
-    n_reachable = 0
-    poly_adjusted = ds.vertices + param.reshape(ds.vertices.shape)
+    cost += sum(dist_to_mesh(p) ** 2 for p in ds.points)
+    cost += sum(la.norm(p) ** 2 for p in param)
 
-    # point cost
-    for p in ds.points:
-        t = proj_to_segment(poly_adjusted[0], poly_adjusted[1], p)
-        if not (0 <= t <= 1):
-            continue
-        n_reachable += 1
-        p_proj = t * (poly_adjusted[1] - poly_adjusted[0]) + poly_adjusted[0]
-        dist = la.norm(p - p_proj)
-        cost += dist ** 2
-
-    # param regularizer
-    for p in param:
-        cost += la.norm(p)
-
-    # print("reachable points: %d / %d" % (n_reachable, len(param)))
     return (cost, param * 0)
 
 
 class PolygonAndPoints(object):
-    def __init__(self, vertices, points):
+    def __init__(self, vertices, edges, points):
         self.vertices = vertices
+        self.edges = edges
         self.points = points
 
     def get_param_dim(self):
@@ -116,24 +122,30 @@ def draw_dataset(ctx, ds, params=None):
     # poly
     ctx.set_line_width(0.001)
     ctx.new_path()
-    for pt in ds.vertices:
-        ctx.line_to(*pt)
+    for (i0, i1) in ds.edges:
+        ctx.move_to(*ds.vertices[i0])
+        ctx.line_to(*ds.vertices[i1])
     ctx.set_source_rgb(0, 0, 0)
     ctx.stroke()
 
     if params is not None:
         ctx.set_line_width(0.001)
         for (i, param) in enumerate(params):
+            vs_adj = ds.get_adjusted_vertices(param)
             t = i / len(params)
             ctx.new_path()
-            for pt in ds.get_adjusted_vertices(param):
-                ctx.line_to(*pt)
+            for (i0, i1) in ds.edges:
+                ctx.move_to(*vs_adj[i0])
+                ctx.line_to(*vs_adj[i1])
             ctx.set_source_rgba(1 - t, t, 0, 0.1)
             ctx.stroke()
 
 
-def test_poly_fitting():
-    # Setup a context that maps [0,1]^2 region to an image
+def draw_with(img_path, draw_fn):
+    """
+    img_path :: str
+    draw_fn :: cairo.Context -> None
+    """
     size = 800
     surf = cairo.ImageSurface(cairo.FORMAT_RGB24, size, size)
     ctx = cairo.Context(surf)
@@ -142,16 +154,21 @@ def test_poly_fitting():
     ctx.scale(1, -1)
     ctx.set_source_rgb(1, 1, 1)
     ctx.paint()
-    ctx.set_line_width(0.001)
+    draw_fn(ctx)
+    surf.write_to_png(img_path)
 
+
+def test_poly_fitting():
     for i in range(10):
         print("========================================")
-        bias = i * 0.01
-        ds = gen_dataset(bias)
+        distortion = i * 0.05
+        ds = gen_dataset(distortion=distortion)
         param = np.zeros([ds.get_param_dim()])
-        print("perp bias: %f / cost: %f" % (bias, eval_param(ds, param)[0]))
+        print("distortion: %f / cost: %f" % (
+            distortion, eval_param(ds, param)[0]))
 
         params = []
+
         def record_param(param):
             params.append(param)
 
@@ -160,14 +177,15 @@ def test_poly_fitting():
             param,
             method='Nelder-Mead',
             options={
-                "maxiter": 200
+                "maxiter": 100
             },
             callback=record_param)
         print(result)
 
-        if i == 9:
+        def draw(ctx):
             draw_dataset(ctx, ds, params)
-            surf.write_to_png("poly_fit.png")
+
+        draw_with("poly_fit-%02d.png" % i, draw)
 
 
 if __name__ == '__main__':
