@@ -43,6 +43,8 @@ public:
 		const SingleScan& raw_scan,
 		const Eigen::Affine3f& local_to_world,
 		const Eigen::Vector3f& color_multiplier);
+
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr getCloudInWorld() const;
 public:
 	SingleScan raw_scan;
 	Eigen::Affine3f local_to_world;

@@ -46,6 +46,8 @@ public:
 	// (ill-defined when there's holes in ceiling etc.)
 	void setHRange(float z0, float z1);
 
+	std::pair<float, float> getHRange() const;
+
 	// Get wall contour after Manhattan enforcement as CCW ordered
 	// vertices.
 	// Warning: result will not align well with world X, Y axes.

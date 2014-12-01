@@ -18,6 +18,11 @@
 #include <CGAL/algorithm.h>
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/convex_hull_3.h>
+// insanity continues (3d tri mesh + AABB)
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_triangle_primitive.h>
 // insanity ends here
 #include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
@@ -119,6 +124,10 @@ void RoomFrame::setHRange(float z0, float z1) {
 	this->z1 = z1;
 }
 
+std::pair<float, float> RoomFrame::getHRange() const {
+	return std::make_pair(z0, z1);
+}
+
 std::vector<Eigen::Vector2f> RoomFrame::getSimplifiedContour() const {
 	assert(wall_polygon.size() >= 3);
 	return wall_polygon;
@@ -163,10 +172,42 @@ void test_segmentation(
 
 void splitEachScan(
 		SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe) {
+	using K = CGAL::Simple_cartesian<float>;
+	using Point = K::Point_3;
+	using Triangle = K::Triangle_3;
+	using Iterator = std::list<Triangle>::iterator;
+	using Primitive = CGAL::AABB_triangle_primitive<K, Iterator>;
+	using AABB_triangle_traits = CGAL::AABB_traits<K, Primitive>;
+	using Tree = CGAL::AABB_tree<AABB_triangle_traits>;
+
 	INFO("Recognizing single scan", ccs.raw_scan.getScanId());
 	// Generate mesh that represents the wall. (with vertex normals)
 	const auto contour = rframe.getSimplifiedContour();
-	TriangleMesh<Eigen::Vector3f> wrapping;
+	TriangleMesh<std::nullptr_t> wrapping =
+		std::get<0>(
+			generateExtrusion(contour, rframe.getHRange()));
+
+	auto v3_to_point = [](const Eigen::Vector3f& v) {
+		return Point(v(0), v(1), v(2));
+	};
+
+	std::list<Triangle> tris;
+	for(const auto& tri : wrapping.triangles) {
+		tris.emplace_back(
+			v3_to_point(wrapping.vertices[tri[0]].first),
+			v3_to_point(wrapping.vertices[tri[1]].first),
+			v3_to_point(wrapping.vertices[tri[2]].first));
+	}
+	INFO("Creating accelerator for #tris", (int)tris.size());
+	Tree tree(tris.begin(), tris.end());
+	tree.accelerate_distance_queries();
+
+	const auto cl_world = ccs.getCloudInWorld();
+	INFO("Querying point distances", (int)cl_world->points.size());
+	for(const auto& pt : cl_world->points) {
+		tree.squared_distance(v3_to_point(pt.getVector3fMap()));
+	}
+	INFO("Done querying");
 
 	// Wiggle mesh so that points will be close to faces.
 	// A vertex can move around more freely in normal direction.
@@ -176,7 +217,7 @@ void splitEachScan(
 	// Cut off at 3sigma (99.6%).
 	const float dist_sigma = 0.01;  // Spec of UTM-30LX says 3cm error bounds for <10m.
 
-	
+
 
 
 

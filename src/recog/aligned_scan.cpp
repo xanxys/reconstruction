@@ -96,6 +96,9 @@ CorrectedSingleScan::CorrectedSingleScan(
 		color_multiplier(color_multiplier) {
 }
 
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr CorrectedSingleScan::getCloudInWorld() const {
+	return applyTransform(raw_scan.cloud, local_to_world);
+}
 
 AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
