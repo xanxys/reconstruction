@@ -41,7 +41,7 @@ TEST(NelderMeadTest, Quadratic100Dim) {
 	// Start from (0, 0).
 	Eigen::VectorXf x(100);
 	x.setConstant(0);
-	const auto result = recon::minimize_nelder_mead(fn, x, 20000);
+	const auto result = recon::minimize_nelder_mead(fn, x, 20000, 1);
 
 	// Result position should be near convergence.
 	EXPECT_EQ(minimum.size(), result.first.size());

@@ -18,6 +18,7 @@ namespace recon {
 std::pair<Eigen::VectorXf, float> minimize_nelder_mead(
 	std::function<float(const Eigen::VectorXf&)> target,
 	const Eigen::VectorXf& initial_param,
-	int max_iter);
+	int max_iter,
+	const float size = 0.1);
 
 }  // namespace

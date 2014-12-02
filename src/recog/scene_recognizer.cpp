@@ -177,7 +177,7 @@ void splitEachScan(
 	using K = CGAL::Simple_cartesian<float>;
 	using Point = K::Point_3;
 	using Triangle = K::Triangle_3;
-	using Iterator = std::list<Triangle>::iterator;
+	using Iterator = std::vector<Triangle>::iterator;
 	using Primitive = CGAL::AABB_triangle_primitive<K, Iterator>;
 	using AABB_triangle_traits = CGAL::AABB_traits<K, Primitive>;
 	using Tree = CGAL::AABB_tree<AABB_triangle_traits>;
@@ -202,6 +202,7 @@ void splitEachScan(
 		return wrapping_adj;
 	};
 
+	const auto cl_world = ccs.getCloudInWorld();
 	auto eval = [&](const Eigen::VectorXf& param) {
 		std::vector<Eigen::Vector3f> verts_adj;
 		for(const int i : boost::irange(0, (int)wrapping.vertices.size())) {
@@ -210,7 +211,8 @@ void splitEachScan(
 					param(i * 3 + 0), param(i * 3 + 1), param(i * 3 + 2)));
 		}
 
-		std::list<Triangle> tris;
+		std::vector<Triangle> tris;
+		tris.reserve(wrapping.triangles.size());
 		for(const auto& tri : wrapping.triangles) {
 			tris.emplace_back(
 				v3_to_point(verts_adj[tri[0]]),
@@ -220,7 +222,6 @@ void splitEachScan(
 		Tree tree(tris.begin(), tris.end());
 		tree.accelerate_distance_queries();
 
-		const auto cl_world = ccs.getCloudInWorld();
 		float cost = 0;
 		for(const auto& pt : cl_world->points) {
 			cost += tree.squared_distance(v3_to_point(pt.getVector3fMap()));
@@ -234,14 +235,14 @@ void splitEachScan(
 	INFO("Optimizing mesh / DoF=", dof);
 	Eigen::VectorXf param(dof);
 	param.setConstant(0);
-	const auto result = minimize_nelder_mead(eval, param, 100);
+	const auto result = minimize_nelder_mead(eval, param, 100, 0.1);
 
 	INFO("optimized cost=", result.second);
 
-	bundle.addMesh("debug_fit_pre_" + ccs.raw_scan.getScanId(),
-		wrapping);
-	bundle.addMesh("debug_fit_post_" + ccs.raw_scan.getScanId(),
-		apply_param(result.first));
+	const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
+	bundle.addDebugPointCloud(prefix + "_world", ccs.getCloudInWorld());
+	bundle.addMesh(prefix + "_pre", wrapping);
+	bundle.addMesh(prefix + "_post", apply_param(result.first));
 
 
 

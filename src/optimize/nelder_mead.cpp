@@ -10,7 +10,8 @@ namespace recon {
 std::pair<Eigen::VectorXf, float> minimize_nelder_mead(
 		std::function<float(const Eigen::VectorXf&)> target,
 		const Eigen::VectorXf& initial_param,
-		int max_iter) {
+		int max_iter,
+		const float size) {
 	using Vertex = std::pair<Eigen::VectorXf, float>;
 
 	const int n = initial_param.size();
@@ -19,7 +20,6 @@ std::pair<Eigen::VectorXf, float> minimize_nelder_mead(
 	const float alpha = 1.0;
 	const float beta = 0.5;
 	const float gamma = 2;
-	const float size = 1.0;
 
 	// Intialize a mutable simplex. Each vertex (pos, value)
 	std::vector<Vertex> vertices;
