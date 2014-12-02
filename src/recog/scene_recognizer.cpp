@@ -193,23 +193,55 @@ void splitEachScan(
 		return Point(v(0), v(1), v(2));
 	};
 
-	std::list<Triangle> tris;
-	for(const auto& tri : wrapping.triangles) {
-		tris.emplace_back(
-			v3_to_point(wrapping.vertices[tri[0]].first),
-			v3_to_point(wrapping.vertices[tri[1]].first),
-			v3_to_point(wrapping.vertices[tri[2]].first));
-	}
-	INFO("Creating accelerator for #tris", (int)tris.size());
-	Tree tree(tris.begin(), tris.end());
-	tree.accelerate_distance_queries();
+	auto apply_param = [&](const Eigen::VectorXf& param) {
+		TriangleMesh<std::nullptr_t> wrapping_adj = wrapping;
+		for(const int i : boost::irange(0, (int)wrapping.vertices.size())) {
+			wrapping_adj.vertices[i].first += Eigen::Vector3f(
+					param(i * 3 + 0), param(i * 3 + 1), param(i * 3 + 2));
+		}
+		return wrapping_adj;
+	};
 
-	const auto cl_world = ccs.getCloudInWorld();
-	INFO("Querying point distances", (int)cl_world->points.size());
-	for(const auto& pt : cl_world->points) {
-		tree.squared_distance(v3_to_point(pt.getVector3fMap()));
-	}
-	INFO("Done querying");
+	auto eval = [&](const Eigen::VectorXf& param) {
+		std::vector<Eigen::Vector3f> verts_adj;
+		for(const int i : boost::irange(0, (int)wrapping.vertices.size())) {
+			verts_adj.push_back(
+				wrapping.vertices[i].first + Eigen::Vector3f(
+					param(i * 3 + 0), param(i * 3 + 1), param(i * 3 + 2)));
+		}
+
+		std::list<Triangle> tris;
+		for(const auto& tri : wrapping.triangles) {
+			tris.emplace_back(
+				v3_to_point(verts_adj[tri[0]]),
+				v3_to_point(verts_adj[tri[1]]),
+				v3_to_point(verts_adj[tri[2]]));
+		}
+		Tree tree(tris.begin(), tris.end());
+		tree.accelerate_distance_queries();
+
+		const auto cl_world = ccs.getCloudInWorld();
+		float cost = 0;
+		for(const auto& pt : cl_world->points) {
+			cost += tree.squared_distance(v3_to_point(pt.getVector3fMap()));
+		}
+		DEBUG("eval cost=", cost);
+		return cost;
+	};
+
+	const int dof = 3 * wrapping.vertices.size();
+
+	INFO("Optimizing mesh / DoF=", dof);
+	Eigen::VectorXf param(dof);
+	param.setConstant(0);
+	const auto result = minimize_nelder_mead(eval, param, 100);
+
+	INFO("optimized cost=", result.second);
+
+	bundle.addMesh("debug_fit_pre_" + ccs.raw_scan.getScanId(),
+		wrapping);
+	bundle.addMesh("debug_fit_post_" + ccs.raw_scan.getScanId(),
+		apply_param(result.first));
 
 
 
