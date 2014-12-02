@@ -39,6 +39,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <math_util.h>
+#include <optimize/nelder_mead.h>
 #include <program_proxy.h>
 #include <recog/shape_fitter.h>
 #include <visual/cloud_baker.h>
@@ -48,6 +49,7 @@
 #include <visual/mapping.h>
 #include <visual/mesh_intersecter.h>
 #include <visual/texture_conversion.h>
+
 
 namespace recon {
 
@@ -208,6 +210,8 @@ void splitEachScan(
 		tree.squared_distance(v3_to_point(pt.getVector3fMap()));
 	}
 	INFO("Done querying");
+
+
 
 	// Wiggle mesh so that points will be close to faces.
 	// A vertex can move around more freely in normal direction.
