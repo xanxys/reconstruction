@@ -53,6 +53,7 @@
 namespace recon {
 
 std::vector<Eigen::Vector3f> recognize_lights(
+		SceneAssetBundle& bundle,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
 	std::vector<float> zs;
@@ -90,6 +91,12 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	cv::Mat ceiling_gray;
 	cv::cvtColor(ceiling_geom.diffuse, ceiling_gray, cv::COLOR_BGR2GRAY);
 	cv::GaussianBlur(ceiling_gray, ceiling_gray, cv::Size(31, 31), 10);
+	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath("ceiling_raw.png"), ceiling_geom.diffuse);
+		cv::imwrite(
+			bundle.reservePath("ceiling_processed.png"), ceiling_gray);
+	}
 
 	// Detect blobs (saturated lights).
 	std::vector<Eigen::Vector3f> lights;
@@ -374,6 +381,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
+		bundle,
 		scans_aligned, room_mesh, room_ceiling_ixs,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
@@ -385,6 +393,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeExterior(
+		SceneAssetBundle& bundle,
 		const AlignedScans& scans_aligned,
 		const TriangleMesh<std::nullptr_t>& room_mesh,
 		const std::vector<int>& ceiling_ixs,
@@ -399,7 +408,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
 		tex_mesh,
-		recognize_lights(cloud_inside));
+		recognize_lights(bundle, cloud_inside));
 }
 
 

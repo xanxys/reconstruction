@@ -16,7 +16,9 @@
 namespace recon {
 
 // deprecated. Use recognizeExterior.
-std::vector<Eigen::Vector3f> recognize_lights(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+std::vector<Eigen::Vector3f> recognize_lights(
+	SceneAssetBundle& bundle,
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 
 TexturedMesh bakeTexture(
 	const AlignedScans& scans,
@@ -90,6 +92,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 // Return textured exterior mesh and light location.
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeExterior(
+		SceneAssetBundle& bundle,
 		const AlignedScans& scans,
 		const TriangleMesh<std::nullptr_t>& shape,
 		const std::vector<int>& ceiling_ixs,
