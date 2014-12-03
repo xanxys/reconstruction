@@ -163,19 +163,24 @@ void splitEachScan(
 		TriangleMesh<std::nullptr_t> wrapping_adj = wrapping;
 		for(const int i : boost::irange(0, (int)wrapping.vertices.size())) {
 			wrapping_adj.vertices[i].first += Eigen::Vector3f(
-					param(i * 3 + 0), param(i * 3 + 1), param(i * 3 + 2));
+					param(i * 3 + 0), param(i * 3 + 1), 0);
 		}
 		return wrapping_adj;
 	};
 
-	const float dist_thresh = 0.3;
+	// Free parameters: vertex displacements.
+	// Cost function: avg. squared distance to points
+	// Cut off at 3sigma (99.6%) of non-systematic, Gaussian error.
+	const float dist_sigma = 0.02;  // Spec of UTM-30LX says 3cm error bounds for <10m.
+	const float dist_thresh = 0.3;  // largest syetematic error (distortion)
+
 	const auto cl_world = ccs.getCloudInWorld();
 	auto eval = [&](const Eigen::VectorXf& param) {
 		std::vector<Eigen::Vector3f> verts_adj;
 		for(const int i : boost::irange(0, (int)wrapping.vertices.size())) {
 			verts_adj.push_back(
 				wrapping.vertices[i].first + Eigen::Vector3f(
-					param(i * 3 + 0), param(i * 3 + 1), param(i * 3 + 2)));
+					param(i * 3 + 0), param(i * 3 + 1), 0));
 		}
 
 		std::vector<Triangle> tris;
@@ -217,6 +222,7 @@ void splitEachScan(
 				grad.segment<3>(vert_ix * 3) += ts(i) * dcost_disect;
 			}
 		}
+		DEBUG("cost=", cost, " |grad|=", grad.norm());
 		return std::make_pair(cost, grad);
 	};
 
@@ -225,49 +231,46 @@ void splitEachScan(
 	INFO("Optimizing mesh / DoF=", dof);
 	Eigen::VectorXf param(dof);
 	param.setConstant(0);
-	const auto result = minimize_gradient_descent(eval, param, 100);
+	// step coefficient very important for convergence.
+	// WARNING: this creates implicit coupling with |gradient|.
+	// You can no longer multiply constant to cost freely.
+	const auto result = minimize_gradient_descent(eval, param, 20, 1e-6);
 
 	INFO("optimized cost=", result.second);
 
-	const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
-	bundle.addDebugPointCloud(prefix + "_world", cl_world);
-	bundle.addMesh(prefix + "_pre", wrapping);
-	bundle.addMesh(prefix + "_post", apply_param(result.first));
+	if(bundle.isDebugEnabled()) {
+		const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
+		bundle.addDebugPointCloud(prefix + "_world", cl_world);
+		bundle.addMesh(prefix + "_pre", wrapping);
+		bundle.addMesh(prefix + "_post", apply_param(result.first));
+		// label
+		const auto mesh_adj = apply_param(result.first);
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cl_world_color_labeled(
+			new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+		cl_world_color_labeled->points = cl_world->points;
+		{
+			std::vector<Triangle> tris;
+			tris.reserve(mesh_adj.triangles.size());
+			for(const auto& tri : mesh_adj.triangles) {
+				tris.emplace_back(
+					v3_to_point(mesh_adj.vertices[tri[0]].first),
+					v3_to_point(mesh_adj.vertices[tri[1]].first),
+					v3_to_point(mesh_adj.vertices[tri[2]].first));
+			}
+			Tree tree(tris.begin(), tris.end());
+			tree.accelerate_distance_queries();
+
+			for(auto& pt : cl_world_color_labeled->points) {
+				const float dist = std::sqrt(tree.squared_distance(v3_to_point(pt.getVector3fMap())));
 
 
-	// Free parameters: vertex displacements.
-	// Cost function: avg. squared distance to points
-	// Cut off at 3sigma (99.6%).
-	const float dist_sigma = 0.01;  // Spec of UTM-30LX says 3cm error bounds for <10m.
-
-
-	const auto mesh_adj = apply_param(result.first);
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cl_world_color_labeled(
-		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-	cl_world_color_labeled->points = cl_world->points;
-	{
-		std::vector<Triangle> tris;
-		tris.reserve(mesh_adj.triangles.size());
-		for(const auto& tri : mesh_adj.triangles) {
-			tris.emplace_back(
-				v3_to_point(mesh_adj.vertices[tri[0]].first),
-				v3_to_point(mesh_adj.vertices[tri[1]].first),
-				v3_to_point(mesh_adj.vertices[tri[2]].first));
+				pt.r = (dist < dist_sigma * 3) ? 255 : 0;
+				pt.g = std::min(255, static_cast<int>(dist * 1000));
+				pt.b = 0;
+			}
 		}
-		Tree tree(tris.begin(), tris.end());
-		tree.accelerate_distance_queries();
-
-		for(auto& pt : cl_world_color_labeled->points) {
-			const float dist = std::sqrt(tree.squared_distance(v3_to_point(pt.getVector3fMap())));
-
-
-			pt.r = (dist < dist_sigma * 3) ? 255 : 0;
-			pt.g = std::min(255, static_cast<int>(dist * 1000));
-			pt.b = 0;
-		}
+		bundle.addDebugPointCloud(prefix + "_labels", cl_world_color_labeled);
 	}
-	bundle.addDebugPointCloud(prefix + "_labels", cl_world_color_labeled);
-
 	// Wiggle mesh so that points will be close to faces.
 	// A vertex can move around more freely in normal direction.
 
