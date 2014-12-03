@@ -36,12 +36,10 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <pcl/segmentation/region_growing.h>
-#include <pcl/segmentation/sac_segmentation.h>
 
+#include <extpy.h>
 #include <math_util.h>
 #include <optimize/gradient_descent.h>
-#include <program_proxy.h>
 #include <recog/shape_fitter.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
@@ -134,43 +132,6 @@ std::pair<float, float> RoomFrame::getHRange() const {
 std::vector<Eigen::Vector2f> RoomFrame::getSimplifiedContour() const {
 	assert(wall_polygon.size() >= 3);
 	return wall_polygon;
-}
-
-
-void test_segmentation(
-		SceneAssetBundle& bundle,
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-
-	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
-		boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>> (new pcl::search::KdTree<pcl::PointXYZRGB>);
-
-	pcl::PointCloud <pcl::Normal>::Ptr normals (new pcl::PointCloud <pcl::Normal>);
-	pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimator;
-	normal_estimator.setSearchMethod (tree);
-	normal_estimator.setInputCloud (cloud);
-	normal_estimator.setKSearch (50);
-	normal_estimator.compute (*normals);
-
-	pcl::RegionGrowing<pcl::PointXYZRGB, pcl::Normal> reg;
-	reg.setMinClusterSize (50);
-	reg.setMaxClusterSize (1000000);
-	reg.setSearchMethod (tree);
-	reg.setNumberOfNeighbours (30);
-	reg.setInputCloud (cloud);
-	//reg.setIndices (indices);
-	reg.setInputNormals(normals);
-	reg.setSmoothnessThreshold (3.0 / 180.0 * M_PI);
-	reg.setCurvatureThreshold (1.0);
-
-	std::vector <pcl::PointIndices> clusters;
-	reg.extract (clusters);
-
-	INFO("Number of clusters=", (int)clusters.size());
-	INFO("Size of 1st cluster", (int)clusters[0].indices.size());
-
-	pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud = reg.getColoredCloud ();
-	bundle.addDebugPointCloud("clusters", colored_cloud);
-
 }
 
 void splitEachScan(
@@ -311,10 +272,6 @@ void splitEachScan(
 	// A vertex can move around more freely in normal direction.
 
 
-
-
-
-
 }
 
 std::pair<
@@ -367,24 +324,11 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	auto room_polygon = std::get<0>(extrusion);
 	auto room_hrange = std::get<1>(extrusion);
 
-	Json::Value fc_arg;
-	Json::Value poly_json;
-	for(const auto& pt : room_polygon) {
-		Json::Value pt_json;
-		pt_json.append(pt(0));
-		pt_json.append(pt(1));
-		poly_json.append(pt_json);
-	}
-	fc_arg["points"] = poly_json;
-	if(bundle.isDebugEnabled()) {
-		fc_arg["vis_path"] = bundle.reservePath("contour.png");
-	}
-	const Json::Value contour_result = call_external("extpy/fix_contour.py", fc_arg);
-	std::vector<Eigen::Vector2f> contour_points;
-	for(const auto& pt_json : contour_result["points"]) {
-		contour_points.emplace_back(
-			pt_json[0].asDouble(), pt_json[1].asDouble());
-	}
+	const std::vector<Eigen::Vector2f> contour_points = extFixContour(
+		room_polygon,
+		bundle.isDebugEnabled() ?
+			boost::optional<std::string>(bundle.reservePath("contour.png")) :
+			boost::none);
 
 	RoomFrame rframe;
 	rframe.setHRange(room_hrange.first, room_hrange.second);
