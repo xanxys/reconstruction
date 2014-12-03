@@ -15,12 +15,15 @@
 
 namespace recon {
 
-// deprecated. Use recognizeExterior.
-std::vector<Eigen::Vector3f> recognize_lights(
-	SceneAssetBundle& bundle,
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+cv::Mat visualize_field2(const cv::Mat& field);
 
 TexturedMesh bakeTexture(
+	const AlignedScans& scans,
+	const TriangleMesh<std::nullptr_t>& shape,
+	float accept_dist = 0.1);
+
+
+TexturedMesh bakeTextureSingle(
 	const AlignedScans& scans,
 	const TriangleMesh<std::nullptr_t>& shape,
 	float accept_dist = 0.1);
@@ -34,12 +37,29 @@ int ceilToPowerOf2(int x);
 // (aligned scans and RoomFrame are implicitly tied by having
 // shared world coordinate system)
 //
+// Main purpose of RoomFrame is information compression.
+// (put another way, it's a very strong prior)
+// Do NOT put fine-detailed contour here.
+// New model (such as arcs) should be implemented in such cases.
+//
+// To make it obvious, do not store large objects here.
+// (i.e. PointCloud, TexturedMesh, cv::Mat, etc.)
+//
 // RoomFrames defines not just entire 3-d coordinates, but
 // * boundary of room (maybe fuzzy around windows)
 // * wall / ceiling / floor coodinates
 //
 // Z+ is assumed to be up, but Z offset and other Manhattan axes
 // are arbitrary.
+//
+// features:
+// Mahnatta-aligned, rectangular pit or protrusion.
+// One of edge must be substantial (>50%) of base surface.
+// Depth must be small (<1m).
+// (It should be called "wall" if it's very deep)
+//
+// Very thin or small "feature" should be called fixed object instead.
+// (e.g. AC, lights)
 class RoomFrame {
 public:
 	RoomFrame();
@@ -67,6 +87,13 @@ private:
 	float z1;
 };
 
+// deprecated. Use recognizeExterior.
+std::vector<Eigen::Vector3f> recognize_lights(
+	SceneAssetBundle& bundle,
+	const RoomFrame& rframe,
+	const AlignedScans& scans,
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+
 // points
 // |-inside
 // | |-exterior
@@ -93,6 +120,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeExterior(
 		SceneAssetBundle& bundle,
+		const RoomFrame& rframe,
 		const AlignedScans& scans,
 		const TriangleMesh<std::nullptr_t>& shape,
 		const std::vector<int>& ceiling_ixs,

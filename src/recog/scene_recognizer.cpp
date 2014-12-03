@@ -40,6 +40,7 @@
 #include <extpy.h>
 #include <math_util.h>
 #include <optimize/gradient_descent.h>
+#include <range2.h>
 #include <recog/shape_fitter.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_base.h>
@@ -52,8 +53,54 @@
 
 namespace recon {
 
+// TODO: this kind of thing should be done by matplotlib(python).
+// Also, DO NOT DUMP VISUALIZATION WITHOUT RAW DATA!!!
+// You'll NEED RAW DATA for last-minute correction of diagrams
+// in paper / thesis.
+//
+// Assign color to 2-d scalar field.
+// red:small green:mid blue:large
+// NaN -> whole visualization will be undefined
+cv::Mat visualize_field2(const cv::Mat& field) {
+	assert(field.type() == CV_32F);
+	double v_min, v_max;
+	cv::minMaxLoc(field, &v_min, &v_max);
+	INFO("range", v_min, v_max);
+
+	auto t_to_color = [](float t) {
+		// BGR channels.
+		if(t < 0.5) {
+			// R -> G
+			const float t_sub = t / 0.5;
+			return cv::Vec3b(
+				0,
+				static_cast<int>(t_sub * 255),
+				255 - static_cast<int>(t_sub * 255));
+		} else {
+			// G -> B
+			const float t_sub = (t - 0.5) / (1 - 0.5);
+			return cv::Vec3b(
+				static_cast<int>(t_sub * 255),
+				255 - static_cast<int>(t_sub * 255),
+				0);
+		}
+	};
+
+	cv::Mat vis(field.rows, field.cols, CV_8UC3);
+	for(const int i : boost::irange(0, field.rows)) {
+		for(const int j : boost::irange(0, field.cols)) {
+			const float v = field.at<float>(i, j);
+			const float t = (v - v_min) / (v_max - v_min);
+			vis.at<cv::Vec3b>(i, j) = t_to_color(t);
+		}
+	}
+	return vis;
+}
+
 std::vector<Eigen::Vector3f> recognize_lights(
 		SceneAssetBundle& bundle,
+		const RoomFrame& rframe,
+		const AlignedScans& scans_aligned,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	// Calculate approximate ceiling height.
 	std::vector<float> zs;
@@ -86,12 +133,93 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	quad.triangles.push_back({{0, 1, 2}});
 	quad.triangles.push_back({{2, 3, 0}});
 
+	const auto ccs = scans_aligned.getScansWithPose();
+	assert(ccs.size() > 0);
+
+	auto calc_scan_quality_for_ceiling = [&](const CorrectedSingleScan& scan) {
+		const Eigen::Affine3f world_to_local = scan.local_to_world.inverse();
+		const int img_size = 128;
+		const Eigen::Vector3f normal_ceiling(0, 0, -1);
+		cv::Mat quality(img_size, img_size, CV_32F);
+		for(const int y : boost::irange(0, img_size)) {
+			for(const int x : boost::irange(0, img_size)) {
+				const Eigen::Vector3f pt3d_w(
+					x / (float)img_size * 20.0 - 10.0,
+					y / (float)img_size * 20.0 - 10.0,
+					z_ceiling);
+				const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
+				const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
+
+				// smaller is better. (<0 is invalid, though)
+				const float length_per_angle = -pt3d_l.norm() / pt3d_l_n.dot(normal_ceiling);
+				quality.at<float>(y, x) = length_per_angle;
+			}
+		}
+		if(bundle.isDebugEnabled()) {
+			cv::imwrite(
+				bundle.reservePath("ceiling_quality_" + scan.raw_scan.getScanId() + ".png"),
+				quality);
+		}
+		return cv::mean(quality)[0];
+	};
+
+	// Choose best scan by quality.
+	std::vector<float> quals;
+	for(const auto& scan : ccs) {
+		quals.push_back(calc_scan_quality_for_ceiling(scan));
+	}
+	const auto q_mm = std::minmax_element(quals.begin(), quals.end());
+	INFO("Quality: best=", *q_mm.first, "worst=", *q_mm.second);
+
+	const int best_scan_ix = std::distance(quals.begin(),
+		std::min_element(quals.begin(), quals.end()));
+	const auto& scan = ccs[best_scan_ix];
+	INFO("Choosing ceiling texture base scan id=", scan.raw_scan.getScanId());
+
+	const Eigen::Affine3f world_to_local = scan.local_to_world.inverse();
+	const int img_size = 2048;
+	const Eigen::Vector3f normal_ceiling(0, 0, -1);
+	cv::Mat mapping(img_size, img_size, CV_32FC2);
+	cv::Mat quality(img_size, img_size, CV_32F);
+	for(const int y : boost::irange(0, img_size)) {
+		for(const int x : boost::irange(0, img_size)) {
+			const Eigen::Vector3f pt3d_w(
+				x / (float)img_size * 20.0 - 10.0,
+				y / (float)img_size * 20.0 - 10.0,
+				z_ceiling);
+			const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
+			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
+
+			// smaller is better. (<0 is invalid, though)
+			const float length_per_angle = -pt3d_l.norm() / pt3d_l_n.dot(normal_ceiling);
+
+			const float theta = std::acos(pt3d_l_n.z());
+			const float phi = std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
+			const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
+
+			const float er_x = scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
+			const float er_y = scan.raw_scan.er_rgb.rows * theta / pi;
+			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
+			quality.at<float>(y, x) = length_per_angle;
+		}
+	}
+
+
+	cv::Mat proj_new;
+	cv::remap(scan.raw_scan.er_rgb, proj_new, mapping, cv::Mat(),
+		cv::INTER_LINEAR);
+
 	// Make it grayscale and remove image noise by blurring.
 	const TexturedMesh ceiling_geom = bakePointsToMesh(cloud, quad);
 	cv::Mat ceiling_gray;
 	cv::cvtColor(ceiling_geom.diffuse, ceiling_gray, cv::COLOR_BGR2GRAY);
 	cv::GaussianBlur(ceiling_gray, ceiling_gray, cv::Size(31, 31), 10);
 	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath("ceiling_quality.png"), visualize_field2(quality));
+		cv::imwrite(
+			bundle.reservePath("ceiling_new_raw.png"), proj_new);
+
 		cv::imwrite(
 			bundle.reservePath("ceiling_raw.png"), ceiling_geom.diffuse);
 		cv::imwrite(
@@ -381,7 +509,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
-		bundle,
+		bundle, rframe,
 		scans_aligned, room_mesh, room_ceiling_ixs,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
@@ -394,6 +522,7 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeExterior(
 		SceneAssetBundle& bundle,
+		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
 		const TriangleMesh<std::nullptr_t>& room_mesh,
 		const std::vector<int>& ceiling_ixs,
@@ -403,12 +532,13 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
 	// reverse lookup.
 	// Maybe overly complex??
-	auto tex_mesh = bakeTexture(scans_aligned, room_mesh, 0.4);
+	auto tex_mesh = bakeTextureSingle(scans_aligned, room_mesh, 0.4);
+
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
 		tex_mesh,
-		recognize_lights(bundle, cloud_inside));
+		recognize_lights(bundle, rframe, scans_aligned, cloud_inside));
 }
 
 
@@ -501,6 +631,90 @@ int ceilToPowerOf2(int x) {
 	}
 	return r;
 }
+
+
+TexturedMesh bakeTextureSingle(
+		const AlignedScans& scans,
+		const TriangleMesh<std::nullptr_t>& shape_wo_uv,
+		const float accept_dist) {
+	// Calculate good texture size.
+	// * must be pow of 2 (not mandatory, but for efficiency)
+	// * texture pixel area \propto actual area
+	const float area = shape_wo_uv.area();
+	const int px_raw = std::sqrt(area) * 300;
+	const int tex_size = ceilToPowerOf2(px_raw);
+	FilmRGB8U film(tex_size, tex_size, 1.0);
+	INFO("Choosing texture size v. real area", tex_size, area);
+
+	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
+	MeshIntersecter intersecter(shape_wo_uv);
+	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
+	int n_hits = 0;
+	int n_all = 0;
+
+	const auto c_scans = scans.getScansWithPose();
+	const auto& c_scan = c_scans[0];
+
+	cv::Mat mapping(tex_size, tex_size, CV_32FC2);
+	for(int y : boost::irange(0, tex_size)) {
+		for(int x : boost::irange(0, tex_size)) {
+			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(0, 0);
+		}
+	}
+
+	const Eigen::Affine3f world_to_local = c_scan.local_to_world.inverse();
+
+	const Eigen::Vector2i bnd_tex_low(0, 0);
+	const Eigen::Vector2i bnd_tex_high(tex_size, tex_size);
+	for(const auto& tri : shape.triangles) {
+		// Triangle on x-y space of texture.
+		const Eigen::Vector2f p0 = swapY(shape.vertices[tri[0]].second) * tex_size;
+		const Eigen::Vector2f p1 = swapY(shape.vertices[tri[1]].second) * tex_size;
+		const Eigen::Vector2f p2 = swapY(shape.vertices[tri[2]].second) * tex_size;
+		Eigen::Matrix2f ps;
+		ps.col(0) = p1 - p0;
+		ps.col(1) = p2 - p0;
+		ps = ps.inverse().eval();
+
+		Eigen::Matrix3f vs;
+		vs.col(0) = shape.vertices[tri[0]].first;
+		vs.col(1) = shape.vertices[tri[1]].first;
+		vs.col(2) = shape.vertices[tri[2]].first;
+
+		// Fill all pixels within AABB of the triangle.
+		const Eigen::Vector2f p_min = p0.cwiseMin(p1).cwiseMin(p2);
+		const Eigen::Vector2f p_max = p0.cwiseMax(p1).cwiseMax(p2);
+		const Eigen::Vector2i pi_min = Eigen::Vector2i(p_min(0) - 1, p_min(1) - 1).cwiseMax(bnd_tex_low);
+		const Eigen::Vector2i pi_max = Eigen::Vector2i(p_max(0) + 1, p_max(1) + 1).cwiseMin(bnd_tex_high);
+
+		for(const auto p : range2(pi_min, pi_max)) {
+			const Eigen::Vector2f ts_pre = ps * (p.cast<float>() - p0);
+			const Eigen::Vector3f ts(1 - ts_pre.sum(), ts_pre(0), ts_pre(1));
+			const Eigen::Vector3f pos_w = vs * ts;
+
+			const Eigen::Vector3f pt3d_l = world_to_local * pos_w;
+			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
+
+			const float theta = std::acos(pt3d_l_n.z());
+			const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
+			const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
+
+			const float er_x = c_scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
+			const float er_y = c_scan.raw_scan.er_rgb.rows * theta / pi;
+			mapping.at<cv::Vec2f>(p(1), p(0)) = cv::Vec2f(er_x, er_y);
+		}
+	}
+	cv::Mat diffuse;
+	cv::remap(c_scan.raw_scan.er_rgb, diffuse, mapping, cv::Mat(),
+		cv::INTER_LINEAR);
+
+	// pack everything.
+	TexturedMesh tm;
+	tm.diffuse = diffuse;
+	tm.mesh = shape;
+	return tm;
+}
+
 
 
 TexturedMesh bakeTexture(
