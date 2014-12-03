@@ -24,6 +24,7 @@
 #include <CGAL/AABB_traits.h>
 #include <CGAL/AABB_triangle_primitive.h>
 // insanity ends here
+#include <Eigen/QR>
 #include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/features/normal_3d.h>
@@ -39,7 +40,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 
 #include <math_util.h>
-#include <optimize/nelder_mead.h>
+#include <optimize/gradient_descent.h>
 #include <program_proxy.h>
 #include <recog/shape_fitter.h>
 #include <visual/cloud_baker.h>
@@ -193,6 +194,10 @@ void splitEachScan(
 		return Point(v(0), v(1), v(2));
 	};
 
+	auto point_to_v3 = [](const Point& p) {
+		return Eigen::Vector3f(p.x(), p.y(), p.z());
+	};
+
 	auto apply_param = [&](const Eigen::VectorXf& param) {
 		TriangleMesh<std::nullptr_t> wrapping_adj = wrapping;
 		for(const int i : boost::irange(0, (int)wrapping.vertices.size())) {
@@ -202,6 +207,7 @@ void splitEachScan(
 		return wrapping_adj;
 	};
 
+	const float dist_thresh = 0.3;
 	const auto cl_world = ccs.getCloudInWorld();
 	auto eval = [&](const Eigen::VectorXf& param) {
 		std::vector<Eigen::Vector3f> verts_adj;
@@ -223,11 +229,34 @@ void splitEachScan(
 		tree.accelerate_distance_queries();
 
 		float cost = 0;
+		Eigen::VectorXf grad(param.size());
+		grad.setConstant(0);
 		for(const auto& pt : cl_world->points) {
-			cost += tree.squared_distance(v3_to_point(pt.getVector3fMap()));
+			const Eigen::Vector3f query = pt.getVector3fMap();
+			const auto result = tree.closest_point_and_primitive(v3_to_point(query));
+			const auto isect = point_to_v3(result.first);
+
+			const float dist = (pt.getVector3fMap() - isect).norm();
+			const Eigen::Vector3f dcost_disect = 2 * (isect - query);
+
+			// When isect = t0 * v0 + t1 * v1 + t2 *v2,
+			// d(cost)/d(isect) = t0 * d(cost) / d(v0) + ...
+			Eigen::Matrix3f vs;
+			const int tri_ix = std::distance(tris.begin(), result.second);
+			assert(0 <= tri_ix && tri_ix < wrapping.triangles.size());
+			vs.col(0) = verts_adj[wrapping.triangles[tri_ix][0]];
+			vs.col(1) = verts_adj[wrapping.triangles[tri_ix][1]];
+			vs.col(2) = verts_adj[wrapping.triangles[tri_ix][2]];
+			const Eigen::Vector3f ts = vs.colPivHouseholderQr().solve(isect);
+
+			// accumulate
+			cost += std::pow(std::min(dist, dist_thresh), 2);
+			for(int i : boost::irange(0, 3)) {
+				const int vert_ix = wrapping.triangles[tri_ix][i];
+				grad.segment<3>(vert_ix * 3) += ts(i) * dcost_disect;
+			}
 		}
-		DEBUG("eval cost=", cost);
-		return cost;
+		return std::make_pair(cost, grad);
 	};
 
 	const int dof = 3 * wrapping.vertices.size();
@@ -235,24 +264,52 @@ void splitEachScan(
 	INFO("Optimizing mesh / DoF=", dof);
 	Eigen::VectorXf param(dof);
 	param.setConstant(0);
-	const auto result = minimize_nelder_mead(eval, param, 100, 0.1);
+	const auto result = minimize_gradient_descent(eval, param, 100);
 
 	INFO("optimized cost=", result.second);
 
 	const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
-	bundle.addDebugPointCloud(prefix + "_world", ccs.getCloudInWorld());
+	bundle.addDebugPointCloud(prefix + "_world", cl_world);
 	bundle.addMesh(prefix + "_pre", wrapping);
 	bundle.addMesh(prefix + "_post", apply_param(result.first));
 
-
-
-	// Wiggle mesh so that points will be close to faces.
-	// A vertex can move around more freely in normal direction.
 
 	// Free parameters: vertex displacements.
 	// Cost function: avg. squared distance to points
 	// Cut off at 3sigma (99.6%).
 	const float dist_sigma = 0.01;  // Spec of UTM-30LX says 3cm error bounds for <10m.
+
+
+	const auto mesh_adj = apply_param(result.first);
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cl_world_color_labeled(
+		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	cl_world_color_labeled->points = cl_world->points;
+	{
+		std::vector<Triangle> tris;
+		tris.reserve(mesh_adj.triangles.size());
+		for(const auto& tri : mesh_adj.triangles) {
+			tris.emplace_back(
+				v3_to_point(mesh_adj.vertices[tri[0]].first),
+				v3_to_point(mesh_adj.vertices[tri[1]].first),
+				v3_to_point(mesh_adj.vertices[tri[2]].first));
+		}
+		Tree tree(tris.begin(), tris.end());
+		tree.accelerate_distance_queries();
+
+		for(auto& pt : cl_world_color_labeled->points) {
+			const float dist = std::sqrt(tree.squared_distance(v3_to_point(pt.getVector3fMap())));
+
+
+			pt.r = (dist < dist_sigma * 3) ? 255 : 0;
+			pt.g = std::min(255, static_cast<int>(dist * 1000));
+			pt.b = 0;
+		}
+	}
+	bundle.addDebugPointCloud(prefix + "_labels", cl_world_color_labeled);
+
+	// Wiggle mesh so that points will be close to faces.
+	// A vertex can move around more freely in normal direction.
+
 
 
 
