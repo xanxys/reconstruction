@@ -373,41 +373,96 @@ void splitEachScan(
 
 	INFO("optimized cost=", result.second);
 
-	if(bundle.isDebugEnabled()) {
-		const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
-		bundle.addDebugPointCloud(prefix + "_world", cl_world);
-		bundle.addMesh(prefix + "_pre", wrapping);
-		bundle.addMesh(prefix + "_post", apply_param(result.first));
-		// label
-		const auto mesh_adj = apply_param(result.first);
-		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cl_world_color_labeled(
-			new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-		cl_world_color_labeled->points = cl_world->points;
-		{
-			std::vector<Triangle> tris;
-			tris.reserve(mesh_adj.triangles.size());
-			for(const auto& tri : mesh_adj.triangles) {
-				tris.emplace_back(
-					v3_to_point(mesh_adj.vertices[tri[0]].first),
-					v3_to_point(mesh_adj.vertices[tri[1]].first),
-					v3_to_point(mesh_adj.vertices[tri[2]].first));
-			}
-			Tree tree(tris.begin(), tris.end());
-			tree.accelerate_distance_queries();
+	// We need to use huge threshold after all;
+	// fitting to correct wall, instead of some other objects
+	// is hard. Only (probably) slightly better
+	// than merged ones.
+	const float thresh_label = 0.2;
 
-			for(auto& pt : cl_world_color_labeled->points) {
-				const float dist = std::sqrt(tree.squared_distance(v3_to_point(pt.getVector3fMap())));
-
-
-				pt.r = (dist < dist_sigma * 3) ? 255 : 0;
-				pt.g = std::min(255, static_cast<int>(dist * 1000));
-				pt.b = 0;
-			}
+	const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
+	bundle.addDebugPointCloud(prefix + "_world", cl_world);
+	bundle.addMesh(prefix + "_pre", wrapping);
+	bundle.addMesh(prefix + "_post", apply_param(result.first));
+	// label
+	const auto mesh_adj = apply_param(result.first);
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cl_world_color_labeled(
+		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cl_world_interior(
+		new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+	cl_world_color_labeled->points = cl_world->points;
+	{
+		std::vector<Triangle> tris;
+		tris.reserve(mesh_adj.triangles.size());
+		for(const auto& tri : mesh_adj.triangles) {
+			tris.emplace_back(
+				v3_to_point(mesh_adj.vertices[tri[0]].first),
+				v3_to_point(mesh_adj.vertices[tri[1]].first),
+				v3_to_point(mesh_adj.vertices[tri[2]].first));
 		}
+		Tree tree(tris.begin(), tris.end());
+		tree.accelerate_distance_queries();
+
+		for(auto& pt : cl_world_color_labeled->points) {
+			const float dist = std::sqrt(tree.squared_distance(v3_to_point(pt.getVector3fMap())));
+			if(dist >= thresh_label) {
+				cl_world_interior->points.push_back(pt);
+			}
+			pt.r = (dist < thresh_label) ? 255 : 0;
+			pt.g = std::min(255, static_cast<int>(dist * 1000));
+			pt.b = 0;
+		}
+	}
+	if(bundle.isDebugEnabled()) {
 		bundle.addDebugPointCloud(prefix + "_labels", cl_world_color_labeled);
 	}
-	// Wiggle mesh so that points will be close to faces.
-	// A vertex can move around more freely in normal direction.
+
+	{
+		using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+		using Point_3 = K::Point_3;
+		using Polyhedron_3 = CGAL::Polyhedron_3<K>;
+
+		pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
+			boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>>(
+				new pcl::search::KdTree<pcl::PointXYZRGB>);
+
+		// decompose to XYZRGB + Normal
+		auto cloud = cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cl_world_interior);
+		auto normals = cast<pcl::PointXYZRGBNormal, pcl::Normal>(cl_world_interior);
+
+		INFO("splitEachScan: Doing EC");
+		std::vector<pcl::PointIndices> cluster_indices;
+		pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+		ec.setClusterTolerance(0.02); // 2cm
+		ec.setMinClusterSize(100);
+		ec.setMaxClusterSize(10000000);  // 100000: most small objects / 500000: everything incl. tabgles
+		ec.setSearchMethod(tree);
+		ec.setInputCloud(cloud);
+
+		std::vector<pcl::PointIndices> clusters;
+		ec.extract(clusters);
+
+		INFO("splitEachScan: Number of clusters=", (int)clusters.size());
+
+		if(bundle.isDebugEnabled()) {
+			std::default_random_engine generator;
+			std::uniform_int_distribution<int> distribution(1, 255);
+			pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
+				new pcl::PointCloud <pcl::PointXYZRGB>);
+			for(const auto& indices : clusters) {
+				const int r = distribution(generator);
+				const int g = distribution(generator);
+				const int b = distribution(generator);
+				for(int ix : indices.indices) {
+					auto pt = cloud->points[ix];
+					pt.r = r;
+					pt.g = g;
+					pt.b = b;
+					colored_cloud->points.push_back(pt);
+				}
+			}
+			bundle.addDebugPointCloud("ps_clusters_" + ccs.raw_scan.getScanId(), colored_cloud);
+		}
+	}
 
 
 }
