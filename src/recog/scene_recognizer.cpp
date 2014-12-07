@@ -207,7 +207,7 @@ std::vector<Eigen::Vector3f> recognize_lights(
 
 	cv::Mat proj_new;
 	cv::remap(scan.raw_scan.er_rgb, proj_new, mapping, cv::Mat(),
-		cv::INTER_LINEAR);
+		cv::INTER_LINEAR, cv::BORDER_REPLICATE);
 
 	// Make it grayscale and remove image noise by blurring.
 	const TexturedMesh ceiling_geom = bakePointsToMesh(cloud, quad);
