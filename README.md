@@ -39,6 +39,7 @@ sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data 1c6bbe4
 
 #### Sound Tools ####
 Example command sequence:
+
 1. `cd sound`
 2. `./simulate_collision --sound-assets ./raw_freesound/ --simulate collisions.wav`
 
