@@ -2,12 +2,30 @@
 import argparse
 import numpy as np
 import scipy.signal
+import scipy.interpolate
 import logging
 import json
 import wave
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+def resample_linear(samples, freq_src, freq_dst):
+    """
+    Resample using lienar interpolation.
+    You need to apply LPF before downsampling to prevent aliases.
+    """
+    n_src = len(samples)
+    n_dst = int(n_src * freq_dst / freq_src)
+    fn = scipy.interpolate.interp1d(
+        np.arange(n_src) / freq_src,
+        samples,
+        kind='linear',
+        bounds_error=False,
+        fill_value=0)
+    return fn(np.arange(n_dst) / freq_dst)
+
 
 def convert_bcj_to_sound():
     """
@@ -25,9 +43,8 @@ def convert_bcj_to_sound():
     from_samples = np.array(data['data'])
 
     # acc
-    to_samples = scipy.signal.resample(
-        from_samples,
-        int(to_frequency / from_frequency * len(from_samples)))
+    to_samples = resample_linear(
+        from_samples, from_frequency, to_frequency)
 
     def integrate(xs):
         v = 0
