@@ -4,10 +4,10 @@ import numpy as np
 import scipy.signal
 import scipy.interpolate
 import logging
-import json
 import wave
 import os
 import os.path
+import random
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -90,10 +90,6 @@ def read_wave_asset(path, freq=44100):
         samples = butter_lowpass_filter(samples, freq / 2, freq_src)
     if freq != freq_src:
         samples = resample_linear(samples, freq_src, freq)
-    #return samples
-    # test output
-    write_wave_asset("test-" + os.path.basename(path), samples, freq)
-
     return samples
 
 
@@ -125,3 +121,22 @@ If a sound asset is stereo, only the first channel will be used.
 
     if args.simulate is not None:
         logger.info("Collision soundscape generation mode")
+        coll_freq = 50.0  # avg. collision/sec
+        duration = 10.0
+        events = []
+        # generate random events
+        for i in range(int(coll_freq * duration)):
+            t = random.random() * duration
+            events.append(
+                (t, 1 / coll_freq, assets[random.randint(0, len(assets) - 1)]))
+
+        # mix events into single sound stream
+        n_samples = int(base_freq * duration)
+        samples = np.zeros([n_samples], dtype=np.float32)
+        for (offset, scale, data) in events:
+            i_offset = int(offset * base_freq)
+            n_copy = min(len(data), n_samples - i_offset)
+            samples[i_offset:i_offset+n_copy] += data[:n_copy] * scale
+
+        logger.info("writing soundscape to %s", args.simulate)
+        write_wave_asset(args.simulate, samples)
