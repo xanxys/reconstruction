@@ -36,6 +36,7 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/surface/poisson.h>
 
 #include <extpy.h>
 #include <math_util.h>
@@ -630,14 +631,14 @@ void splitObjects(
 	if(bundle.isDebugEnabled()) {
 		std::default_random_engine generator;
 		std::uniform_int_distribution<int> distribution(1, 255);
-		pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
-			new pcl::PointCloud <pcl::PointXYZRGB>);
+		pcl::PointCloud <pcl::PointXYZRGBNormal>::Ptr colored_cloud(
+			new pcl::PointCloud <pcl::PointXYZRGBNormal>);
 		for(const auto& indices : clusters) {
 			const int r = distribution(generator);
 			const int g = distribution(generator);
 			const int b = distribution(generator);
 			for(int ix : indices.indices) {
-				auto pt = cloud->points[ix];
+				auto pt = cloud_org->points[ix];
 				pt.r = r;
 				pt.g = g;
 				pt.b = b;
@@ -649,32 +650,60 @@ void splitObjects(
 
 	// create a polyhedron for each cluster.
 	for(const auto& indices : clusters) {
-		std::vector<Point_3> points;
-		for(int ix : indices.indices) {
-			auto pt = cloud->points[ix];
-			points.emplace_back(pt.x, pt.y, pt.z);
+		// Extract cluster.
+		pcl::PointCloud<pcl::PointNormal>::Ptr cluster(
+			new pcl::PointCloud<pcl::PointNormal>);
+		for(const auto& index : indices.indices) {
+			pcl::PointNormal pt;
+			pt.getVector3fMap() = cloud_org->points[index].getVector3fMap();
+			pt.getNormalVector3fMap() = cloud_org->points[index].getNormalVector3fMap();
+			cluster->points.push_back(pt);
 		}
-		Polyhedron_3 poly;
-		CGAL::convex_hull_3(points.begin(), points.end(), poly);
-		INFO("Polyhedron #vert", (int)poly.size_of_vertices());
-		assert(poly.is_pure_triangle());
+		// Create search tree
+		pcl::search::KdTree<pcl::PointNormal>::Ptr tree_object(
+			new pcl::search::KdTree<pcl::PointNormal>);
+		tree_object->setInputCloud(cluster);
 
-		TriangleMesh<std::nullptr_t> mesh;
-		for(auto it_f = poly.facets_begin(); it_f != poly.facets_end(); it_f++) {
-			const int v0 = mesh.vertices.size();
-			auto it_e = it_f->facet_begin();
-			for(int i : boost::irange(0, 3)) {
-				const auto p = it_e->vertex()->point();
-				mesh.vertices.push_back(std::make_pair(
-					Eigen::Vector3f(p.x(), p.y(), p.z()),
-					nullptr));
-				it_e++;
-			}
-			mesh.triangles.push_back({{v0, v0 + 1, v0 + 2}});
+		// Initialize triangulater.
+		pcl::Poisson<pcl::PointNormal> gp3;
+		gp3.setDepth(5);
+		// gp3.setSearchRadius(0.1);  // == max edge length
+		// gp3.setMu(2.5);
+		// gp3.setMaximumNearestNeighbors(100);
+		// gp3.setMaximumSurfaceAngle(pi / 4); // 45 degrees
+		// gp3.setMinimumAngle(pi / 18); // 10 degrees
+		// gp3.setMaximumAngle(2 * pi / 3); // 120 degrees
+		// gp3.setNormalConsistency(false);
+
+		// Get result
+		pcl::PolygonMesh triangles;
+		gp3.setInputCloud(cluster);
+		gp3.setSearchMethod(tree_object);
+		gp3.reconstruct(triangles);
+
+		// Additional vertex information
+		TriangleMesh<Eigen::Vector2f> mesh;
+		pcl::PointCloud<pcl::PointXYZ> sane_triangles_verts;
+		pcl::fromPCLPointCloud2(triangles.cloud, sane_triangles_verts);
+		for(const auto& pt : sane_triangles_verts.points) {
+			mesh.vertices.emplace_back(
+				pt.getVector3fMap(),
+				Eigen::Vector2f::Zero());
+		}
+		for(const auto& tri : triangles.polygons) {
+			assert(tri.vertices.size() == 3);
+			mesh.triangles.push_back({{
+				(int)tri.vertices[0],
+				(int)tri.vertices[1],
+				(int)tri.vertices[2]
+			}});
 		}
 
 		// bake texture
-		const auto tex_mesh = bakeTexture(scans, mesh);
+		// const auto tex_mesh = bakeTexture(scans, mesh);
+		TexturedMesh tex_mesh;
+		tex_mesh.mesh = mesh;
+		tex_mesh.diffuse = cv::Mat(64, 64, CV_8UC3);
 		bundle.addInteriorObject(tex_mesh);
 	}
 }

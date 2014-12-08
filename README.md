@@ -37,6 +37,12 @@ Now move that scan- directory to somewhere accesible from UE4.
 sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data 1c6bbe46e13e bash
 ```
 
+#### Sound Tools ####
+Example command sequence:
+1. `cd sound`
+2. `./simulate_collision --sound-assets ./raw_freesound/ --simulate collisions.wav`
+
+
 ### Related Repositories ###
 * [reconstruction](https://bitbucket.org/xanxys/reconstruction): this one
 * [capturer](https://bitbucket.org/xanxys/capturer)
