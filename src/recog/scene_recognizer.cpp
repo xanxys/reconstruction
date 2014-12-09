@@ -461,10 +461,17 @@ void splitEachScan(
 			const Eigen::Vector3f normal_mean = normal_accum.normalized();
 			// TODO: reject ceiling clusters (don't use cluster size as signal,
 			// since some of them are small)
+			if(pos_accum.z() >= rframe.getHRange().second - 0.3) {
+				continue;
+			}
 
 			const auto basis = createOrthogonalBasis(normal_mean);
+			Eigen::Affine3f quad_to_world;
+			quad_to_world.linear() = basis;
+			quad_to_world.translation() = pos_mean;
 
-			const float half_size = 2;
+			const float max_gap_point = 0.05;
+			const float half_size = 1;
 			TriangleMesh<Eigen::Vector2f> quad;
 			quad.vertices.push_back(std::make_pair(
 				Eigen::Vector3f(-half_size, -half_size, 0),
@@ -481,20 +488,22 @@ void splitEachScan(
 			quad.triangles.push_back({{0, 1, 2}});
 			quad.triangles.push_back({{2, 3, 0}});
 			for(auto& vertex : quad.vertices) {
-				vertex.first = basis * vertex.first + pos_mean;
+				vertex.first = quad_to_world * vertex.first;
 			}
 
 			const Eigen::Affine3f world_to_local = ccs.local_to_world.inverse();
 			const int img_size = 512;
 			cv::Mat mapping(img_size, img_size, CV_32FC2);
+			cv::Mat mask(img_size, img_size, CV_8U);
+			mask = cv::Scalar(0);
 			for(const int y : boost::irange(0, img_size)) {
 				for(const int x : boost::irange(0, img_size)) {
-					const Eigen::Vector3f pt3d_raw(
+					const Eigen::Vector3f pt3d_quad(
 						x / (float)img_size * 2 * half_size - half_size,
 						y / (float)img_size * 2 * half_size - half_size,
 						0);
-					const Eigen::Vector3f pt3d_w = basis * pt3d_raw + pos_mean;
-					const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
+					const Eigen::Vector3f pt3d_l =
+						world_to_local * (quad_to_world * pt3d_quad);
 					const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
 					const float theta = std::acos(pt3d_l_n.z());
@@ -505,6 +514,20 @@ void splitEachScan(
 					const float er_y = ccs.raw_scan.er_rgb.rows * theta / pi;
 					mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
 				}
+			}
+			const int gap_in_px = max_gap_point / (2 * half_size) * img_size;
+			for(const int ix : indices.indices) {
+				const auto& pt = cl_world_interior->points[ix];
+				const Eigen::Vector3f pt_quad =
+					quad_to_world.inverse() * pt.getVector3fMap();
+
+				cv::circle(mask,
+					cv::Point(
+						(pt_quad.x() + half_size) / (2 * half_size) * img_size,
+						(pt_quad.y() + half_size) / (2 * half_size) * img_size),
+					gap_in_px,
+					cv::Scalar(255),
+					-1);
 			}
 
 
@@ -518,6 +541,11 @@ void splitEachScan(
 						"cluster_proj_" + ccs.raw_scan.getScanId() +
 						"-" + std::to_string(i_cluster) + ".png"),
 					proj_new);
+				cv::imwrite(
+					bundle.reservePath(
+						"cluster_mask_" + ccs.raw_scan.getScanId() +
+						"-" + std::to_string(i_cluster) + ".png"),
+					mask);
 			}
 
 			TexturedMesh tm;
