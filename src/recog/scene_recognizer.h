@@ -15,8 +15,6 @@
 
 namespace recon {
 
-cv::Mat visualize_field2(const cv::Mat& field);
-
 TexturedMesh bakeTexture(
 	const AlignedScans& scans,
 	const TriangleMesh<std::nullptr_t>& shape,
