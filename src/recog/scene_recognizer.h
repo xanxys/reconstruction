@@ -28,10 +28,6 @@ TexturedMesh bakeTextureSingle(
 	const TriangleMesh<std::nullptr_t>& shape,
 	float accept_dist = 0.1);
 
-// Return nearest power of 2 number >= x.
-// ceilToPowerOf2(x) = 1 for x <=0.
-int ceilToPowerOf2(int x);
-
 // Represents Manhattan indoor room coordinates.
 // But RoomFrame doesn't hold raw scans.
 // (aligned scans and RoomFrame are implicitly tied by having

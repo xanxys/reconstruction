@@ -27,4 +27,10 @@ public:
 	cv::Mat diffuse;
 };
 
+// Return a single TexturedMesh (with single texture), representing
+// original meshes without texture quality loss.
+// color bleeding might occur near edges.
+TexturedMesh mergeTexturedMeshes(
+	const std::vector<TexturedMesh>& meshes);
+
 }  // namespace

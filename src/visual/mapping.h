@@ -53,13 +53,6 @@ private:
 	Eigen::Vector2f uv_max;
 };
 
-
-// Create 3-d orthogonal basis
-// (x y z) from given z.
-// z must be a unit vector.
-Eigen::Matrix3f createOrthogonalBasis(
-	const Eigen::Vector3f& z);
-
 std::vector<Chart> divideMeshToCharts(
 	const TriangleMesh<std::nullptr_t>& mesh);
 

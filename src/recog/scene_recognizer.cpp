@@ -39,6 +39,7 @@
 #include <pcl/surface/poisson.h>
 
 #include <extpy.h>
+#include <geom/util.h>
 #include <math_util.h>
 #include <optimize/gradient_descent.h>
 #include <range2.h>
@@ -707,15 +708,6 @@ void splitObjects(
 		bundle.addInteriorObject(tex_mesh);
 	}
 }
-
-int ceilToPowerOf2(int x) {
-	int r = 1;
-	while(r <= x) {
-		r *= 2;
-	}
-	return r;
-}
-
 
 TexturedMesh bakeTextureSingle(
 		const AlignedScans& scans,

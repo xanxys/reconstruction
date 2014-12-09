@@ -9,6 +9,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <geom/packing.h>
+#include <math_util.h>
 #include <range2.h>
 #include <visual/cloud_conversion.h>
 #include <visual/texture_conversion.h>
@@ -49,4 +51,48 @@ void TexturedMesh::writeWavefrontObjectFlat(std::string prefix) const {
 
 	cv::imwrite(name_diffuse.string(), diffuse);
 }
+
+TexturedMesh mergeTexturedMeshes(
+		const std::vector<TexturedMesh>& meshes) {
+	assert(!meshes.empty());
+	// Plan texture packing.
+	std::vector<Eigen::Vector2f> rects;
+	for(const auto& mesh : meshes) {
+		rects.emplace_back(mesh.diffuse.cols, mesh.diffuse.rows);
+	}
+	const auto packing = packRectangles(rects);
+	// Actually pack texture.
+	const int size = ceilToPowerOf2(packing.first);
+	cv::Mat result_diffuse = cv::Mat::zeros(size, size, CV_8UC3);
+	for(const int i : boost::irange(0, (int)meshes.size())) {
+		result_diffuse(cv::Rect(
+			packing.second[i](0),
+			packing.second[i](1),
+			meshes[i].diffuse.cols,
+			meshes[i].diffuse.rows)) = meshes[i].diffuse;
+	}
+	// Pack meshes.
+	TriangleMesh<Eigen::Vector2f> result_mesh;
+	for(const int i : boost::irange(0, (int)meshes.size())) {
+		const auto& mesh = meshes[i].mesh;
+		const int i_vert_offset = result_mesh.vertices.size();
+		for(const auto& v : mesh.vertices) {
+			result_mesh.vertices.emplace_back(
+				v.first,
+				(v.second.cwiseProduct(rects[i]) + packing.second[i]) / size);
+		}
+		for(const auto& tri : mesh.triangles) {
+			result_mesh.triangles.push_back({{
+				i_vert_offset + tri[0],
+				i_vert_offset + tri[1],
+				i_vert_offset + tri[2]}});
+		}
+	}
+
+	TexturedMesh result;
+	result.diffuse = result_diffuse;
+	result.mesh = result_mesh;
+	return result;
+}
+
 }  // namespace
