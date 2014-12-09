@@ -63,13 +63,17 @@ TexturedMesh mergeTexturedMeshes(
 	const auto packing = packRectangles(rects);
 	// Actually pack texture.
 	const int size = ceilToPowerOf2(packing.first);
+	INFO("SZ", size);
 	cv::Mat result_diffuse = cv::Mat::zeros(size, size, CV_8UC3);
 	for(const int i : boost::irange(0, (int)meshes.size())) {
-		result_diffuse(cv::Rect(
-			packing.second[i](0),
-			packing.second[i](1),
-			meshes[i].diffuse.cols,
-			meshes[i].diffuse.rows)) = meshes[i].diffuse;
+		assert(meshes[i].diffuse.type() == CV_8UC3);
+		INFO("COPY: ", i, packing.second[i](0), packing.second[i](1));
+		meshes[i].diffuse.copyTo(
+			result_diffuse(cv::Rect(
+				packing.second[i](0),
+				packing.second[i](1),
+				meshes[i].diffuse.cols,
+				meshes[i].diffuse.rows)));
 	}
 	// Pack meshes.
 	TriangleMesh<Eigen::Vector2f> result_mesh;
