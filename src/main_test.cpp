@@ -29,8 +29,8 @@ TEST(MeshPipelineTest, IsosurfaceWorks) {
 
 	const auto mesh_n_uv = recon::assignUV(mesh_n);
 	const auto mesh_uv = recon::mapSecond(mesh_n_uv);
-	cv::imwrite("uv.png", recon::visualizeUVMap(mesh_uv));
-	cv::imwrite("uv_3d.png", recon::bake3DTexture(mesh_uv,
+	cv::imwrite("/tmp/recon-MeshPipelineTest-uv.png", recon::visualizeUVMap(mesh_uv));
+	cv::imwrite("/tmp/recon-MeshPipelineTest-uv_3d.png", recon::bake3DTexture(mesh_uv,
 		[](Eigen::Vector3f p) {
 			return p;
 		}));
