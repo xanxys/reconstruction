@@ -196,7 +196,7 @@ std::vector<Eigen::Vector3f> recognize_lights(
 			const float length_per_angle = -pt3d_l.norm() / pt3d_l_n.dot(normal_ceiling);
 
 			const float theta = std::acos(pt3d_l_n.z());
-			const float phi = std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
+			const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
 			const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
 
 			const float er_x = scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
@@ -442,20 +442,107 @@ void splitEachScan(
 
 		std::vector<pcl::PointIndices> clusters;
 		ec.extract(clusters);
-
 		INFO("splitEachScan: Number of clusters=", (int)clusters.size());
+
+		std::vector<TexturedMesh> tms;
+		int i_cluster = 0;
+		for(const auto& indices : clusters) {
+			Eigen::Vector3f pos_accum = Eigen::Vector3f::Zero();
+			Eigen::Vector3f normal_accum = Eigen::Vector3f::Zero();
+			int n_accum = 0;
+			for(const int ix : indices.indices) {
+				const auto& pt = cl_world_interior->points[ix];
+				pos_accum += pt.getVector3fMap();
+				normal_accum += pt.getNormalVector3fMap();
+				n_accum++;
+			}
+			assert(n_accum > 0);
+			const Eigen::Vector3f pos_mean = pos_accum / n_accum;
+			const Eigen::Vector3f normal_mean = normal_accum.normalized();
+			// TODO: reject ceiling clusters (don't use cluster size as signal,
+			// since some of them are small)
+
+			const auto basis = createOrthogonalBasis(normal_mean);
+
+			const float half_size = 2;
+			TriangleMesh<Eigen::Vector2f> quad;
+			quad.vertices.push_back(std::make_pair(
+				Eigen::Vector3f(-half_size, -half_size, 0),
+				Eigen::Vector2f(0, 0)));
+			quad.vertices.push_back(std::make_pair(
+				Eigen::Vector3f(half_size, -half_size, 0),
+				Eigen::Vector2f(1, 0)));
+			quad.vertices.push_back(std::make_pair(
+				Eigen::Vector3f(half_size, half_size, 0),
+				Eigen::Vector2f(1, 1)));
+			quad.vertices.push_back(std::make_pair(
+				Eigen::Vector3f(-half_size, half_size, 0),
+				Eigen::Vector2f(0, 1)));
+			quad.triangles.push_back({{0, 1, 2}});
+			quad.triangles.push_back({{2, 3, 0}});
+			for(auto& vertex : quad.vertices) {
+				vertex.first = basis * vertex.first + pos_mean;
+			}
+
+			const Eigen::Affine3f world_to_local = ccs.local_to_world.inverse();
+			const int img_size = 512;
+			cv::Mat mapping(img_size, img_size, CV_32FC2);
+			for(const int y : boost::irange(0, img_size)) {
+				for(const int x : boost::irange(0, img_size)) {
+					const Eigen::Vector3f pt3d_raw(
+						x / (float)img_size * 2 * half_size - half_size,
+						y / (float)img_size * 2 * half_size - half_size,
+						0);
+					const Eigen::Vector3f pt3d_w = basis * pt3d_raw + pos_mean;
+					const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
+					const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
+
+					const float theta = std::acos(pt3d_l_n.z());
+					const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
+					const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
+
+					const float er_x = ccs.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
+					const float er_y = ccs.raw_scan.er_rgb.rows * theta / pi;
+					mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
+				}
+			}
+
+
+			cv::Mat proj_new;
+			cv::remap(ccs.raw_scan.er_rgb, proj_new, mapping, cv::Mat(),
+				cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+
+			if(bundle.isDebugEnabled()) {
+				cv::imwrite(
+					bundle.reservePath(
+						"cluster_proj_" + ccs.raw_scan.getScanId() +
+						"-" + std::to_string(i_cluster) + ".png"),
+					proj_new);
+			}
+
+			TexturedMesh tm;
+			tm.mesh = quad;
+			tm.diffuse = proj_new;
+			tms.push_back(tm);
+
+			i_cluster++;
+		}
+		if(bundle.isDebugEnabled()) {
+			auto tm_merged = mergeTexturedMeshes(tms);
+			bundle.addMesh("debug_all_clusters_" + ccs.raw_scan.getScanId(), tm_merged);
+		}
 
 		if(bundle.isDebugEnabled()) {
 			std::default_random_engine generator;
 			std::uniform_int_distribution<int> distribution(1, 255);
-			pcl::PointCloud <pcl::PointXYZRGB>::Ptr colored_cloud(
-				new pcl::PointCloud <pcl::PointXYZRGB>);
+			pcl::PointCloud <pcl::PointXYZRGBNormal>::Ptr colored_cloud(
+				new pcl::PointCloud <pcl::PointXYZRGBNormal>);
 			for(const auto& indices : clusters) {
 				const int r = distribution(generator);
 				const int g = distribution(generator);
 				const int b = distribution(generator);
 				for(int ix : indices.indices) {
-					auto pt = cloud->points[ix];
+					auto pt = cl_world_interior->points[ix];
 					pt.r = r;
 					pt.g = g;
 					pt.b = b;
