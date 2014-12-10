@@ -39,6 +39,7 @@
 #include <pcl/surface/poisson.h>
 
 #include <extpy.h>
+#include <geom/triangulation.h>
 #include <geom/util.h>
 #include <math_util.h>
 #include <optimize/gradient_descent.h>
@@ -226,6 +227,181 @@ std::vector<Eigen::Vector2f> RoomFrame::getSimplifiedContour() const {
 	assert(wall_polygon.size() >= 3);
 	return wall_polygon;
 }
+
+std::vector<TexturedMesh> extractVisualGroups(
+		SceneAssetBundle& bundle, CorrectedSingleScan& c_scan,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster,
+		const Eigen::Vector3f& center,
+		const Eigen::Vector3f& normal,
+		const std::string& cluster_name) {
+	INFO("Doing grabcut planar mesh extraction for",
+		c_scan.raw_scan.getScanId(), cluster_name);
+	// Create local plane (quad) larger than eventual groups.
+	const auto basis = createOrthogonalBasis(normal);
+	Eigen::Affine3f quad_to_world;
+	quad_to_world.linear() = basis;
+	quad_to_world.translation() = center;
+
+	// Quad coordinate transforms:
+	// uv <-> quad-local <-> world
+	//            |
+	//        quad-image
+	const float max_gap_point = 0.05;
+	const float half_size = 1;
+	Eigen::Affine2f uv_to_quad;
+	uv_to_quad.linear() = Eigen::Matrix2f::Identity() * (2 * half_size);
+	uv_to_quad.translation() = Eigen::Vector2f(-half_size, -half_size);
+
+	TriangleMesh<Eigen::Vector2f> quad;
+	const std::vector<Eigen::Vector2f> quad_uvs = {
+		{0, 0}, {1, 0}, {1, 1}, {0, 1}
+	};
+	for(const auto& quad_uv : quad_uvs) {
+		const Eigen::Vector2f quad_xy = uv_to_quad * quad_uv;
+		quad.vertices.emplace_back(
+			Eigen::Vector3f(quad_xy.x(), quad_xy.y(), 0),
+			quad_uv);
+	}
+	quad.triangles.push_back({{0, 1, 2}});
+	quad.triangles.push_back({{2, 3, 0}});
+	for(auto& vertex : quad.vertices) {
+		vertex.first = quad_to_world * vertex.first;
+	}
+	// Project to the quad, resulting in quad texture and mask.
+	const Eigen::Affine3f world_to_local = c_scan.local_to_world.inverse();
+	const int img_size = 512;
+
+	Eigen::Affine2f qimage_to_qlocal;
+	qimage_to_qlocal.linear().setConstant(0);
+	qimage_to_qlocal.linear()(0, 0) = 1.0 / img_size * 2.0 * half_size;
+	qimage_to_qlocal.linear()(1, 1) = -1.0 / img_size * 2.0 * half_size;
+	qimage_to_qlocal.translation() = Eigen::Vector2f(-half_size, +half_size);
+
+	cv::Mat mapping(img_size, img_size, CV_32FC2);
+	for(const int y : boost::irange(0, img_size)) {
+		for(const int x : boost::irange(0, img_size)) {
+			const Eigen::Vector2f pt2d_quad = qimage_to_qlocal * Eigen::Vector2f(x, y);
+			const Eigen::Vector3f pt3d_quad(pt2d_quad(0), pt2d_quad(1), 0);
+			const Eigen::Vector3f pt3d_l =
+				world_to_local * (quad_to_world * pt3d_quad);
+			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
+
+			const float theta = std::acos(pt3d_l_n.z());
+			const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
+			const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
+
+			const float er_x = c_scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
+			const float er_y = c_scan.raw_scan.er_rgb.rows * theta / pi;
+			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
+		}
+	}
+	cv::Mat mask(img_size, img_size, CV_8U);
+	mask = cv::Scalar(0);
+	const int gap_in_px = max_gap_point / (2 * half_size) * img_size;
+	for(const auto& pt : cluster->points) {
+		const Eigen::Vector3f pt_quad =
+			quad_to_world.inverse() * pt.getVector3fMap();
+		const Eigen::Vector2f pt_qimage =
+			qimage_to_qlocal.inverse() * pt_quad.head<2>();
+		cv::circle(mask,
+			cv::Point(pt_qimage.x(), pt_qimage.y()),
+			gap_in_px,
+			cv::Scalar(255),
+			-1);
+	}
+	cv::Mat proj;
+	cv::remap(c_scan.raw_scan.er_rgb, proj, mapping, cv::Mat(),
+		cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+
+	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath(
+				"cluster_proj_" + c_scan.raw_scan.getScanId() +
+				"-" + cluster_name + ".png"),
+			proj);
+		cv::imwrite(
+			bundle.reservePath(
+				"cluster_mask_" + c_scan.raw_scan.getScanId() +
+				"-" + cluster_name + ".png"),
+			mask);
+	}
+
+	// Detect groups using grabcut and heuristics.
+	cv::Mat mask_grabcut = mask.clone();
+	for(const int y : boost::irange(0, img_size)) {
+		for(const int x : boost::irange(0, img_size)) {
+			const uint8_t flag = (mask.at<uint8_t>(y, x) > 127) ?
+				cv::GC_PR_FGD : cv::GC_BGD;
+			mask_grabcut.at<uint8_t>(y, x) = flag;
+		}
+	}
+	{
+		cv::Mat tmp_background;
+		cv::Mat tmp_foregroud;
+		cv::grabCut(
+			proj, mask_grabcut, cv::Rect(), tmp_background, tmp_foregroud,
+			5, cv::GC_INIT_WITH_MASK);
+	}
+	cv::Mat final_mask(img_size, img_size, CV_8U);
+	for(const int y : boost::irange(0, img_size)) {
+		for(const int x : boost::irange(0, img_size)) {
+			const auto flag = mask_grabcut.at<uint8_t>(y, x);
+			final_mask.at<uint8_t>(y, x) =
+				(flag == cv::GC_FGD || flag == cv::GC_PR_FGD) ? 255 : 0;
+		}
+	}
+	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath(
+				"grabcut_gen-" + c_scan.raw_scan.getScanId() + "-" + cluster_name + ".png"),
+			final_mask);
+	}
+
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Vec4i> hierarchy;
+	cv::findContours(final_mask, contours, hierarchy,
+		CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1);
+	DEBUG("#detected grabcut blobs", (int)contours.size());
+	// Remove unstable (e.g. multiple) groups and degenerate groups.
+	if(contours.size() != 1 || contours[0].size() < 3) {
+		DEBUG("Rejecting groups due to unstability");
+		return std::vector<TexturedMesh>();
+	}
+
+	std::vector<cv::Point> contour_simple;
+	cv::approxPolyDP(contours[0], contour_simple, gap_in_px, true);
+	if(contour_simple.size() < 3) {
+		DEBUG("Rejecting simple group due to degeneracy");
+		return std::vector<TexturedMesh>();
+	}
+
+	// Now we have sane simple contour, we represent it as 3D mesh.
+	// contour (quad local coord) -> world coord + UV
+	std::vector<Eigen::Vector2f> contour_simple_eig;
+	for(const auto& pt : contour_simple) {
+		contour_simple_eig.emplace_back(pt.x, pt.y);
+	}
+	DEBUG("Generating group w/ #vert", (int)contour_simple_eig.size());
+	const auto tris = triangulatePolygon(contour_simple_eig);
+
+	TriangleMesh<Eigen::Vector2f> mesh_poly;
+	mesh_poly.triangles = tris;
+	for(const auto& v2 : contour_simple_eig) {
+		const Eigen::Vector2f quad2 = qimage_to_qlocal * v2;
+		const Eigen::Vector3f quad3(quad2(0), quad2(1), 0);
+		mesh_poly.vertices.emplace_back(
+			quad_to_world * quad3,
+			uv_to_quad.inverse() * quad2);
+	}
+
+	TexturedMesh tm;
+	tm.mesh = mesh_poly;
+	tm.diffuse = proj;
+
+	std::vector<TexturedMesh> results = {tm};
+	return results;
+}
+
 
 void splitEachScan(
 		SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe) {
@@ -420,98 +596,19 @@ void splitEachScan(
 			if(pos_accum.z() >= rframe.getHRange().second - 0.3) {
 				continue;
 			}
-
-			const auto basis = createOrthogonalBasis(normal_mean);
-			Eigen::Affine3f quad_to_world;
-			quad_to_world.linear() = basis;
-			quad_to_world.translation() = pos_mean;
-
-			const float max_gap_point = 0.05;
-			const float half_size = 1;
-			TriangleMesh<Eigen::Vector2f> quad;
-			quad.vertices.push_back(std::make_pair(
-				Eigen::Vector3f(-half_size, -half_size, 0),
-				Eigen::Vector2f(0, 0)));
-			quad.vertices.push_back(std::make_pair(
-				Eigen::Vector3f(half_size, -half_size, 0),
-				Eigen::Vector2f(1, 0)));
-			quad.vertices.push_back(std::make_pair(
-				Eigen::Vector3f(half_size, half_size, 0),
-				Eigen::Vector2f(1, 1)));
-			quad.vertices.push_back(std::make_pair(
-				Eigen::Vector3f(-half_size, half_size, 0),
-				Eigen::Vector2f(0, 1)));
-			quad.triangles.push_back({{0, 1, 2}});
-			quad.triangles.push_back({{2, 3, 0}});
-			for(auto& vertex : quad.vertices) {
-				vertex.first = quad_to_world * vertex.first;
-			}
-
-			const Eigen::Affine3f world_to_local = ccs.local_to_world.inverse();
-			const int img_size = 512;
-			cv::Mat mapping(img_size, img_size, CV_32FC2);
-			cv::Mat mask(img_size, img_size, CV_8U);
-			mask = cv::Scalar(0);
-			for(const int y : boost::irange(0, img_size)) {
-				for(const int x : boost::irange(0, img_size)) {
-					const Eigen::Vector3f pt3d_quad(
-						x / (float)img_size * 2 * half_size - half_size,
-						y / (float)img_size * 2 * half_size - half_size,
-						0);
-					const Eigen::Vector3f pt3d_l =
-						world_to_local * (quad_to_world * pt3d_quad);
-					const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
-
-					const float theta = std::acos(pt3d_l_n.z());
-					const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
-					const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
-
-					const float er_x = ccs.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
-					const float er_y = ccs.raw_scan.er_rgb.rows * theta / pi;
-					mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
-				}
-			}
-			const int gap_in_px = max_gap_point / (2 * half_size) * img_size;
+			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster_cloud(
+				new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 			for(const int ix : indices.indices) {
-				const auto& pt = cl_world_interior->points[ix];
-				const Eigen::Vector3f pt_quad =
-					quad_to_world.inverse() * pt.getVector3fMap();
-
-				cv::circle(mask,
-					cv::Point(
-						(pt_quad.x() + half_size) / (2 * half_size) * img_size,
-						(pt_quad.y() + half_size) / (2 * half_size) * img_size),
-					gap_in_px,
-					cv::Scalar(255),
-					-1);
+				cluster_cloud->points.push_back(cl_world_interior->points[ix]);
 			}
+			const auto groups = extractVisualGroups(
+				bundle, ccs, cluster_cloud, pos_mean, normal_mean,
+				std::to_string(i_cluster));
 
-
-			cv::Mat proj_new;
-			cv::remap(ccs.raw_scan.er_rgb, proj_new, mapping, cv::Mat(),
-				cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-
-			if(bundle.isDebugEnabled()) {
-				cv::imwrite(
-					bundle.reservePath(
-						"cluster_proj_" + ccs.raw_scan.getScanId() +
-						"-" + std::to_string(i_cluster) + ".png"),
-					proj_new);
-				cv::imwrite(
-					bundle.reservePath(
-						"cluster_mask_" + ccs.raw_scan.getScanId() +
-						"-" + std::to_string(i_cluster) + ".png"),
-					mask);
-			}
-
-			TexturedMesh tm;
-			tm.mesh = quad;
-			tm.diffuse = proj_new;
-			tms.push_back(tm);
-
+			tms.insert(tms.end(), groups.begin(), groups.end());
 			i_cluster++;
 		}
-		if(bundle.isDebugEnabled()) {
+		if(bundle.isDebugEnabled() && !tms.empty()) {
 			auto tm_merged = mergeTexturedMeshes(tms);
 			bundle.addMesh("debug_all_clusters_" + ccs.raw_scan.getScanId(), tm_merged);
 		}

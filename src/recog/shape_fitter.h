@@ -51,13 +51,6 @@ bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points);
 // runtime: O(N^2)
 bool isSaneSimplePolygon(const std::vector<Eigen::Vector2f>& points, const float eps = 1e-3);
 
-// Triangulate a CCW simple polygon (no self intersecting edges, no holes)
-// into CCW triangles. N-vertex polygon always results in N-2 triangles.
-//
-// Useful course slide(not used):
-// https://www.cs.ucsb.edu/~suri/cs235/Triangulation.pdf
-std::vector<std::array<int, 3>> triangulatePolygon(const std::vector<Eigen::Vector2f>& points);
-
 // Extract XY 2D concave polygon. (CCW)
 std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
