@@ -436,8 +436,7 @@ void splitEachScan(
 	// Generate mesh that represents the wall. (with vertex normals)
 	const auto contour = rframe.getSimplifiedContour();
 	TriangleMesh<std::nullptr_t> wrapping =
-		std::get<0>(
-			generateExtrusion(contour, rframe.getHRange()));
+		ExtrudedPolygonMesh(contour, rframe.getHRange()).getMesh();
 
 	auto v3_to_point = [](const Eigen::Vector3f& v) {
 		return Point(v(0), v(1), v(2));
@@ -726,13 +725,12 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Materializing extruded polygon mesh");
-	const auto extrusion_mesh = generateExtrusion(
+	const auto extrusion_mesh = ExtrudedPolygonMesh(
 		rframe.wall_polygon, room_hrange);
-	const auto room_mesh = std::get<0>(extrusion_mesh);
-	const auto room_ceiling_ixs = std::get<1>(extrusion_mesh);
 
 	INFO("Modeling boxes along wall");
-	auto cloud_interior_pre = colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, true);
+	auto cloud_interior_pre = colorPointsByDistance<pcl::PointXYZRGBNormal>(
+		points_inside, extrusion_mesh.getMesh(), true);
 	INFO("Rejecting near-ceiling points");
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 	const float ceiling_range = 0.65;
@@ -748,13 +746,14 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	auto filtered = squashRegistrationError(cloud_interior);
 	bundle.addDebugPointCloud("filtered", filtered);
 
-	const auto cloud_interior_dist = colorPointsByDistance<pcl::PointXYZRGBNormal>(points_inside, room_mesh, false);
+	const auto cloud_interior_dist = colorPointsByDistance<pcl::PointXYZRGBNormal>(
+		points_inside, extrusion_mesh.getMesh(), false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
 		bundle, rframe,
-		scans_aligned, room_mesh, room_ceiling_ixs,
+		scans_aligned, extrusion_mesh,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
 	bundle.setExteriorMesh(exterior.first);
@@ -768,16 +767,43 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
-		const TriangleMesh<std::nullptr_t>& room_mesh,
-		const std::vector<int>& ceiling_ixs,
+		const ExtrudedPolygonMesh& ext_mesh,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside) {
 
 	// TODO: desirable pipeline if similar process' needs arise elsewhere.
 	// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
 	// reverse lookup.
 	// Maybe overly complex??
-	auto tex_mesh = bakeTextureSingle(scans_aligned, room_mesh, 0.4);
+	auto tex_mesh = bakeTextureSingleExterior(
+		scans_aligned, ext_mesh.getMesh(), 0.4);
 
+	// TODO: Discard non-floor components on floor.
+	//tex_mesh.
+	/*
+	if(bundle.isDebugEnabled()) {
+		cv::Mat img = tex_mesh.diffuse.clone();
+
+		// WARNING: encapsulation breach!
+		// This assumes:
+		// 1. XYZ floor maps to continuous region in UV
+		//
+		std::vector<cv::Point> points;
+		for(const auto& ix_vert : ext_mesh.getFloorPolygonVertices()) {
+			const auto uv = ext_mesh.getMesh().vertices[ix_vert].second;
+
+			points.emplace_back(
+				img.cols * uv(0),
+				img.rows * (1 - uv(1)));
+		}
+		// Draw poly.
+		{
+			std::vector<std::vector<cv::Point>> contours = {points};
+			cv::drawContours(img, contours, -1, cv::Scalar(0, 0, 255));
+		}
+
+		cv::imwrite(bundle.reservePath("floor_inpaint.png"), img);
+	}
+	*/
 
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
@@ -896,7 +922,7 @@ void splitObjects(
 	}
 }
 
-TexturedMesh bakeTextureSingle(
+TexturedMesh bakeTextureSingleExterior(
 		const AlignedScans& scans,
 		const TriangleMesh<std::nullptr_t>& shape_wo_uv,
 		const float accept_dist) {
@@ -911,10 +937,8 @@ TexturedMesh bakeTextureSingle(
 
 	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
 	MeshIntersecter intersecter(shape_wo_uv);
-	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
-	int n_hits = 0;
-	int n_all = 0;
 
+	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
 	const auto c_scans = scans.getScansWithPose();
 	const auto& c_scan = c_scans[0];
 

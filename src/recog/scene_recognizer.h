@@ -11,6 +11,7 @@
 #include <logging.h>
 #include <recog/aligned_scan.h>
 #include <recog/scene_asset_bundle.h>
+#include <recog/shape_fitter.h>
 #include <visual/textured_mesh.h>
 
 namespace recon {
@@ -21,7 +22,7 @@ TexturedMesh bakeTexture(
 	float accept_dist = 0.1);
 
 
-TexturedMesh bakeTextureSingle(
+TexturedMesh bakeTextureSingleExterior(
 	const AlignedScans& scans,
 	const TriangleMesh<std::nullptr_t>& shape,
 	float accept_dist = 0.1);
@@ -129,8 +130,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans,
-		const TriangleMesh<std::nullptr_t>& shape,
-		const std::vector<int>& ceiling_ixs,
+		const ExtrudedPolygonMesh& ext_mesh,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside);
 
 void splitObjects(

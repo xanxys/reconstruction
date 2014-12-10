@@ -29,15 +29,9 @@ std::tuple<
 	return std::make_tuple(poly, h_range);
 }
 
-// Return TriangleMesh and indices for ceiling.
-std::tuple<
-	TriangleMesh<std::nullptr_t>,
-	std::vector<int>
-		> generateExtrusion(
-			const std::vector<Eigen::Vector2f>& poly,
-			const std::pair<float, float>& h_range) {
-	TriangleMesh<std::nullptr_t> mesh;
-
+ExtrudedPolygonMesh::ExtrudedPolygonMesh(
+		const std::vector<Eigen::Vector2f>& poly,
+		const std::pair<float, float>& h_range) {
 	// Create all vertices, as composition of CCW top ring
 	// and bottom ring.
 	std::vector<int> verts_bottom;
@@ -92,12 +86,23 @@ std::tuple<
 		return tri_ixs;
 	};
 
-	append_cap(false);
-	std::vector<int> ceiling_tri_ixs = append_cap(true);
-
+	floor_tri_ixs = append_cap(false);
+	ceiling_tri_ixs = append_cap(true);
 	DEBUG("Extruded polygon mesh #v=", (int)mesh.vertices.size());
-	return std::make_tuple(mesh, ceiling_tri_ixs);
+
+	floor_poly_verts = verts_bottom;
 }
+
+
+std::vector<int> ExtrudedPolygonMesh::getFloorPolygonVertices() const {
+	return floor_poly_verts;
+}
+
+
+const TriangleMesh<std::nullptr_t>& ExtrudedPolygonMesh::getMesh() const {
+	return mesh;
+}
+
 
 float mean(const std::pair<float, float>& pair) {
 	return (pair.first + pair.second) / 2;

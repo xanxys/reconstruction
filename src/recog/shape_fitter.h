@@ -21,17 +21,25 @@ std::tuple<
 	std::pair<float, float>
 	> fitExtrudedPolygon(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
-// Return TriangleMesh and indices for ceiling.
-// TODO: this tuple became too complex. Also,
-// this function is now coupled with non-geometric room-specific
-// logic (different ops for ceiling vs. floor vs. wall).
-// Create a class for storing room shapes.
-std::tuple<
-	TriangleMesh<std::nullptr_t>,
-	std::vector<int>
-	> generateExtrusion(
+
+class ExtrudedPolygonMesh {
+public:
+	ExtrudedPolygonMesh(
 		const std::vector<Eigen::Vector2f>& poly,
 		const std::pair<float, float>& h_range);
+
+	//std::vector<int> getFloorTriangles() const;
+	//std::vector<int> getCeilingTriangles() const;
+	std::vector<int> getFloorPolygonVertices() const;
+
+	const TriangleMesh<std::nullptr_t>& getMesh() const;
+private:
+	std::vector<int> floor_poly_verts;
+	std::vector<int> floor_tri_ixs;
+	std::vector<int> ceiling_tri_ixs;
+	TriangleMesh<std::nullptr_t> mesh;
+};
+
 
 float mean(const std::pair<float, float>& pair);
 float half(const std::pair<float, float>& pair);
