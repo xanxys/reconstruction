@@ -394,6 +394,18 @@ std::vector<TexturedMesh> extractVisualGroups(
 			uv_to_quad.inverse() * quad2);
 	}
 
+	// sanity check tris
+	// WARNING: HACK
+	// TODO: FIX THIS BUG!!!
+	for(const auto& tri : mesh_poly.triangles) {
+		for(const int iv : tri) {
+			if(iv < 0 || iv >= mesh_poly.vertices.size()) {
+				WARN("Triangle index corruption found! Discarding");
+				return std::vector<TexturedMesh>();
+			}
+		}
+	}
+
 	TexturedMesh tm;
 	tm.mesh = mesh_poly;
 	tm.diffuse = proj;
