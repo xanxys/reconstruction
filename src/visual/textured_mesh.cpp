@@ -78,10 +78,12 @@ TexturedMesh mergeTexturedMeshes(
 	for(const int i : boost::irange(0, (int)meshes.size())) {
 		const auto& mesh = meshes[i].mesh;
 		const int i_vert_offset = result_mesh.vertices.size();
-		for(const auto& v : mesh.vertices) {
+		for(const auto& vertex : mesh.vertices) {
 			result_mesh.vertices.emplace_back(
-				v.first,
-				(v.second.cwiseProduct(rects[i]) + packing.second[i]) / size);
+				vertex.first,
+				Eigen::Vector2f(
+					(vertex.second.x() * rects[i].x() + packing.second[i].x()) / size,
+					1 - ((1 - vertex.second.y()) * rects[i].y() + packing.second[i].y()) / size));
 		}
 		for(const auto& tri : mesh.triangles) {
 			result_mesh.triangles.push_back({{
