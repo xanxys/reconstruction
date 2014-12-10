@@ -242,12 +242,19 @@ std::vector<TexturedMesh> extractVisualGroups(
 	quad_to_world.linear() = basis;
 	quad_to_world.translation() = center;
 
+	float hs = 0.1;
+	for(const auto& pt : cluster->points) {
+		hs = std::max(
+			hs,
+			(quad_to_world.inverse() * pt.getVector3fMap()).head<2>().norm());
+	}
+	const float half_size = hs * 1.3;
+
 	// Quad coordinate transforms:
 	// uv <-> quad-local <-> world
 	//            |
 	//        quad-image
 	const float max_gap_point = 0.05;
-	const float half_size = 1;
 	Eigen::Affine2f uv_to_quad;
 	uv_to_quad.linear() = Eigen::Matrix2f::Identity() * (2 * half_size);
 	uv_to_quad.translation() = Eigen::Vector2f(-half_size, -half_size);
