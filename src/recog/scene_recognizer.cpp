@@ -248,7 +248,7 @@ std::vector<TexturedMesh> extractVisualGroups(
 			hs,
 			(quad_to_world.inverse() * pt.getVector3fMap()).head<2>().norm());
 	}
-	const float half_size = hs * 1.3;
+	const float half_size = hs * 2;
 
 	// Quad coordinate transforms:
 	// uv <-> quad-local <-> world
@@ -376,7 +376,7 @@ std::vector<TexturedMesh> extractVisualGroups(
 	}
 
 	std::vector<cv::Point> contour_simple;
-	cv::approxPolyDP(contours[0], contour_simple, gap_in_px, true);
+	cv::approxPolyDP(contours[0], contour_simple, gap_in_px / 3, true);
 	if(contour_simple.size() < 3) {
 		DEBUG("Rejecting simple group due to degeneracy");
 		return std::vector<TexturedMesh>();
