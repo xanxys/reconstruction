@@ -39,13 +39,36 @@ void UInertialForceComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
 		GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, CollisionObjectQueryParams);
 
+		// Calculate current acceleration.
+		FVector AccelNow;
+		if (IsConstant) {
+			AccelNow = Acceleration;
+		}
+		else {
+			if (!World) {
+				return;
+			}
+			const float ix = (World->GetTimeSeconds() - AccelerationPlaybackT0) / AccelerationTableResolution;
+			if (ix <= 0) {
+				AccelNow = AccelerationTable.front();
+			}
+			else if (ix >= AccelerationTable.size()) {
+				AccelNow = AccelerationTable.back();
+			}
+			else {
+				const int ix0 = ix;
+				const float frac = ix - ix0;
+				AccelNow = AccelerationTable[ix0] * (1 - frac) + AccelerationTable[ix0 + 1] * frac;
+			}
+		}
+
 		// Iterate over each and apply force
 		for (int32 OverlapIdx = 0; OverlapIdx<Overlaps.Num(); OverlapIdx++)
 		{
 			UPrimitiveComponent* PokeComp = Overlaps[OverlapIdx].Component.Get();
 			if (PokeComp)
 			{
-				PokeComp->AddForce(PokeComp->GetMass() * Acceleration, NAME_None);
+				PokeComp->AddForce(PokeComp->GetMass() * AccelNow, NAME_None);
 
 				// see if this is a target for a movement component
 				/*
@@ -67,6 +90,22 @@ void UInertialForceComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 			}
 		}
 	}
+}
+
+void UInertialForceComponent::SetAccelerationProfile(const std::vector<FVector>& Accels, float DeltaT) {
+	if (DeltaT <= 0 || Accels.size() < 2) {
+		return;
+	}
+	AccelerationTable = Accels;
+	AccelerationTableResolution = DeltaT;
+}
+
+void UInertialForceComponent::StartPlaying() {
+	if (!World) {
+		return;
+	}
+
+	AccelerationPlaybackT0 = World->GetTimeSeconds();
 }
 
 void UInertialForceComponent::PostLoad()
