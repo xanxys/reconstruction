@@ -118,9 +118,9 @@ Viewer.prototype.get_cluster_vertex_colors = function(mcid) {
 	var cluster = this.data.clusters[mcid];
 
 	if(this.use_color) {
-		var supported = this.is_cluster_supported(mcid);
+		//var supported = this.is_cluster_supported(mcid);
 		var color = this.cluster_colors[mcid];
-		color.r = supported ? 0 : 1;
+		color.r = cluster.stable ? 0 : 1;
 		return _.map(cluster.cloud, function(v) {
 			return color;
 		});

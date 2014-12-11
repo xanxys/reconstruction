@@ -8,6 +8,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <geom/util.h>
 #include <logging.h>
 #include <recog/aligned_scan.h>
 #include <recog/indoor.h>
@@ -69,10 +70,16 @@ public:
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud;
 
 public:  // linking info
+	AABB3f aabb;
+	Eigen::Vector3f grav_center;
+
 	// bottom part
 	bool is_supported;
 	float support_z;
 	std::vector<Eigen::Vector2f> support_polygon;
+
+	// derived info
+	bool stable;
 };
 
 

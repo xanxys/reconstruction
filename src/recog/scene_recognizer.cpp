@@ -42,7 +42,6 @@
 
 #include <extpy.h>
 #include <geom/triangulation.h>
-#include <geom/util.h>
 #include <math_util.h>
 #include <optimize/gradient_descent.h>
 #include <range2.h>
@@ -680,8 +679,10 @@ std::pair<
 	return std::make_pair(points_inside, points_outside);
 }
 
-
-MiniCluster::MiniCluster() : is_supported(false) {
+// TODO: AABB shouldn't be initialized by itself.
+MiniCluster::MiniCluster() :
+	aabb(Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero()),
+	is_supported(false), stable(false) {
 }
 
 // In this function, we call
@@ -695,16 +696,23 @@ void linkMiniClusters(
 	using MCId = int;
 	const MCId floor_id = -1;
 
-	// Pre-calculate AABBs.
-	std::vector<AABB3f> aabbs;
-	for(const auto& mc : mcs) {
+	// Pre-calculate independent properties.
+	for(auto& mc : mcs) {
+		// AABB.
 		Eigen::Vector3f vmin(1e3, 1e3, 1e3);
 		Eigen::Vector3f vmax = -vmin;
 		for(const auto& pt : mc.cloud->points) {
 			vmin = vmin.cwiseMin(pt.getVector3fMap());
 			vmax = vmax.cwiseMax(pt.getVector3fMap());
 		}
-		aabbs.emplace_back(vmin, vmax);
+		mc.aabb = AABB3f(vmin, vmax);
+
+		// Approx center of gravity.
+		Eigen::Vector3f accum = Eigen::Vector3f::Zero();
+		for(const auto& pt : mc.cloud->points) {
+			accum += pt.getVector3fMap();
+		}
+		mc.grav_center = accum / mc.cloud->points.size();
 	}
 
 	// We assume tree structure.
@@ -724,16 +732,18 @@ void linkMiniClusters(
 	const float bond_radius = 0.02;
 	for(const MCId id : floating) {
 		DEBUG("Checking mcid", id);
+		auto& mc = mcs[id];
+
 		// Bottom point not touching the supporting surface
 		// -> must be floating
-		if(std::abs(aabbs[id].getMin().z() - z_floor) > z_thresh) {
+		if(std::abs(mc.aabb.getMin().z() - z_floor) > z_thresh) {
 			continue;
 		}
 
 		// Calculate support polygon.
 		std::vector<Point_2> support_points;
 		for(const auto& pt : mcs[id].cloud->points) {
-			if(std::abs(pt.z - aabbs[id].getMin().z()) < bond_radius) {
+			if(std::abs(pt.z - mc.aabb.getMin().z()) < bond_radius) {
 				support_points.emplace_back(pt.x, pt.y);
 			}
 		}
@@ -747,14 +757,30 @@ void linkMiniClusters(
 			support_points.cbegin(), support_points.cend(),
 			std::back_inserter(support_vertices));
 
-		mcs[id].is_supported = true;
-		mcs[id].support_z = aabbs[id].getMin().z();
-		mcs[id].support_polygon.clear();
+		mc.is_supported = true;
+		mc.support_z = mc.aabb.getMin().z();
+		mc.support_polygon.clear();
 		for(const auto& p : support_vertices) {
-			mcs[id].support_polygon.emplace_back(p.x(), p.y());
+			mc.support_polygon.emplace_back(p.x(), p.y());
 		}
 
-		// Check if center of gravity falls within support polygon.
+		// Check if cluster is stable.
+		// stable == CoG falls within polygon
+		const CGAL::Polygon_2<K> poly_support(support_vertices.begin(), support_vertices.end());
+		const std::vector<Eigen::Vector2f> noises = {
+			{0, 0},
+			{0.05, 0},
+			{-0.05, 0},
+			{0, 0.05},
+			{0, -0.05}
+		};
+		bool stable = true;
+		for(const auto& noise : noises) {
+			const Eigen::Vector2f cog_w_n = mc.grav_center.head<2>() + noise;
+			const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
+			stable &= (poly_support.bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
+		}
+		mc.stable = stable;
 
 
 	}
@@ -788,6 +814,7 @@ void linkMiniClusters(
 				p["y"] = pt.y();
 				mc_entry["support_polygon"].append(p);
 			}
+			mc_entry["stable"] = mc.stable;
 
 			mc_entry["cloud"] = cloud;
 			mc_entry["id"] = mc_id;
