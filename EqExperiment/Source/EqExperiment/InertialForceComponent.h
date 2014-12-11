@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-
 #pragma once
+
+#include <vector>
+
 #include "InertialForceComponent.generated.h"
 
 /**
@@ -15,10 +15,14 @@ class UInertialForceComponent : public USceneComponent
 	/** The radius to apply the force or impulse in */
 	UPROPERTY(interp, EditAnywhere, BlueprintReadWrite, Category = RadialForceComponent)
 	float Radius;
+		
+	/** Constant acceleration vs. temporally changing acceleration */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Force)
+	bool IsConstant;
 
 	/** Acceleration of objects inside spherical field. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Force)
-		FVector Acceleration;
+	FVector Acceleration;
 
 	/** Add an object type for this radial force to affect */
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|InertialForce")
@@ -31,6 +35,16 @@ class UInertialForceComponent : public USceneComponent
 	/** Add a collision channel for this radial force to affect */
 	void AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel);
 
+	/** Set acceleration profile as linearly interpolated table. DeltaT should be smaller than tick duration.
+	Accels.size() >= 2 and DeltaT > 0 must be satisfied.
+	*/
+	void SetAccelerationProfile(const std::vector<FVector>& Accels, float DeltaT);
+
+	// Start playing back acceleration. If IsConstant, nothing will happen.
+	// If it's already playing, restart from the beginning.
+	// After finishing, the last acceleration will be played.
+	void StartPlaying();
+
 protected:
 	/** The object types that are affected by this radial force */
 	UPROPERTY(EditAnywhere, Category = RadialForceComponent)
@@ -38,6 +52,13 @@ protected:
 
 	/** Cached object query params derived from ObjectTypesToAffect */
 	FCollisionObjectQueryParams CollisionObjectQueryParams;
+
+	// Dynamic acceleration profile.
+	float AccelerationTableResolution;
+	std::vector<FVector> AccelerationTable;
+
+	// Dynamic acceleration playback status.
+	float AccelerationPlaybackT0;
 
 protected:
 	// Begin UActorComponent interface.
