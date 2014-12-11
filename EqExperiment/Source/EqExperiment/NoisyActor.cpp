@@ -10,7 +10,7 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	const float uu_per_meter = 100;
 
 	StaticMeshComponent = PCIP.CreateAbstractDefaultSubobject<UStaticMeshComponent>(this, TEXT("staticmesh"));
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMesh(TEXT("StaticMesh'/Game/Meshes/TemplateCube_Rounded.TemplateCube_Rounded'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMesh(TEXT("StaticMesh'/Game/Props/SM_Lamp_Wall.SM_Lamp_Wall'"));
 	static ConstructorHelpers::FObjectFinder<UMaterial> Material(TEXT("MaterialInstanceConstant'/Game/Materials/M_Basic_Floor.M_Basic_Floor'"));
 	StaticMeshComponent->SetStaticMesh(StaticMesh.Object);
 	StaticMeshComponent->SetMaterial(0, Material.Object);
@@ -31,9 +31,28 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	StaticMeshComponent->SetWorldLocation(FVector(100, 100, 1000));
 	StaticMeshComponent->SetPhysicsLinearVelocity(FVector(0, 0, 0));
-	
 
+	// Setup Collision
+	UBodySetup* bs = StaticMeshComponent->StaticMesh->BodySetup;
+
+	// should be given by creator
+	FVector Center(0, 0, 0);
+	FVector Extents(100, 100, 100);
+
+	bs->Modify();
+	bs->InvalidatePhysicsData();
+
+	FKBoxElem BoxElem;
+	BoxElem.Center = Center;
+	BoxElem.X = Extents.X * 2.0f;
+	BoxElem.Y = Extents.Y * 2.0f;
+	BoxElem.Z = Extents.Z * 2.0f;
+	bs->AggGeom.BoxElems.Add(BoxElem);
+
+	StaticMeshComponent->RecreatePhysicsState();
+	StaticMeshComponent->StaticMesh->MarkPackageDirty();
 }
+
 
 void ANoisyActor::BeginPlay() {
 	Super::BeginPlay();
