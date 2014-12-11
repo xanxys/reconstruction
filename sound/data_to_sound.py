@@ -38,7 +38,7 @@ def convert_acc_to_sound(acc3d, s_freq, path):
     to_frequency = 44100
 
     accum_sound = None
-    for axis in range(3):
+    for axis in range(1):
         acc = acc3d[:, axis].copy()
         acc -= np.mean(acc)  # mean sub
 
@@ -62,7 +62,7 @@ def convert_acc_to_sound(acc3d, s_freq, path):
         # Apply  HPF to maximize audible loudness
         b, a = scipy.signal.butter(
             5,
-            10 / (to_frequency / 2),
+            40 / (to_frequency / 2),
             'highpass')
 
         to_samples = scipy.signal.lfilter(b, a, to_samples)
