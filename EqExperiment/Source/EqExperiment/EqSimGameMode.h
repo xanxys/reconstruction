@@ -15,5 +15,5 @@ class EQEXPERIMENT_API AEqSimGameMode : public AGameMode
 
 	void BeginPlay() override;
 	
-	
+	USoundBase* EqBgSound;
 };

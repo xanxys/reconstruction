@@ -7,6 +7,7 @@
 #include <string>
 
 #include "picojson.h"
+#include "InertialForceActor.h"
 #include "NoisyActor.h"
 
 
@@ -14,6 +15,12 @@ AEqSimGameMode::AEqSimGameMode(const class FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	DefaultPawnClass = ConstructorHelpers::FClassFinder<APawn>(TEXT("/Game/Blueprints/MyCharacter")).Class;
+
+	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/EarthquakeBG.EarthquakeBG"));
+	EqBgSound = Sound.Object;
+	if (!EqBgSound) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("BG sound load failed"));
+	}
 }
 
 void AEqSimGameMode::BeginPlay() {
@@ -56,6 +63,18 @@ void AEqSimGameMode::BeginPlay() {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Ext load failed"));
 	}
 
+	// Accel gen.
+	{
+		AInertialForceActor* Inertia = World->SpawnActor<AInertialForceActor>(AInertialForceActor::StaticClass());
+		Inertia->ForceComponent->Radius = 500;
+		Inertia->ForceComponent->Activate();
+	}
+	
+
+	// Play BG sound
+	if (EqBgSound) {
+		UGameplayStatics::PlaySoundAtLocation(World, EqBgSound, FVector(0, 0, -1000));
+	}
 }
 
 

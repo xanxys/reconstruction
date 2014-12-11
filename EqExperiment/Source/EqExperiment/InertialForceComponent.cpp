@@ -13,6 +13,7 @@ UInertialForceComponent::UInertialForceComponent(const class FPostConstructIniti
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Radius = 200.0f;
 	Acceleration = FVector(980, 0, 0);
+	IsConstant = true;
 
 	// by default we affect all 'dynamic' objects that can currently be affected by forces
 	AddCollisionChannelToAffect(ECC_Pawn);
