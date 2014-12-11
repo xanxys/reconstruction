@@ -845,6 +845,9 @@ void linkMiniClusters(
 				p["y"] = pt.y();
 				mc_entry["support_polygon"].append(p);
 			}
+			mc_entry["grav_center"]["x"] = mc.grav_center.x();
+			mc_entry["grav_center"]["y"] = mc.grav_center.y();
+			mc_entry["grav_center"]["z"] = mc.grav_center.z();
 			mc_entry["stable"] = mc.stable;
 
 			mc_entry["cloud"] = cloud;

@@ -181,7 +181,7 @@ Viewer.prototype.update = function() {
 		if(mcid === -1) {
 			return new THREE.Vector3(pos_hint.x, pos_hint.y, data.rframe.z0);
 		} else {
-			var pt = data.clusters[mcid].cloud[0];
+			var pt = data.clusters[mcid].grav_center;
 			return new THREE.Vector3(pt.x, pt.y, pt.z);
 		}
 	};
@@ -201,6 +201,16 @@ Viewer.prototype.update = function() {
 			0.05, 0.02);
 		_this.edges.add(arrow);
 
+	});
+	_.each(data.merging, function(edge) {
+		var to = mcid_to_pos(edge[0]);
+		var from = mcid_to_pos(edge[1]);
+
+		var arrow = new THREE.ArrowHelper(
+			to.clone().sub(from).normalize(), from,
+			to.clone().sub(from).length(), 0xffff00,
+			0.03, 0.01);
+		_this.edges.add(arrow);
 	});
 	_this.scene.add(_this.edges);
 };
@@ -228,6 +238,12 @@ Viewer.prototype.update_cluster_color = function(use_color) {
 	this.update();
 };
 
+Viewer.prototype.update_merge = function(merge) {
+	this.merge = merge;
+	this.update();
+};
+
+
 
 Viewer.prototype.animate = function() {
 	var _this = this;
@@ -254,4 +270,8 @@ $('#btn_reload').click(function() {
 
 $('#cb_cluster_color').click(function(ev) {
 	viewer.update_cluster_color(ev.target.checked);
+});
+
+$('#cb_merge').click(function(ev) {
+	viewer.update_merge(ev.target.checked);
 });
