@@ -20,4 +20,9 @@ class EQEXPERIMENT_API ANoisyActor : public AActor
 
 	TSubobjectPtr<UStaticMeshComponent> StaticMeshComponent;
 	//TSubobjectPtr<UBoxComponent> BoxComponent;
+protected:
+
+	UFUNCTION()
+	virtual void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+
 };

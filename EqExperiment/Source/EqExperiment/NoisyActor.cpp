@@ -25,6 +25,7 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	StaticMeshComponent->SetNotifyRigidBodyCollision(true);
 	
 		
 	PrimaryActorTick.bCanEverTick = true;
@@ -51,6 +52,9 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	StaticMeshComponent->RecreatePhysicsState();
 	StaticMeshComponent->StaticMesh->MarkPackageDirty();
+
+	// set collision handler (for playing sounds)
+	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
 }
 
 
@@ -58,4 +62,8 @@ void ANoisyActor::BeginPlay() {
 	Super::BeginPlay();
 	StaticMeshComponent->SetSimulatePhysics(true);
 	StaticMeshComponent->WakeRigidBody();
+}
+
+void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit) {
+	GEngine->AddOnScreenDebugMessage(-1, 0.5, FColor::White, TEXT("Hit!"));
 }
