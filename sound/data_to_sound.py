@@ -27,6 +27,67 @@ def resample_linear(samples, freq_src, freq_dst):
     return fn(np.arange(n_dst) / freq_dst)
 
 
+def convert_acc_to_sound(acc3d, s_freq, path):
+    """
+    Convert 1-d acceleration to sound.
+    return: None
+
+    WAVE object at 44100 Hz, 16-bit, 1-ch will be written to
+    path
+    """
+    to_frequency = 44100
+
+    accum_sound = None
+    for axis in range(3):
+        acc = acc3d[:, axis].copy()
+        acc -= np.mean(acc)  # mean sub
+
+        # acc
+        to_samples = resample_linear(
+            acc, s_freq, to_frequency)
+        print("NS: %d" % len(to_samples))
+
+        def integrate(xs):
+            v = 0
+            dt = 1 / to_frequency
+            vs = []
+            for x in xs:
+                v += x * dt
+                vs.append(v)
+            return np.array(vs)
+
+        # acc -> pos
+        to_samples = integrate(integrate(to_samples))
+
+        # Apply  HPF to maximize audible loudness
+        b, a = scipy.signal.butter(
+            5,
+            10 / (to_frequency / 2),
+            'highpass')
+
+        to_samples = scipy.signal.lfilter(b, a, to_samples)
+        if accum_sound is None:
+            accum_sound = to_samples
+        else:
+            accum_sound += to_samples
+
+    accum_sound = accum_sound[:int(len(accum_sound) * 0.95)]
+    print("#smp: %d" % len(accum_sound))
+
+    wav = wave.open(path, mode='w')
+    wav.setnchannels(1)
+    wav.setsampwidth(2)
+    wav.setframerate(to_frequency)
+
+    # normalize
+    accum_sound = accum_sound / np.abs(accum_sound).max()
+
+    wav.writeframes(
+        (accum_sound * ((2**15) - 1)).astype(np.int16).tostring())
+    wav.close()
+
+
+
 def convert_bcj_to_sound():
     """
     Read BCJ acceleration data from disk (hard coded path)
@@ -67,7 +128,7 @@ def convert_bcj_to_sound():
 
     to_samples = scipy.signal.lfilter(b, a, to_samples)
 
-    wav = wave.open('output.wav', mode='w')
+    wav = wave.open('bcj.wav', mode='w')
     wav.setnchannels(1)
     wav.setsampwidth(2)
     wav.setframerate(to_frequency)
@@ -131,6 +192,50 @@ class AccelerogramDataParser86(object):
             "Loaded earthquake data #V:%d #A:%d #D:%d",
             len(self.data_acc), len(self.data_vel), len(self.data_dis))
 
+
+def load_94Hachi():
+    """
+    Unit: gal = cm/s^2
+    sample freq: 50 Hz
+    """
+    def get_acc(fobj):
+        ls = []
+        for l in fobj:
+            ls.append(l)
+        val_size = 7
+        data = []
+        for l in ls[5:]:
+            if len(l) != 81:
+                continue
+            for i in range(10):
+                data.append(float(l[i * val_size:(i + 1) * val_size]))
+        return np.array(data)
+
+    base = '/data/research/2014/earthquake/1994/94-Hachi-'
+    accs = []
+    for suffix in ['ew.txt', 'ns.txt', 'ud.txt']:
+        p = base + suffix
+        accs.append(get_acc(open(p)))
+
+    acc_3d = np.array(accs).T
+    print("Acc: shape=%s" % str(acc_3d.shape))
+    return acc_3d
+
+
 if __name__ == '__main__':
-    parser = AccelerogramDataParser86(open(
-        '/data/research/2014/earthquake/1986/86-Elcentew.txt'))
+    acc3d = load_94Hachi()
+    wav = convert_acc_to_sound(acc3d, 50, "Hachi.wav")
+
+    acc_pack = {
+        "freq": "50",
+        "comment": "Hachi",
+        "accel": [list(map(float, v)) for v in acc3d]
+    }
+    json.dump(acc_pack, open("Hachi.json", "w"))
+
+
+    convert_bcj_to_sound()
+    # parser_ew = AccelerogramDataParser86(open(
+    #     '/data/research/2014/earthquake/1986/86-Elcentew.txt'))
+    # parser_ns = AccelerogramDataParser86(open(
+    #     '/data/research/2014/earthquake/1986/86-Elcentns.txt'))
