@@ -55,6 +55,10 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	// set collision handler (for playing sounds)
 	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
+
+	// Lookup sound.
+	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/155162__thecluegeek__wooden-clatter.155162__thecluegeek__wooden-clatter"));
+	hit_sound = Sound.Object;
 }
 
 
@@ -66,4 +70,10 @@ void ANoisyActor::BeginPlay() {
 
 void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit) {
 	GEngine->AddOnScreenDebugMessage(-1, 0.5, FColor::White, TEXT("Hit!"));
+	UWorld* World = GetWorld();
+	if (!World || !hit_sound) {
+		return;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(World, hit_sound, Hit.ImpactPoint);
 }

@@ -25,4 +25,5 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
+	USoundBase* hit_sound;
 };
