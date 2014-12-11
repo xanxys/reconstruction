@@ -2,6 +2,35 @@
 
 namespace recon {
 
+
+AABB3f::AABB3f(const Eigen::Vector3f& vmin, const Eigen::Vector3f& vmax) :
+	vmin(vmin), vmax(vmax) {
+}
+
+Eigen::Vector3f AABB3f::getMin() const {
+	return vmin;
+}
+
+Eigen::Vector3f AABB3f::getMax() const {
+	return vmax;
+}
+
+Eigen::Vector3f AABB3f::getSize() const {
+	return vmax - vmin;
+}
+
+bool AABB3f::contains(const Eigen::Vector3f& query) const {
+	return (vmin.array() <= query.array()).all() &&
+		(query.array() <= vmax.array()).all();
+}
+
+float AABB3f::getVolume() const {
+	return (vmax - vmin).prod();
+}
+
+
+
+
 Eigen::Matrix3f createOrthogonalBasis(
 		const Eigen::Vector3f& z) {
 	// Choose an arbitrary unit vector

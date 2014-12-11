@@ -209,25 +209,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	return lights;
 }
 
-RoomFrame::RoomFrame() {
-	up = Eigen::Vector3f(0, 0, 1);
-}
-
-void RoomFrame::setHRange(float z0, float z1) {
-	assert(z0 < z1);
-	this->z0 = z0;
-	this->z1 = z1;
-}
-
-std::pair<float, float> RoomFrame::getHRange() const {
-	return std::make_pair(z0, z1);
-}
-
-std::vector<Eigen::Vector2f> RoomFrame::getSimplifiedContour() const {
-	assert(wall_polygon.size() >= 3);
-	return wall_polygon;
-}
-
 std::vector<TexturedMesh> extractVisualGroups(
 		SceneAssetBundle& bundle, CorrectedSingleScan& c_scan,
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster,
@@ -697,12 +678,52 @@ std::pair<
 	return std::make_pair(points_inside, points_outside);
 }
 
+// In this function, we call
+// MiniCluster: cluster,
+// aggregated object: object.
 void linkMiniClusters(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe, const std::vector<MiniCluster>& mcs) {
+	using MCId = int;
+	const MCId floor_id = -1;
+
+
+
+	std::vector<AABB3f> aabbs;
+	for(const auto& mc : mcs) {
+		Eigen::Vector3f vmin(1e3, 1e3, 1e3);
+		Eigen::Vector3f vmax = -vmin;
+		for(const auto& pt : mc.cloud->points) {
+			vmin = vmin.cwiseMin(pt.getVector3fMap());
+			vmax = vmax.cwiseMax(pt.getVector3fMap());
+		}
+		aabbs.emplace_back(vmin, vmax);
+	}
+
+	// We assume tree structure.
+	// For N clusters, there are only N - 1 edges.
+	// But we include floor, there are N edges.
+	std::set<MCId> floating;
+	floating.insert(
+		boost::irange(0, static_cast<int>(mcs.size())).begin(),
+		boost::irange(0, static_cast<int>(mcs.size())).end());
+
+	std::map<MCId, MCId> parent;  // child -> parent
+
+	// Identitify clusters touching floor.
+	const MCId id_support = floor_id;
+	const float z_floor = rframe.getHRange().first;
+	const float z_thresh = 0.2;
+	for(const MCId id : floating) {
+		if(std::abs(aabbs[id].getMin().z() - z_floor) < z_thresh) {
+			parent[id] = id_support;
+			floating.erase(id);
+		}
+	}
 
 	if(bundle.isDebugEnabled()) {
 		Json::Value root;
+		// clusters
 		for(const int mc_id : boost::irange(0, (int)mcs.size())) {
 			const auto& mc = mcs[mc_id];
 			Json::Value mc_entry;
@@ -725,6 +746,16 @@ void linkMiniClusters(
 			mc_entry["id"] = mc_id;
 			root["clusters"].append(mc_entry);
 		}
+		// edges
+		for(const auto& edge : parent) {
+			Json::Value e;
+			e.append(edge.first);
+			e.append(edge.second);
+			root["edges"].append(e);
+		}
+		// rframe
+		root["rframe"]["z0"] = rframe.getHRange().first;
+		root["rframe"]["z1"] = rframe.getHRange().second;
 
 		std::ofstream of(bundle.reservePath("link_mc.json"));
 		of << Json::FastWriter().write(root);

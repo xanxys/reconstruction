@@ -2,13 +2,8 @@
 var Viewer = function() {
 	this.init3D();
 
-	var floor_grid = this.createFloorGrid();
-	this.scene.add(floor_grid);
-
-	var mock = new THREE.Mesh(
-		new THREE.BoxGeometry(0.15, 0.09, 0.15),
-		new THREE.MeshBasicMaterial({color: 'white', transparent: true, opacity: 0.5}));
-	//this.scene.add(mock);
+	this.floor_grid = this.createFloorGrid();
+	this.scene.add(this.floor_grid);
 
 	this.v_cameras = new THREE.Object3D();
 	this.scene.add(this.v_cameras);
@@ -17,7 +12,7 @@ var Viewer = function() {
 
 Viewer.prototype.init3D = function() {
 	this.scene = new THREE.Scene();
-	var width = 800;
+	var width = 1000;
 	var height = 600;
 
 	// camera & control
@@ -34,21 +29,21 @@ Viewer.prototype.init3D = function() {
 	$('body').append(this.renderer.domElement);
 
 	this.controls = new THREE.TrackballControls(this.camera, this.renderer.domElement);
-	this.controls.maxDistance = 3;
+	this.controls.maxDistance = 10;
 };
 
 
-Viewer.prototype.createFloorGrid = function() {
+Viewer.prototype.createFloorGrid = function(z) {
 	var floor_grid = new THREE.Object3D();
 
 	_.each(_.range(-5, 6), function(ix) {
-		_.each(_.range(-5, 6), function(iz) {
+		_.each(_.range(-5, 6), function(iy) {
 			var tile = new THREE.Mesh(
 				new THREE.BoxGeometry(0.95, 0.95, 0.01),
 				new THREE.MeshBasicMaterial({color: '#888'}));
 			tile.position.x = ix;
-			tile.position.y = iz;
-			tile.position.z = 0;
+			tile.position.y = iy;
+			tile.position.z = z;
 			floor_grid.add(tile);
 		}, this);
 	}, this);
@@ -107,9 +102,12 @@ Viewer.prototype.generateCameraMock = function(size) {
 Viewer.prototype.update = function(data) {
 	var _this = this;
 
+	_this.scene.remove(_this.floor_grid);
+	_this.floor_grid = _this.createFloorGrid(data.rframe.z0);
+	_this.scene.add(_this.floor_grid);
+
 	_this.scene.remove(_this.clusters);
 	_this.clusters = new THREE.Object3D();
-
 	_.each(data.clusters, function(cluster) {
 		var points_geom = new THREE.Geometry();
 		points_geom.vertices = _.map(cluster.cloud, function(v) {
@@ -127,6 +125,35 @@ Viewer.prototype.update = function(data) {
 			new THREE.PointCloud(points_geom, material));
 	});
 	_this.scene.add(_this.clusters);
+
+	var mcid_to_pos = function(mcid, pos_hint) {
+		if(mcid === -1) {
+			return new THREE.Vector3(pos_hint.x, pos_hint.y, data.rframe.z0);
+		} else {
+			console.log(mcid);
+			var pt = data.clusters[mcid].cloud[0];
+			return new THREE.Vector3(pt.x, pt.y, pt.z);
+		}
+	};
+
+	console.log(data.edges);
+	_this.scene.remove(_this.edges);
+	_this.edges = new THREE.Object3D();
+	_.each(data.edges, function(edge) {
+		var v_parent = edge[1];
+		var v_child = edge[0];
+
+		var to = mcid_to_pos(v_child);
+		var from = mcid_to_pos(v_parent, to);
+
+		var arrow = new THREE.ArrowHelper(
+			to.clone().sub(from).normalize(), from,
+			to.clone().sub(from).length(), 0xffff00,
+			0.05, 0.02);
+		_this.edges.add(arrow);
+
+	});
+	_this.scene.add(_this.edges);
 };
 
 
