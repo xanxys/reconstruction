@@ -8,7 +8,7 @@ using boost::filesystem::path;
 
 SceneAssetBundle::SceneAssetBundle(
 		const std::string& dir_path, bool debug) :
-		debug_count(0),
+		debug_count(0), collision_count(0),
 		dir_path(boost::filesystem::absolute(dir_path)),
 		do_finalize(true), debug(debug) {
 	cleanDirectory(dir_path);
@@ -184,6 +184,30 @@ TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> SceneAssetBundle::ser
 	return mesh;
 }
 
+void SceneAssetBundle::addCollisionSound(const std::string& p) {
+	boost::filesystem::copy_file(
+		path(p),
+		dir_path / path("collision_" + std::to_string(collision_count) + ".wav"),
+		boost::filesystem::copy_option::overwrite_if_exists);
+	collision_count++;
+}
+
+void SceneAssetBundle::setBackgroundSound(const std::string& p) {
+	boost::filesystem::copy_file(
+		path(p),
+		dir_path / path("bg.wav"),
+		boost::filesystem::copy_option::overwrite_if_exists);
+}
+
+
+void SceneAssetBundle::setAcceleration(const std::string& p) {
+	std::ifstream fs(p);
+	Json::Value v;
+	Json::Reader().parse(fs, v);
+	accel = v;
+}
+
+
 Json::Value SceneAssetBundle::serializeSmallData() const {
 	Json::Value small_data;
 	for(const auto& pos : point_lights) {
@@ -196,6 +220,8 @@ Json::Value SceneAssetBundle::serializeSmallData() const {
 	for(const auto& oid : object_ids) {
 		small_data["objects"].append(oid);
 	}
+	small_data["collision_count"] = collision_count;
+	small_data["accel"] = accel;
 	return small_data;
 }
 

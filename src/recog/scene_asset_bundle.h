@@ -5,6 +5,10 @@
 #include <tuple>
 #include <vector>
 
+// Hack until boost::fs::copy_file is fixed
+// https://www.robertnitsch.de/notes/cpp/cpp11_boost_filesystem_undefined_reference_copy_file
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
@@ -20,8 +24,6 @@ namespace recon {
 
 // A complete information to be loaded by EqExperiment/LoaderPlugin.
 // Also contains bunch of data for debugging purpose.
-// TODO: might need option to turn throw away debug info, if data
-// gets too large.
 class SceneAssetBundle {
 public:
 	// Initialize empty data with output directory.
@@ -50,6 +52,13 @@ public:
 
 	// Set the exterior mesh.
 	void setExteriorMesh(const TexturedMesh& mesh);
+
+	// Sound
+	void addCollisionSound(const std::string& path);
+	void setBackgroundSound(const std::string& path);
+
+	// Acceleration pattern.
+	void setAcceleration(const std::string& path);
 
 	// Queue to serialize given mesh, create a directory to contain
 	// bunch of material/texture files if necessary.
@@ -102,6 +111,12 @@ private:
 	bool debug;
 	bool do_finalize;
 	int debug_count;
+
+	// sound bookkeeping
+	int collision_count;
+
+	Json::Value accel;
+
 	const boost::filesystem::path dir_path;
 	const boost::filesystem::path cp_alignment_path = "checkpoints/alignment.json";
 };
