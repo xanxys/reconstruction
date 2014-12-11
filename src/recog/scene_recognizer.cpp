@@ -700,6 +700,35 @@ std::pair<
 void linkMiniClusters(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe, const std::vector<MiniCluster>& mcs) {
+
+	if(bundle.isDebugEnabled()) {
+		Json::Value root;
+		for(const int mc_id : boost::irange(0, (int)mcs.size())) {
+			const auto& mc = mcs[mc_id];
+			Json::Value mc_entry;
+
+			Json::Value cloud;
+			for(const auto& pt : mc.cloud->points) {
+				Json::Value p;
+				p["x"] = pt.x;
+				p["y"] = pt.y;
+				p["z"] = pt.z;
+				p["r"] = pt.r;
+				p["g"] = pt.g;
+				p["b"] = pt.b;
+				p["nx"] = pt.normal_x;
+				p["ny"] = pt.normal_y;
+				p["nz"] = pt.normal_z;
+				cloud.append(p);
+			}
+			mc_entry["cloud"] = cloud;
+			mc_entry["id"] = mc_id;
+			root["clusters"].append(mc_entry);
+		}
+
+		std::ofstream of(bundle.reservePath("link_mc.json"));
+		of << Json::FastWriter().write(root);
+	}
 }
 
 
