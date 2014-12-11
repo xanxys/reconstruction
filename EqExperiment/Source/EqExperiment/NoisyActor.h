@@ -7,9 +7,7 @@
 
 /**
  * ANoisyActor
- *    |-BoxComponent (for physics, invisible)
-           |-StaticMeshComponent (for rendering, visible, no-physics)
-
+ *  |-StaticMeshComponent (for rendering, visible, physics is handled by bs->AggGeom)
  */
 UCLASS()
 class EQEXPERIMENT_API ANoisyActor : public AActor
