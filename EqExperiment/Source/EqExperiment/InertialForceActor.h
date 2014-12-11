@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "InertialForceComponent.h"
 #include "InertialForceActor.generated.h"
 
 /**
