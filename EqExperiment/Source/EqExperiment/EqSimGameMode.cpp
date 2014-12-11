@@ -9,7 +9,7 @@
 AEqSimGameMode::AEqSimGameMode(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	DefaultPawnClass = ConstructorHelpers::FClassFinder<APawn>(TEXT("/Game/Blueprints/MyCharacter")).Class;
 }
 
 void AEqSimGameMode::BeginPlay() {
