@@ -1,8 +1,29 @@
-
-
 #include "EqExperiment.h"
 #include "NoisyActor.h"
 
+#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
+#include <vector>
+
+template <typename ObjClass>
+static ObjClass* LoadObjFromPath(const FName& Path)
+{
+	if (Path == NAME_None) return NULL;
+	//~
+
+	return Cast<ObjClass>(StaticLoadObject(ObjClass::StaticClass(), NULL, *Path.ToString()));
+}
+
+std::wstring widen(const std::string& s) {
+	const int n_wstring = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), nullptr, 0);
+	if (n_wstring == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed");
+	}
+
+	std::vector<wchar_t> buffer(n_wstring);
+	const int n_written = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), buffer.data(), buffer.size());
+	return std::wstring(buffer.begin(), buffer.end());
+}
 
 ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -33,6 +54,17 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	StaticMeshComponent->SetWorldLocation(FVector(100, 100, 1000));
 	StaticMeshComponent->SetPhysicsLinearVelocity(FVector(0, 0, 0));
 
+	UpdateStaticMeshCollision();
+
+	// set collision handler (for playing sounds)
+	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
+
+	// Lookup sound.
+	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/155162__thecluegeek__wooden-clatter.155162__thecluegeek__wooden-clatter"));
+	hit_sound = Sound.Object;
+}
+
+void ANoisyActor::UpdateStaticMeshCollision() {
 	// Setup Collision
 	UBodySetup* bs = StaticMeshComponent->StaticMesh->BodySetup;
 
@@ -41,7 +73,7 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	FVector Extents(100, 100, 100);
 
 	bs->Modify();
-	bs->InvalidatePhysicsData();
+	bs->InvalidatePhysicsData();  // comment this out to make "launch" & "cooking" pass. but without this, physics is a bit strange??
 
 	FKBoxElem BoxElem;
 	BoxElem.Center = Center;
@@ -52,15 +84,27 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	StaticMeshComponent->RecreatePhysicsState();
 	StaticMeshComponent->StaticMesh->MarkPackageDirty();
-
-	// set collision handler (for playing sounds)
-	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
-
-	// Lookup sound.
-	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/155162__thecluegeek__wooden-clatter.155162__thecluegeek__wooden-clatter"));
-	hit_sound = Sound.Object;
 }
 
+void ANoisyActor::LoadInterior(const std::string& name) {
+	UStaticMesh* sm = LoadObjFromPath<UStaticMesh>(widen("StaticMesh'/Game/Props/" + name + "." + name + "'").c_str());
+	if (!sm) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("StaticMesh not found"));
+		return;
+	}
+	StaticMeshComponent->SetStaticMesh(sm);
+	UpdateStaticMeshCollision();
+}
+
+void ANoisyActor::LoadInteriorFullPath(const std::string& name) {
+	UStaticMesh* sm = LoadObjFromPath<UStaticMesh>(widen(name).c_str());
+	if (!sm) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("StaticMesh not found"));
+		return;
+	}
+	StaticMeshComponent->SetStaticMesh(sm);
+	UpdateStaticMeshCollision();
+}
 
 void ANoisyActor::BeginPlay() {
 	Super::BeginPlay();
