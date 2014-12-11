@@ -7,6 +7,9 @@ var Viewer = function() {
 
 	this.v_cameras = new THREE.Object3D();
 	this.scene.add(this.v_cameras);
+
+	this.data = null;
+	this.use_color = false;
 };
 
 
@@ -97,10 +100,43 @@ Viewer.prototype.generateCameraMock = function(size) {
 		THREE.LinePieces);
 };
 
+Viewer.prototype.is_cluster_supported = function(mcid) {
+	// floor
+	if(mcid === -1) {
+		return true;
+	}
 
+	var parent = this.edge_map[mcid.toString()];
+	if(parent === undefined) {
+		return false;
+	} else {
+		return this.is_cluster_supported(parent);
+	}
+};
 
-Viewer.prototype.update = function(data) {
+Viewer.prototype.get_cluster_vertex_colors = function(mcid) {
+	var cluster = this.data.clusters[mcid];
+
+	if(this.use_color) {
+		var supported = this.is_cluster_supported(mcid);
+		var color = this.cluster_colors[mcid];
+		color.r = supported ? 0 : 1;
+		return _.map(cluster.cloud, function(v) {
+			return color;
+		});
+	} else {
+		return _.map(cluster.cloud, function(v) {
+			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255);
+		});
+	}
+};
+
+Viewer.prototype.update = function() {
 	var _this = this;
+	if(_this.data === null) {
+		return;
+	}
+	var data = _this.data;
 
 	_this.scene.remove(_this.floor_grid);
 	_this.floor_grid = _this.createFloorGrid(data.rframe.z0);
@@ -113,9 +149,8 @@ Viewer.prototype.update = function(data) {
 		points_geom.vertices = _.map(cluster.cloud, function(v) {
 			return new THREE.Vector3(v.x, v.y, v.z);
 		});
-		points_geom.colors = _.map(cluster.cloud, function(v) {
-			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255);
-		});
+
+		points_geom.colors = _this.get_cluster_vertex_colors(cluster.id);
 
 		var material = new THREE.PointCloudMaterial({
 			size: 0.005,
@@ -130,13 +165,11 @@ Viewer.prototype.update = function(data) {
 		if(mcid === -1) {
 			return new THREE.Vector3(pos_hint.x, pos_hint.y, data.rframe.z0);
 		} else {
-			console.log(mcid);
 			var pt = data.clusters[mcid].cloud[0];
 			return new THREE.Vector3(pt.x, pt.y, pt.z);
 		}
 	};
 
-	console.log(data.edges);
 	_this.scene.remove(_this.edges);
 	_this.edges = new THREE.Object3D();
 	_.each(data.edges, function(edge) {
@@ -154,6 +187,29 @@ Viewer.prototype.update = function(data) {
 
 	});
 	_this.scene.add(_this.edges);
+};
+
+Viewer.prototype.update_data = function(data) {
+	var _this = this;
+
+	_this.data = data;
+	// Assign random colors to clusters beforehand,
+	// to make colors reproducible when visualization
+	// options are changed.
+	_this.cluster_colors = _.map(data.clusters, function() {
+		return new THREE.Color().setRGB(Math.random(), Math.random(), Math.random());
+	});
+	// Derive map for searching.
+	_this.edge_map = {};  // child(str) -> parent(int)
+	_.each(data.edges, function(edge) {
+		_this.edge_map[edge[0].toString()] = edge[1];
+	})
+	_this.update();
+}
+
+Viewer.prototype.update_cluster_color = function(use_color) {
+	this.use_color = use_color;
+	this.update();
 };
 
 
@@ -176,6 +232,10 @@ $('#btn_reload').click(function() {
 		console.log("loaded", data.status);
 		console.log(data.data.clusters.length);
 
-		viewer.update(data.data);
+		viewer.update_data(data.data);
 	});
+});
+
+$('#cb_cluster_color').click(function(ev) {
+	viewer.update_cluster_color(ev.target.checked);
 });
