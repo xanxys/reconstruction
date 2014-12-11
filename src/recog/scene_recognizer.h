@@ -114,11 +114,33 @@ std::vector<TexturedMesh> extractVisualGroups(
 	const Eigen::Vector3f& normal,
 	const std::string& cluster_name);
 
+class MiniCluster {
+public:
+	CorrectedSingleScan* c_scan;  // borrowed
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud;
+};
+
+
 // Label each point as part of room boundary, inside, or outside.
 // Small error between RoomFrame and aligned coordinate will be
 // compensated, but CorrectedSingleScan must not have ghosting.
-void splitEachScan(
+std::vector<MiniCluster> splitEachScan(
 	SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe);
+
+
+// We want to have:
+// physically-stable, maximally separated objects.
+// = minimize #links while making objects stable.
+//
+// Dirty truth is we also need to reject outlier clusters
+// (patch of walls etc.) && hallucinate hidden surface.
+// (esp. desks)
+//
+// Process basically starts from floor-touching MiniClusters,
+// and we go up connecting.
+void linkMiniClusters(
+	SceneAssetBundle& bundle,
+	const RoomFrame& rframe, const std::vector<MiniCluster>& mcs);
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
@@ -133,9 +155,5 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		const ExtrudedPolygonMesh& ext_mesh,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside);
 
-void splitObjects(
-	SceneAssetBundle& bundle,
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org,
-	const AlignedScans& scans);
 
 }  // namespace

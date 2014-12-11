@@ -422,7 +422,7 @@ std::vector<TexturedMesh> extractVisualGroups(
 }
 
 
-void splitEachScan(
+std::vector<MiniCluster> splitEachScan(
 		SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe) {
 	using K = CGAL::Simple_cartesian<float>;
 	using Point = K::Point_3;
@@ -529,7 +529,7 @@ void splitEachScan(
 	// fitting to correct wall, instead of some other objects
 	// is hard. Only (probably) slightly better
 	// than merged ones.
-	const float thresh_label = 0.2;
+	const float thresh_label = 0.15;
 
 	const std::string prefix = "debug_ccsrf_" + ccs.raw_scan.getScanId();
 	bundle.addDebugPointCloud(prefix + "_world", cl_world);
@@ -568,6 +568,7 @@ void splitEachScan(
 		bundle.addDebugPointCloud(prefix + "_labels", cl_world_color_labeled);
 	}
 
+	std::vector<MiniCluster> mini_clusters;
 	{
 		using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 		using Point_3 = K::Point_3;
@@ -597,11 +598,16 @@ void splitEachScan(
 		std::vector<TexturedMesh> tms;
 		int i_cluster = 0;
 		for(const auto& indices : clusters) {
+			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster_cloud(
+				new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+			for(const int ix : indices.indices) {
+				cluster_cloud->points.push_back(cl_world_interior->points[ix]);
+			}
+
 			Eigen::Vector3f pos_accum = Eigen::Vector3f::Zero();
 			Eigen::Vector3f normal_accum = Eigen::Vector3f::Zero();
 			int n_accum = 0;
-			for(const int ix : indices.indices) {
-				const auto& pt = cl_world_interior->points[ix];
+			for(const auto& pt : cluster_cloud->points) {
 				pos_accum += pt.getVector3fMap();
 				normal_accum += pt.getNormalVector3fMap();
 				n_accum++;
@@ -609,16 +615,18 @@ void splitEachScan(
 			assert(n_accum > 0);
 			const Eigen::Vector3f pos_mean = pos_accum / n_accum;
 			const Eigen::Vector3f normal_mean = normal_accum.normalized();
-			// TODO: reject ceiling clusters (don't use cluster size as signal,
+			// reject ceiling clusters (don't use cluster size as signal,
 			// since some of them are small)
 			if(pos_accum.z() >= rframe.getHRange().second - 0.3) {
 				continue;
 			}
-			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster_cloud(
-				new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-			for(const int ix : indices.indices) {
-				cluster_cloud->points.push_back(cl_world_interior->points[ix]);
-			}
+
+			// Accept cluster
+			MiniCluster mc;
+			mc.c_scan = &ccs;
+			mc.cloud = cluster_cloud;
+			mini_clusters.push_back(mc);
+
 			const auto groups = extractVisualGroups(
 				bundle, ccs, cluster_cloud, pos_mean, normal_mean,
 				std::to_string(i_cluster));
@@ -651,8 +659,7 @@ void splitEachScan(
 			bundle.addDebugPointCloud("ps_clusters_" + ccs.raw_scan.getScanId(), colored_cloud);
 		}
 	}
-
-
+	return mini_clusters;
 }
 
 std::pair<
@@ -690,6 +697,12 @@ std::pair<
 	return std::make_pair(points_inside, points_outside);
 }
 
+void linkMiniClusters(
+		SceneAssetBundle& bundle,
+		const RoomFrame& rframe, const std::vector<MiniCluster>& mcs) {
+}
+
+
 void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
 	assert(!scans.empty());
 
@@ -714,20 +727,25 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	RoomFrame rframe;
 	rframe.setHRange(room_hrange.first, room_hrange.second);
 	rframe.wall_polygon = contour_points;
-	for(auto& ccs :  scans_aligned.getScansWithPose()) {
-		splitEachScan(bundle, ccs, rframe);
-	}
 
+	std::vector<MiniCluster> mcs;
+	for(auto& ccs :  scans_aligned.getScansWithPose()) {
+		const auto mcs_per_scan = splitEachScan(bundle, ccs, rframe);
+		mcs.insert(mcs.end(), mcs_per_scan.begin(), mcs_per_scan.end());
+	}
+	INFO("#MiniCluster", (int)mcs.size());
+
+	const auto extrusion_mesh = ExtrudedPolygonMesh(
+		rframe.wall_polygon, room_hrange);
+
+	// DEPRECATED: legacy merge->filter->split pipeline
 	INFO("Splitting inside/outside");
 	auto points_inout = splitInOut(points_merged, room_polygon);
 	auto points_inside = points_inout.first;
 	auto points_outside = points_inout.second;
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
-	INFO("Materializing extruded polygon mesh");
-	const auto extrusion_mesh = ExtrudedPolygonMesh(
-		rframe.wall_polygon, room_hrange);
-
+	/*
 	INFO("Modeling boxes along wall");
 	auto cloud_interior_pre = colorPointsByDistance<pcl::PointXYZRGBNormal>(
 		points_inside, extrusion_mesh.getMesh(), true);
@@ -749,6 +767,11 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 	const auto cloud_interior_dist = colorPointsByDistance<pcl::PointXYZRGBNormal>(
 		points_inside, extrusion_mesh.getMesh(), false);
 	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
+	*/
+	// DEPRECATED: END
+
+	INFO("Linking miniclusters");
+	linkMiniClusters(bundle, rframe, mcs);
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
@@ -757,9 +780,6 @@ void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& sca
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.point_lights = exterior.second;
 	bundle.setExteriorMesh(exterior.first);
-
-	INFO("Splitting objects");
-	splitObjects(bundle, filtered, scans_aligned);
 }
 
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
@@ -811,116 +831,6 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		recognize_lights(bundle, rframe, scans_aligned, cloud_inside));
 }
 
-
-void splitObjects(
-		SceneAssetBundle& bundle,
-		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_org,
-		const AlignedScans& scans) {
-	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-	using Point_3 = K::Point_3;
-	using Polyhedron_3 = CGAL::Polyhedron_3<K>;
-
-	pcl::search::Search<pcl::PointXYZRGB>::Ptr tree =
-		boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB>>(
-			new pcl::search::KdTree<pcl::PointXYZRGB>);
-
-	// decompose to XYZRGB + Normal
-	auto cloud = cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(cloud_org);
-	auto normals = cast<pcl::PointXYZRGBNormal, pcl::Normal>(cloud_org);
-
-	INFO("Doing EC");
-	std::vector<pcl::PointIndices> cluster_indices;
-	pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
-	ec.setClusterTolerance(0.02); // 2cm
-	ec.setMinClusterSize(100);
-	ec.setMaxClusterSize(10000000);  // 100000: most small objects / 500000: everything incl. tabgles
-	ec.setSearchMethod(tree);
-	ec.setInputCloud(cloud);
-
-	std::vector<pcl::PointIndices> clusters;
-	ec.extract(clusters);
-
-	INFO("Number of clusters=", (int)clusters.size());
-
-	if(bundle.isDebugEnabled()) {
-		std::default_random_engine generator;
-		std::uniform_int_distribution<int> distribution(1, 255);
-		pcl::PointCloud <pcl::PointXYZRGBNormal>::Ptr colored_cloud(
-			new pcl::PointCloud <pcl::PointXYZRGBNormal>);
-		for(const auto& indices : clusters) {
-			const int r = distribution(generator);
-			const int g = distribution(generator);
-			const int b = distribution(generator);
-			for(int ix : indices.indices) {
-				auto pt = cloud_org->points[ix];
-				pt.r = r;
-				pt.g = g;
-				pt.b = b;
-				colored_cloud->points.push_back(pt);
-			}
-		}
-		bundle.addDebugPointCloud("second_clusters", colored_cloud);
-	}
-
-	// create a polyhedron for each cluster.
-	for(const auto& indices : clusters) {
-		// Extract cluster.
-		pcl::PointCloud<pcl::PointNormal>::Ptr cluster(
-			new pcl::PointCloud<pcl::PointNormal>);
-		for(const auto& index : indices.indices) {
-			pcl::PointNormal pt;
-			pt.getVector3fMap() = cloud_org->points[index].getVector3fMap();
-			pt.getNormalVector3fMap() = cloud_org->points[index].getNormalVector3fMap();
-			cluster->points.push_back(pt);
-		}
-		// Create search tree
-		pcl::search::KdTree<pcl::PointNormal>::Ptr tree_object(
-			new pcl::search::KdTree<pcl::PointNormal>);
-		tree_object->setInputCloud(cluster);
-
-		// Initialize triangulater.
-		pcl::Poisson<pcl::PointNormal> gp3;
-		gp3.setDepth(5);
-		// gp3.setSearchRadius(0.1);  // == max edge length
-		// gp3.setMu(2.5);
-		// gp3.setMaximumNearestNeighbors(100);
-		// gp3.setMaximumSurfaceAngle(pi / 4); // 45 degrees
-		// gp3.setMinimumAngle(pi / 18); // 10 degrees
-		// gp3.setMaximumAngle(2 * pi / 3); // 120 degrees
-		// gp3.setNormalConsistency(false);
-
-		// Get result
-		pcl::PolygonMesh triangles;
-		gp3.setInputCloud(cluster);
-		gp3.setSearchMethod(tree_object);
-		gp3.reconstruct(triangles);
-
-		// Additional vertex information
-		TriangleMesh<Eigen::Vector2f> mesh;
-		pcl::PointCloud<pcl::PointXYZ> sane_triangles_verts;
-		pcl::fromPCLPointCloud2(triangles.cloud, sane_triangles_verts);
-		for(const auto& pt : sane_triangles_verts.points) {
-			mesh.vertices.emplace_back(
-				pt.getVector3fMap(),
-				Eigen::Vector2f::Zero());
-		}
-		for(const auto& tri : triangles.polygons) {
-			assert(tri.vertices.size() == 3);
-			mesh.triangles.push_back({{
-				(int)tri.vertices[0],
-				(int)tri.vertices[1],
-				(int)tri.vertices[2]
-			}});
-		}
-
-		// bake texture
-		// const auto tex_mesh = bakeTexture(scans, mesh);
-		TexturedMesh tex_mesh;
-		tex_mesh.mesh = mesh;
-		tex_mesh.diffuse = cv::Mat(64, 64, CV_8UC3);
-		bundle.addInteriorObject(tex_mesh);
-	}
-}
 
 TexturedMesh bakeTextureSingleExterior(
 		const AlignedScans& scans,
