@@ -25,6 +25,7 @@
 #include <CGAL/AABB_triangle_primitive.h>
 // insanity ends here
 #include <CGAL/ch_graham_andrew.h>
+#include <CGAL/Boolean_set_operations_2.h>
 // ins
 #include <Eigen/QR>
 #include <jsoncpp/json/json.h>
@@ -692,6 +693,7 @@ void linkMiniClusters(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe, std::vector<MiniCluster>& mcs) {
 	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
 	using Point_2 = K::Point_2;
 	using MCId = int;
 	const MCId floor_id = -1;
@@ -724,6 +726,7 @@ void linkMiniClusters(
 		boost::irange(0, static_cast<int>(mcs.size())).end());
 
 	std::map<MCId, MCId> parent;  // child -> parent
+	std::multimap<MCId, MCId> merging;
 
 	// Identitify clusters touching floor.
 	const MCId id_support = floor_id;
@@ -781,9 +784,37 @@ void linkMiniClusters(
 			stable &= (poly_support.bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
 		}
 		mc.stable = stable;
-
-
 	}
+
+	auto toCGALPoly = [](const std::vector<Eigen::Vector2f>& vs) {
+		CGAL::Polygon_2<Kex> poly;
+		for(const auto& v : vs) {
+			poly.push_back(Kex::Point_2(v.x(), v.y()));
+		}
+		return poly;
+	};
+
+	// Group supported mcs by overlap of supports.
+	std::vector<MCId> supported_ids;
+	for(const MCId id : floating) {
+		if(mcs[id].is_supported) {
+			supported_ids.push_back(id);
+		}
+	}
+	for(const auto& id0 : supported_ids) {
+		const auto poly0 = toCGALPoly(mcs[id0].support_polygon);
+		for(const auto& id1 : supported_ids) {
+			if(id1 == id0) {
+				continue;
+			}
+			const auto poly1 = toCGALPoly(mcs[id1].support_polygon);
+			if(CGAL::do_intersect(poly0, poly1)) {
+				merging.emplace(id0, id1);
+			}
+		}
+	}
+
+
 
 	if(bundle.isDebugEnabled()) {
 		Json::Value root;
@@ -826,6 +857,12 @@ void linkMiniClusters(
 			e.append(edge.first);
 			e.append(edge.second);
 			root["edges"].append(e);
+		}
+		for(const auto& edge : merging) {
+			Json::Value e;
+			e.append(edge.first);
+			e.append(edge.second);
+			root["merging"].append(e);
 		}
 		// rframe
 		root["rframe"]["z0"] = rframe.getHRange().first;
