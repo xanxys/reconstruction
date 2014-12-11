@@ -156,6 +156,22 @@ Viewer.prototype.update = function() {
 			size: 0.005,
 			vertexColors: true
 		});
+
+		if(cluster.is_supported) {
+			var sp_geom = new THREE.Geometry();
+			sp_geom.vertices = _.map(cluster.support_polygon, function(v) {
+				return new THREE.Vector3(v.x, v.y, cluster.support_z);
+			});
+			sp_geom.vertices.push(new THREE.Vector3(
+				cluster.support_polygon[0].x,
+				cluster.support_polygon[0].y,
+				cluster.support_z));
+			var sp_obj = new THREE.Line(sp_geom, new THREE.LineBasicMaterial({
+				color: new THREE.Color(1, 1, 1)
+			}));
+			_this.clusters.add(sp_obj);
+		}
+
 		_this.clusters.add(
 			new THREE.PointCloud(points_geom, material));
 	});

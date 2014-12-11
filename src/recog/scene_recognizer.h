@@ -62,8 +62,17 @@ std::vector<TexturedMesh> extractVisualGroups(
 
 class MiniCluster {
 public:
+	MiniCluster();
+public:
+	// original info
 	CorrectedSingleScan* c_scan;  // borrowed
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud;
+
+public:  // linking info
+	// bottom part
+	bool is_supported;
+	float support_z;
+	std::vector<Eigen::Vector2f> support_polygon;
 };
 
 
@@ -85,7 +94,7 @@ std::vector<MiniCluster> splitEachScan(
 // and we go up connecting.
 void linkMiniClusters(
 	SceneAssetBundle& bundle,
-	const RoomFrame& rframe, const std::vector<MiniCluster>& mcs);
+	const RoomFrame& rframe, std::vector<MiniCluster>& mcs);
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.

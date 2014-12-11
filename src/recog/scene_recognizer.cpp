@@ -24,6 +24,8 @@
 #include <CGAL/AABB_traits.h>
 #include <CGAL/AABB_triangle_primitive.h>
 // insanity ends here
+#include <CGAL/ch_graham_andrew.h>
+// ins
 #include <Eigen/QR>
 #include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
@@ -678,17 +680,22 @@ std::pair<
 	return std::make_pair(points_inside, points_outside);
 }
 
+
+MiniCluster::MiniCluster() : is_supported(false) {
+}
+
 // In this function, we call
 // MiniCluster: cluster,
 // aggregated object: object.
 void linkMiniClusters(
 		SceneAssetBundle& bundle,
-		const RoomFrame& rframe, const std::vector<MiniCluster>& mcs) {
+		const RoomFrame& rframe, std::vector<MiniCluster>& mcs) {
+	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Point_2 = K::Point_2;
 	using MCId = int;
 	const MCId floor_id = -1;
 
-
-
+	// Pre-calculate AABBs.
 	std::vector<AABB3f> aabbs;
 	for(const auto& mc : mcs) {
 		Eigen::Vector3f vmin(1e3, 1e3, 1e3);
@@ -714,11 +721,42 @@ void linkMiniClusters(
 	const MCId id_support = floor_id;
 	const float z_floor = rframe.getHRange().first;
 	const float z_thresh = 0.2;
+	const float bond_radius = 0.02;
 	for(const MCId id : floating) {
-		if(std::abs(aabbs[id].getMin().z() - z_floor) < z_thresh) {
-			parent[id] = id_support;
-			floating.erase(id);
+		DEBUG("Checking mcid", id);
+		// Bottom point not touching the supporting surface
+		// -> must be floating
+		if(std::abs(aabbs[id].getMin().z() - z_floor) > z_thresh) {
+			continue;
 		}
+
+		// Calculate support polygon.
+		std::vector<Point_2> support_points;
+		for(const auto& pt : mcs[id].cloud->points) {
+			if(std::abs(pt.z - aabbs[id].getMin().z()) < bond_radius) {
+				support_points.emplace_back(pt.x, pt.y);
+			}
+		}
+		if(support_points.size() < 3) {
+			WARN("Too few support points", (int)support_points.size());
+			continue;
+		}
+
+		std::vector<Point_2> support_vertices;
+		CGAL::ch_graham_andrew(
+			support_points.cbegin(), support_points.cend(),
+			std::back_inserter(support_vertices));
+
+		mcs[id].is_supported = true;
+		mcs[id].support_z = aabbs[id].getMin().z();
+		mcs[id].support_polygon.clear();
+		for(const auto& p : support_vertices) {
+			mcs[id].support_polygon.emplace_back(p.x(), p.y());
+		}
+
+		// Check if center of gravity falls within support polygon.
+
+
 	}
 
 	if(bundle.isDebugEnabled()) {
@@ -742,6 +780,15 @@ void linkMiniClusters(
 				p["nz"] = pt.normal_z;
 				cloud.append(p);
 			}
+			mc_entry["is_supported"] = mc.is_supported;
+			mc_entry["support_z"] = mc.support_z;
+			for(const auto& pt : mc.support_polygon) {
+				Json::Value p;
+				p["x"] = pt.x();
+				p["y"] = pt.y();
+				mc_entry["support_polygon"].append(p);
+			}
+
 			mc_entry["cloud"] = cloud;
 			mc_entry["id"] = mc_id;
 			root["clusters"].append(mc_entry);
