@@ -3,6 +3,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "GameFramework/Actor.h"
 #include "NoisyActor.generated.h"
@@ -30,7 +31,7 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
-	USoundBase* hit_sound;
+	std::vector<USoundBase*> hit_sounds;
 
 	void UpdateStaticMeshCollision();
 };

@@ -60,8 +60,15 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
 
 	// Lookup sound.
-	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/155162__thecluegeek__wooden-clatter.155162__thecluegeek__wooden-clatter"));
-	hit_sound = Sound.Object;
+	for (int i = 0; i < 8; i++) {
+		static ConstructorHelpers::FObjectFinder<USoundWave> Sound(
+			*FString::Printf(TEXT("/Game/Audio/collision-%d.collision-%d"), i + 1, i + 1));
+		if (!Sound.Object) {
+			continue;
+		}
+		hit_sounds.push_back(Sound.Object);
+	}
+	
 }
 
 void ANoisyActor::UpdateStaticMeshCollision() {
@@ -113,11 +120,12 @@ void ANoisyActor::BeginPlay() {
 }
 
 void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit) {
-	GEngine->AddOnScreenDebugMessage(-1, 0.5, FColor::White, TEXT("Hit!"));
+	// GEngine->AddOnScreenDebugMessage(-1, 0.5, FColor::White, TEXT("Hit!"));
 	UWorld* World = GetWorld();
-	if (!World || !hit_sound) {
+	if (!World || hit_sounds.empty()) {
 		return;
 	}
 
-	UGameplayStatics::PlaySoundAtLocation(World, hit_sound, Hit.ImpactPoint);
+	const int ix = FMath::FRandRange(0, hit_sounds.size() - 1);
+	UGameplayStatics::PlaySoundAtLocation(World, hit_sounds[ix], Hit.ImpactPoint);
 }
