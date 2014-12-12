@@ -61,7 +61,7 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	// Lookup sound.
 	for (int i = 0; i < 8; i++) {
-		static ConstructorHelpers::FObjectFinder<USoundWave> Sound(
+		ConstructorHelpers::FObjectFinder<USoundWave> Sound(
 			*FString::Printf(TEXT("/Game/Audio/collision-%d.collision-%d"), i + 1, i + 1));
 		if (!Sound.Object) {
 			continue;
@@ -126,6 +126,9 @@ void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent,
 		return;
 	}
 
+	if (FMath::FRand() > 0.03) {
+		return;
+	}
 	const int ix = FMath::FRandRange(0, hit_sounds.size() - 1);
 	UGameplayStatics::PlaySoundAtLocation(World, hit_sounds[ix], Hit.ImpactPoint);
 }
