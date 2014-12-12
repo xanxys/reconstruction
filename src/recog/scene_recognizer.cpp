@@ -43,6 +43,7 @@
 
 #include <extpy.h>
 #include <geom/triangulation.h>
+#include <graph/util.h>
 #include <math_util.h>
 #include <optimize/gradient_descent.h>
 #include <range2.h>
@@ -720,6 +721,7 @@ void linkMiniClusters(
 	}
 
 	//
+	INFO("Calculating MiniCluster distance table");
 	const float dist_cutoff = 0.3;  // above this thresh, two MiniClusters MUST NOT CONNECT
 	Eigen::MatrixXf pc_min_dist(mcs.size(), mcs.size());
 
@@ -761,12 +763,12 @@ void linkMiniClusters(
 	std::multimap<MCId, MCId> merging;
 
 	// Identitify clusters touching floor.
+	INFO("Linking near-floor");
 	const MCId id_support = floor_id;
 	const float z_floor = rframe.getHRange().first;
 	const float z_thresh = 0.2;
 	const float bond_radius = 0.02;
 	for(const MCId id : floating) {
-		DEBUG("Checking mcid", id);
 		auto& mc = mcs[id];
 
 		// Bottom point not touching the supporting surface
@@ -827,12 +829,13 @@ void linkMiniClusters(
 	};
 
 	// Group supported mcs by overlap of supports.
-	std::vector<MCId> supported_ids;
+	std::set<MCId> supported_ids;
 	for(const MCId id : floating) {
 		if(mcs[id].is_supported) {
-			supported_ids.push_back(id);
+			supported_ids.insert(id);
 		}
 	}
+	std::map<int, std::set<int>> merge_adj;
 	for(const auto& id0 : supported_ids) {
 		const auto poly0 = toCGALPoly(mcs[id0].support_polygon);
 		for(const auto& id1 : supported_ids) {
@@ -842,9 +845,17 @@ void linkMiniClusters(
 			const auto poly1 = toCGALPoly(mcs[id1].support_polygon);
 			if(CGAL::do_intersect(poly0, poly1)) {
 				merging.emplace(id0, id1);
+				merge_adj[id0].insert(id1);
 			}
 		}
 	}
+
+	// divide supported_ids into CCs.
+	// and check group stability.
+	const auto ccs = getCC(supported_ids, merge_adj);
+	INFO("Supporte Ids: ", (int)supported_ids.size());
+	INFO("Merged CCs: ", (int)ccs.size());
+
 
 
 

@@ -63,12 +63,6 @@ std::vector<Chart> divideMeshToCharts(
 std::map<int, std::set<int>> getTriangleAdjacency(
 	const TriangleMesh<std::nullptr_t>& mesh);
 
-// Get connected components of undirected graph.
-std::vector<std::set<int>> getCC(
-	const std::set<int>& vertices,
-	const std::map<int, std::set<int>>& adjacency);
-
-
 // Create a new TriangleMesh with automatically generated UV coordinates.
 // UV is represented as Eigen::Vector2f, and will span [0,1]^2.
 //
