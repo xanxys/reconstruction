@@ -12,6 +12,10 @@ public:
 	Eigen::Vector3f getSize() const;
 	bool contains(const Eigen::Vector3f& query) const;
 	float getVolume() const;
+
+	AABB3f enlarged(float dsize) const;
+
+	bool overlap(const AABB3f& other) const;
 private:
 	Eigen::Vector3f vmin;
 	Eigen::Vector3f vmax;

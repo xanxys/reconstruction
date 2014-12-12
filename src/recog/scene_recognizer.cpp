@@ -610,11 +610,13 @@ std::vector<MiniCluster> splitEachScan(
 			mc.cloud = cluster_cloud;
 			mini_clusters.push_back(mc);
 
+			/*
 			const auto groups = extractVisualGroups(
 				bundle, ccs, cluster_cloud, pos_mean, normal_mean,
 				std::to_string(i_cluster));
 
 			tms.insert(tms.end(), groups.begin(), groups.end());
+			*/
 			i_cluster++;
 		}
 		if(bundle.isDebugEnabled() && !tms.empty()) {
@@ -715,6 +717,36 @@ void linkMiniClusters(
 			accum += pt.getVector3fMap();
 		}
 		mc.grav_center = accum / mc.cloud->points.size();
+	}
+
+	//
+	const float dist_cutoff = 0.3;  // above this thresh, two MiniClusters MUST NOT CONNECT
+	Eigen::MatrixXf pc_min_dist(mcs.size(), mcs.size());
+
+	for(const MCId i : boost::irange(0, (int)mcs.size())) {
+		const auto enl_aabb = mcs[i].aabb.enlarged(dist_cutoff);
+		for(const MCId j : boost::irange(0, (int)mcs.size())) {
+			if(i == j) {
+				pc_min_dist(i, j) = 0;
+				continue;
+			} else if(i < j) {
+				pc_min_dist(i, j) = pc_min_dist(j, i);
+				continue;
+			}
+
+			if(enl_aabb.overlap(mcs[j].aabb)) {
+				float d_min = 1e3;
+				for(const auto& pi : mcs[i].cloud->points) {
+					for(const auto& pj : mcs[j].cloud->points) {
+						d_min = std::min(d_min,
+							(pi.getVector3fMap() - pj.getVector3fMap()).norm());
+					}
+				}
+				pc_min_dist(i, j) = d_min;
+			} else {
+				pc_min_dist(i, j) = dist_cutoff;
+			}
+		}
 	}
 
 	// We assume tree structure.

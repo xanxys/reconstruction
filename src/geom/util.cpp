@@ -28,6 +28,18 @@ float AABB3f::getVolume() const {
 	return (vmax - vmin).prod();
 }
 
+AABB3f AABB3f::enlarged(float dsize) const {
+	assert(dsize >= 0);
+	const Eigen::Vector3f offset =
+		Eigen::Vector3f(1, 1, 1) * (dsize * 0.5);
+	return AABB3f(vmin - offset, vmax + offset);
+}
+
+bool AABB3f::overlap(const AABB3f& other) const {
+	const auto n_vmin = vmin.cwiseMax(other.vmin);
+	const auto n_vmax = vmax.cwiseMin(other.vmax);
+	return (n_vmin.array() < n_vmax.array()).all();
+}
 
 
 
