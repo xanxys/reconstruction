@@ -65,9 +65,40 @@ void AEqSimGameMode::BeginPlay() {
 
 	// Accel gen.
 	{
+		// Load acc profile.
+		picojson::value acc_root;
+		{
+			std::ifstream fs_acc("C:\\VR14a\\Hachi.json");
+			if (!fs_acc.is_open()) {
+				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Hachi.json not found!!! Aborting experiment."));
+				return;
+			}
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("Opened acc prof"));
+			fs_acc >> acc_root;
+		}
+
+		// cm/s^2 == uu/s^2
+		if (!acc_root.is<picojson::object>() || !acc_root.get<picojson::object>()["freq"].is<double>()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Hachi.json: wrong format"));
+			return;
+		}
+		const float resolution = 1.0 / acc_root.get<picojson::object>()["freq"].get<double>();
+		std::vector<FVector> accs;
+		for (auto& v : acc_root.get<picojson::object>()["accel"].get<picojson::array>()) {
+			auto va = v.get<picojson::array>();
+			accs.push_back(FVector(va[0].get<double>(), va[1].get<double>(), va[2].get<double>()) * 10);
+		}
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green,
+			FString::Printf(TEXT("Loaded %d entries w/ delta=%f s"), accs.size(), resolution));
+
+		// Create force gen.
 		AInertialForceActor* Inertia = World->SpawnActor<AInertialForceActor>(AInertialForceActor::StaticClass());
-		Inertia->ForceComponent->Radius = 500;
+		Inertia->ForceComponent->Radius = 1500;
+		Inertia->ForceComponent->SetAccelerationProfile(accs, resolution);
+
 		Inertia->ForceComponent->Activate();
+		Inertia->ForceComponent->StartPlaying();
+		Inertia->ForceComponent->IsConstant = false;
 	}
 	
 
