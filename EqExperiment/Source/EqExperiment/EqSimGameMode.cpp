@@ -32,9 +32,10 @@ void AEqSimGameMode::BeginPlay() {
 
 	picojson::value root;
 	
-	std::ifstream test("C:\\VR14a\\derived_data.json");
+	const std::string path_derived = "C:\\VR14a\\derived_data.json";
+	std::ifstream test(path_derived);
 	if (!test.is_open()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("small_data.json not found; reverting to toy mode"));
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("derived data json not found; reverting to toy mode"));
 
 		// "toy" mode
 		ANoisyActor* Actor0 = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());

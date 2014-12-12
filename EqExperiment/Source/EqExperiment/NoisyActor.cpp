@@ -80,7 +80,7 @@ void ANoisyActor::UpdateStaticMeshCollision() {
 	FVector Extents(100, 100, 100);
 
 	bs->Modify();
-	bs->InvalidatePhysicsData();  // comment this out to make "launch" & "cooking" pass. but without this, physics is a bit strange??
+	// bs->InvalidatePhysicsData();  // comment this out to make "launch" & "cooking" pass. but without this, physics is a bit strange??
 
 	FKBoxElem BoxElem;
 	BoxElem.Center = Center;
