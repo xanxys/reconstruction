@@ -227,7 +227,7 @@ if __name__ == '__main__':
     wav = convert_acc_to_sound(acc3d, 50, "Hachi.wav")
 
     acc_pack = {
-        "freq": "50",
+        "freq": 50,
         "comment": "Hachi",
         "accel": [list(map(float, v)) for v in acc3d]
     }

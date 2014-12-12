@@ -109,6 +109,9 @@ If a sound asset is stereo, only the first channel will be used.
     parser.add_argument(
         '--simulate', type=str, default=None,
         help='Output wave file path for soundscape simulation.')
+    parser.add_argument(
+        '--gen', type=str, default=None,
+        help='Output wave file path for soundscape simulation.')
 
     args = parser.parse_args()
 
@@ -140,3 +143,11 @@ If a sound asset is stereo, only the first channel will be used.
 
         logger.info("writing soundscape to %s", args.simulate)
         write_wave_asset(args.simulate, samples)
+    elif args.gen is not None:
+        for (i, e) in enumerate(os.listdir(args.sound_assets)):
+            path = os.path.join(args.sound_assets, e)
+            logger.info('Reading wav from %s', path)
+            asset = read_wave_asset(path, freq=base_freq)
+            write_wave_asset(
+                "%s/collision-%d.wav" % (args.gen, i + 1),
+                asset)
