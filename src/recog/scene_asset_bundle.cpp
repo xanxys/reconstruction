@@ -180,8 +180,8 @@ TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> SceneAssetBundle::ser
 	return mesh;
 }
 
-void SceneAssetBundle::addCollisionSoundFromDir(const std::string& dir_path) {
-	for(auto it = fs::directory_iterator(fs::path(dir_path));
+void SceneAssetBundle::addCollisionSoundFromDir(const std::string& src_dir_path) {
+	for(auto it = fs::directory_iterator(fs::path(src_dir_path));
 			it != fs::directory_iterator(); it++) {
 		const fs::path& p_src = *it;
 		const std::string name = "collision-" +
