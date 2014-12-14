@@ -1000,6 +1000,12 @@ void recognizeScene(SceneAssetBundle& bundle,
 	bundle.setExteriorMesh(exterior.first);
 }
 
+
+void populateToyScene(SceneAssetBundle& bundle) {
+	INFO("Populating bundle with toys");
+}
+
+
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeExterior(
 		SceneAssetBundle& bundle,

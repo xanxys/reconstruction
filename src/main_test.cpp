@@ -3,14 +3,18 @@
 #include <map>
 #include <random>
 
+#include <boost/filesystem.hpp>
+#include <gtest/gtest.h>
+
 #include <logging.h>
+#include <recog/scene_recognizer.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>
 #include <visual/marching_cubes.h>
 #include <visual/texture_conversion.h>
 
-#include <gtest/gtest.h>
+namespace fs = boost::filesystem;
 
 TEST(MeshPipelineTest, IsosurfaceWorks) {
 	INFO("creating metaball");
@@ -39,4 +43,22 @@ TEST(MeshPipelineTest, IsosurfaceWorks) {
 	std::ofstream test_mat("/tmp/recon-MeshPipelineTest-test_uv.mtl");
 	mesh_uv.serializeObjWithUv(test_uv, "/tmp/recon-MeshPipelineTest-test_uv.mtl");
 	recon::writeObjMaterial(test_mat, "/tmp/recon-MeshPipelineTest-uv_3d.png");
+}
+
+TEST(BundleAssetPipelineTest, ToySceneDoesntCrashWithoutDebug) {
+	{
+		recon::SceneAssetBundle bundle(
+			"/tmp/recon-BundleAssetPipelineTest-no-debug", false);
+		recon::populateToyScene(bundle);
+	}
+	EXPECT_TRUE(fs::is_directory(fs::path("/tmp/recon-BundleAssetPipelineTest-no-debug")));
+}
+
+TEST(BundleAssetPipelineTest, ToySceneDoesntCrashWithDebug) {
+	{
+		recon::SceneAssetBundle bundle(
+			"/tmp/recon-BundleAssetPipelineTest-debug", true);
+		recon::populateToyScene(bundle);
+	}
+	EXPECT_TRUE(fs::is_directory(fs::path("/tmp/recon-BundleAssetPipelineTest-debug")));
 }

@@ -19,6 +19,11 @@ namespace recon {
 // following common practice in 3D modeling.
 class InteriorObject {
 public:
+	// Given mesh and collision shape in world coordinates,
+	// guess good pose from collisions.
+	InteriorObject(
+		const TexturedMesh& mesh, const std::vector<OBB3f>& collision);
+
 	Eigen::Affine3f getPose() const;
 	TexturedMesh getMesh() const;
 	std::vector<OBB3f> getCollision() const;

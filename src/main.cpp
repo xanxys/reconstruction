@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("debug", "output debug / visualization data (slow)")
+		("toy", "Generate toy scene")
 		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans")
 		("sound", value<std::string>(), "Path to a directory containing processed collision sound wave files.")
 		("hint", value<std::string>(), "Alignment hint (json path)")
@@ -71,7 +72,28 @@ int main(int argc, char** argv) {
 		recon::SceneAssetBundle bundle(
 			vars["output"].as<std::string>(), debug);
 		recon::recognizeScene(bundle, scans, hint);
-		bundle.addCollisionSoundFromDir(vars["sound"].as<std::string>());
+		if(vars.count("sound") > 0) {
+			bundle.addCollisionSoundFromDir(vars["sound"].as<std::string>());
+		}
+		return 0;
+	} else if(vars.count("toy") > 0) {
+		// Argument sanity check.
+		if(vars.count("output") == 0) {
+			std::cerr << "--output is now required" << std::endl;
+			return -1;
+		}
+		if(vars.count("sound") == 0) {
+			WARN("--sound not specified, collision sound will NOT be generated");
+		}
+
+		// Generate.
+		const bool debug = vars.count("debug");
+		recon::SceneAssetBundle bundle(
+			vars["output"].as<std::string>(), debug);
+		recon::populateToyScene(bundle);
+		if(vars.count("sound") > 0) {
+			bundle.addCollisionSoundFromDir(vars["sound"].as<std::string>());
+		}
 		return 0;
 	} else {
 		std::cout << desc << std::endl;
