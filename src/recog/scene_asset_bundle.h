@@ -18,6 +18,7 @@
 #include <pcl/point_types.h>
 
 #include <logging.h>
+#include <recog/interior_object.h>
 #include <visual/textured_mesh.h>
 
 namespace recon {
@@ -48,7 +49,9 @@ public:
 	// Add a TexturedMesh corresponding to a single object.
 	// Debug results are written immediately to disk,
 	// while final results are written at destruction.
+	[[deprecated]]
 	void addInteriorObject(const TexturedMesh& mesh);
+	void addInteriorObject(const InteriorObject& iobj);
 
 	// Set the exterior mesh.
 	void setExteriorMesh(const TexturedMesh& mesh);
@@ -98,6 +101,8 @@ private:
 	TexturedMesh exterior_mesh;
 
 	std::vector<TexturedMesh> interior_objects;
+	std::vector<InteriorObject> interiors;
+
 	// wtf???!
 	// this should be derived from interior_objects in serializer,
 	// not written temporarily to members!!!

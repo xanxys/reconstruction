@@ -42,6 +42,11 @@ bool AABB3f::overlap(const AABB3f& other) const {
 }
 
 
+OBB3f::OBB3f(const AABB3f& aabb) :
+	vmin(aabb.getMin()), vmax(aabb.getMax()),
+	local_to_world(Eigen::Matrix3f::Identity()) {
+}
+
 
 Eigen::Matrix3f createOrthogonalBasis(
 		const Eigen::Vector3f& z) {

@@ -21,6 +21,15 @@ private:
 	Eigen::Vector3f vmax;
 };
 
+class OBB3f {
+public:
+	OBB3f(const AABB3f& aabb);
+private:
+	Eigen::Vector3f vmin;
+	Eigen::Vector3f vmax;
+	Eigen::Matrix3f local_to_world;
+};
+
 
 // Create 3-d orthogonal basis
 // (x y z) from given z. (column vector = new axis)

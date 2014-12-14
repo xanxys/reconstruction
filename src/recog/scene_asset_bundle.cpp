@@ -70,15 +70,32 @@ void SceneAssetBundle::cleanDirectory(const fs::path& dir_path) {
 }
 
 void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
+	const float world_scale = 100;  // meter -> uu
 	{
 		std::ofstream json_file((dir_path / fs::path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}
 	int count = 0;
+	/*
 	for(const auto& interior : interior_objects) {
 		object_ids.push_back(std::to_string(count));
 		const std::string name = "flat_poly_" + std::to_string(count++);
 		interior.writeWavefrontObjectFlat((dir_path / name).string());
+	}
+	*/
+	for(const auto& interior : interiors) {
+		object_ids.push_back(std::to_string(count));
+		const std::string mesh_name = "import_SM_" + std::to_string(count);
+		const std::string tex_name = "import_Diffuse_" + std::to_string(count);
+		const auto mesh = interior.getMesh();
+		{
+			std::ofstream of((dir_path / fs::path(mesh_name)).string());
+			assignNormal(mesh.mesh)
+				.serializeObjWithUvNormal(of, "");
+		}
+		cv::imwrite((dir_path / fs::path(tex_name)).string(), mesh.diffuse);
+
+		count++;
 	}
 }
 
@@ -103,6 +120,10 @@ void SceneAssetBundle::addInteriorObject(const TexturedMesh& mesh) {
 			mesh);
 	}
 	interior_objects.push_back(mesh);
+}
+
+void SceneAssetBundle::addInteriorObject(const InteriorObject& iobj) {
+	interiors.push_back(iobj);
 }
 
 void SceneAssetBundle::setExteriorMesh(const TexturedMesh& mesh) {

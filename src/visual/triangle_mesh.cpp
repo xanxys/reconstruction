@@ -42,6 +42,30 @@ TriangleMesh<std::nullptr_t> createBox(
 	return box;
 }
 
+TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>>
+		assignNormal(const TriangleMesh<Eigen::Vector2f>& mesh) {
+	TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>> result;
+	int i_vert_offset = 0;
+	for(const auto& tri : mesh.triangles) {
+		const Eigen::Vector3f normal =
+			(mesh.vertices[tri[1]].first - mesh.vertices[tri[0]].first).cross(
+				mesh.vertices[tri[2]].first - mesh.vertices[tri[0]].first).normalized();
+		for(const int i_vert : boost::irange(0, 3)) {
+			const auto& v = mesh.vertices[tri[i_vert]];
+			result.vertices.emplace_back(
+				v.first,
+				std::make_pair(v.second, normal));
+		}
+		result.triangles.push_back({{
+			i_vert_offset + 0,
+			i_vert_offset + 1,
+			i_vert_offset + 2
+		}});
+		i_vert_offset += 3;
+	}
+	return result;
+}
+
 TriangleMesh<std::nullptr_t> createBox(
 	Eigen::Vector3f center, float half_size) {
 	return createBox(center,

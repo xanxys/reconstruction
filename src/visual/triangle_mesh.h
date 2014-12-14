@@ -187,6 +187,39 @@ public:
 				(1 + std::get<2>(triangle)) << "/" << (1 + std::get<2>(triangle)) << std::endl;
 		}
 	}
+
+	// condition: Vertex = std::pair<Eigen::Vector2f, Eigen::Vector3f>
+	void serializeObjWithUvNormal(std::ostream& output, std::string mtllib) const {
+		output << "mtllib " << mtllib << std::endl;
+		for(const auto vertex : vertices) {
+			output << "v " <<
+				vertex.first(0) << " " <<
+				vertex.first(1) << " " <<
+				vertex.first(2) << std::endl;
+		}
+
+		for(const auto vertex : vertices) {
+			output << "vt " <<
+				vertex.second.first(0) << " " <<
+				vertex.second.first(1) << std::endl;
+		}
+
+		for(const auto vertex : vertices) {
+			output << "vn " <<
+				vertex.second.second(0) << " " <<
+				vertex.second.second(1) << " " <<
+				vertex.second.second(2) << std::endl;
+		}
+
+		output << "g " << "test_obj" << std::endl;
+		output << "usemtl " << "obj_uv" << std::endl;
+		for(const auto triangle : triangles) {
+			output << "f " <<
+				(1 + triangle[0]) << "/" << (1 + triangle[0]) << "/" << (1 + triangle[0]) << " " <<
+				(1 + triangle[1]) << "/" << (1 + triangle[1]) << "/" << (1 + triangle[1]) << " " <<
+				(1 + triangle[2]) << "/" << (1 + triangle[2]) << "/" << (1 + triangle[2]) << std::endl;
+		}
+	}
 public:
 	std::vector<std::array<int, 3>> triangles;
 	std::vector<std::pair<Eigen::Vector3f, Vertex>> vertices;
@@ -202,6 +235,10 @@ TriangleMesh<std::nullptr_t> dropAttrib(const TriangleMesh<Vertex>& mesh) {
 	}
 	return new_mesh;
 }
+
+// Calculate vertex normals assuming sharp edges.
+TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>>
+	assignNormal(const TriangleMesh<Eigen::Vector2f>& mesh);
 
 // Create outward-facing cuboids.
 TriangleMesh<std::nullptr_t> createBox(
