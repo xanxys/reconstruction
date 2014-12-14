@@ -1,23 +1,10 @@
 #include <iostream>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 
 #include <logging.h>
 #include <recog/scene_asset_bundle.h>
 #include <recog/scene_recognizer.h>
-
-std::string guessSceneName(const std::string& scan_path) {
-	std::vector<std::string> components;
-	boost::split(components, scan_path, boost::is_any_of("/"));
-	if(components.size() >= 1 && components.back() != "") {
-		return components.back();
-	} else if(components.size() >= 2 && components[components.size() - 2] != "") {
-		return components[components.size() - 2];
-	} else {
-		return "result_bundle";
-	}
-}
 
 int main(int argc, char** argv) {
 	using boost::program_options::notify;
@@ -31,7 +18,8 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help", "show this message")
 		("debug", "output debug / visualization data (slow)")
-		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans");
+		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans")
+		("output", value<std::string>(), "scene asset output path");
 
 	variables_map vars;
 	store(parse_command_line(argc, argv, desc), vars);
@@ -42,6 +30,10 @@ int main(int argc, char** argv) {
 		std::cout << desc << std::endl;
 		return 0;
 	} else if(vars.count("convert") > 0) {
+		if(vars.count("output") == 0) {
+			std::cerr << "--output is now required" << std::endl;
+			return -1;
+		}
 		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
 		INFO("Loading scans, #scans=", (int)dir_paths.size());
 		std::vector<recon::SingleScan> scans;
@@ -51,11 +43,11 @@ int main(int argc, char** argv) {
 		INFO("Converting to a scene");
 		const bool debug = vars.count("debug");
 		recon::SceneAssetBundle bundle(
-			guessSceneName(dir_paths.front()), debug);
+			vars["output"].as<std::string>(), debug);
 		recon::recognizeScene(bundle, scans);
 		return 0;
 	} else {
 		std::cout << desc << std::endl;
-		return 0;
+		return -1;
 	}
 }
