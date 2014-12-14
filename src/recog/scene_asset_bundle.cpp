@@ -85,8 +85,8 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	*/
 	for(const auto& interior : interiors) {
 		object_ids.push_back(std::to_string(count));
-		const std::string mesh_name = "import_SM_" + std::to_string(count);
-		const std::string tex_name = "import_Diffuse_" + std::to_string(count);
+		const std::string mesh_name = "import_SM_" + std::to_string(count) + ".obj";
+		const std::string tex_name = "import_Diffuse_" + std::to_string(count) + ".png";
 		const auto mesh = interior.getMesh();
 		{
 			std::ofstream of((dir_path / fs::path(mesh_name)).string());
