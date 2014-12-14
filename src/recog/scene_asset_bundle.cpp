@@ -4,7 +4,7 @@
 
 namespace recon {
 
-using boost::filesystem::path;
+namespace fs = boost::filesystem;
 
 SceneAssetBundle::SceneAssetBundle(
 		const std::string& dir_path, bool debug) :
@@ -18,7 +18,7 @@ SceneAssetBundle::~SceneAssetBundle() {
 	if(do_finalize) {
 		serializeIntoDirectory(dir_path);
 	} else {
-		std::ofstream json_file((dir_path / path("small_data.json")).string());
+		std::ofstream json_file((dir_path / fs::path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}
 	if(debug) {
@@ -47,35 +47,31 @@ void SceneAssetBundle::setAlignmentCheckpoint(const Json::Value& cp) {
 	fs << Json::FastWriter().write(cp);
 }
 
-void SceneAssetBundle::cleanDirectory(const path& dir_path) {
-	using boost::filesystem::directory_iterator;
-
-	const path cp_dir_path = dir_path / path("checkpoints");
+void SceneAssetBundle::cleanDirectory(const fs::path& dir_path) {
+	const fs::path cp_dir_path = dir_path / fs::path("checkpoints");
 	// Create the directory if there's none.
-	if(!boost::filesystem::exists(dir_path)) {
-		boost::filesystem::create_directory(dir_path);
+	if(!fs::exists(dir_path)) {
+		fs::create_directory(dir_path);
 	}
 	// Traverse and remove non-checkpoints files & directories.
-	for(auto it = directory_iterator(dir_path); it != directory_iterator(); it++) {
-		const path& p = *it;
-		INFO("aaa", p.string());
+	for(auto it = fs::directory_iterator(dir_path);
+			it != fs::directory_iterator(); it++) {
+		const fs::path& p = *it;
 		if(p.filename() == "checkpoints") {
 			continue;
 		}
-		boost::filesystem::remove_all(p);
+		DEBUG("Removing", p.string());
+		fs::remove_all(p);
 	}
 	// Create checkpoint directory if there's nothing.
-	if(!boost::filesystem::exists(cp_dir_path)) {
-		boost::filesystem::create_directory(cp_dir_path);
+	if(!fs::exists(cp_dir_path)) {
+		fs::create_directory(cp_dir_path);
 	}
 }
 
-void SceneAssetBundle::serializeIntoDirectory(const path& dir_path) {
-	using boost::filesystem::create_directory;
-	using boost::filesystem::remove_all;
-
+void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	{
-		std::ofstream json_file((dir_path / path("small_data.json")).string());
+		std::ofstream json_file((dir_path / fs::path("small_data.json")).string());
 		json_file << Json::FastWriter().write(serializeSmallData());
 	}
 	int count = 0;
@@ -87,11 +83,11 @@ void SceneAssetBundle::serializeIntoDirectory(const path& dir_path) {
 }
 
 std::string SceneAssetBundle::reservePath(const std::string& filename) {
-	return (dir_path / path(filename)).string();
+	return (dir_path / fs::path(filename)).string();
 }
 
 Json::Value SceneAssetBundle::loadJson(std::string name) const {
-	std::ifstream f_input((dir_path / path(name)).string());
+	std::ifstream f_input((dir_path / fs::path(name)).string());
 	if(!f_input.is_open()) {
 		throw std::runtime_error("Cloudn't open " + name);
 	}
@@ -112,42 +108,42 @@ void SceneAssetBundle::addInteriorObject(const TexturedMesh& mesh) {
 void SceneAssetBundle::setExteriorMesh(const TexturedMesh& mesh) {
 	exterior_mesh = mesh;
 	exterior_mesh.writeWavefrontObject(
-		(dir_path / path("exterior_mesh")).string());
+		(dir_path / fs::path("exterior_mesh")).string());
 }
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 	const int id = debug_count++;
-	std::ofstream debug_points_file((dir_path / path("debug_" + std::to_string(id) + ".ply")).string());
+	std::ofstream debug_points_file((dir_path / fs::path("debug_" + std::to_string(id) + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
 	const int id = debug_count++;
-	std::ofstream debug_points_file((dir_path / path("debug_" + std::to_string(id) + ".ply")).string());
+	std::ofstream debug_points_file((dir_path / fs::path("debug_" + std::to_string(id) + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
+	std::ofstream debug_points_file((dir_path / fs::path("debug_" + name + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgb(debug_points_file);
 }
 
 void SceneAssetBundle::addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
-	std::ofstream debug_points_file((dir_path / path("debug_" + name + ".ply")).string());
+	std::ofstream debug_points_file((dir_path / fs::path("debug_" + name + ".ply")).string());
 	serializeDebugPoints(cloud).serializePLYWithRgbNormal(debug_points_file);
 }
 
 void SceneAssetBundle::addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh) {
-	std::ofstream mesh_f((dir_path / path(name + ".ply")).string());
+	std::ofstream mesh_f((dir_path / fs::path(name + ".ply")).string());
 	mesh.serializePLY(mesh_f);
 }
 
 void SceneAssetBundle::addMesh(std::string name, const TexturedMesh& mesh) {
-	mesh.writeWavefrontObject((dir_path / path(name)).string());
+	mesh.writeWavefrontObject((dir_path / fs::path(name)).string());
 }
 
 void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
-	mesh.writeWavefrontObjectFlat((dir_path / path(name)).string());
+	mesh.writeWavefrontObjectFlat((dir_path / fs::path(name)).string());
 }
 
 void SceneAssetBundle::serializeWholeScene() const {
@@ -157,7 +153,7 @@ void SceneAssetBundle::serializeWholeScene() const {
 		whole_scene.merge(dropAttrib(interior_object.mesh));
 	}
 
-	std::ofstream mesh_f((dir_path / path("whole.ply")).string());
+	std::ofstream mesh_f((dir_path / fs::path("whole.ply")).string());
 	whole_scene.serializePLY(mesh_f);
 }
 
@@ -184,12 +180,17 @@ TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> SceneAssetBundle::ser
 	return mesh;
 }
 
-void SceneAssetBundle::addCollisionSound(const std::string& p) {
-	boost::filesystem::copy_file(
-		path(p),
-		dir_path / path("collision_" + std::to_string(collision_count) + ".wav"),
-		boost::filesystem::copy_option::overwrite_if_exists);
-	collision_count++;
+void SceneAssetBundle::addCollisionSoundFromDir(const std::string& dir_path) {
+	for(auto it = fs::directory_iterator(fs::path(dir_path));
+			it != fs::directory_iterator(); it++) {
+		const fs::path& p_src = *it;
+		const std::string name = "collision-" +
+			std::to_string(collision_count++) + ".wav";
+		fs::copy_file(
+			p_src, dir_path / fs::path(name),
+			fs::copy_option::overwrite_if_exists);
+	}
+	INFO("Total added #collisions is now", collision_count);
 }
 
 Json::Value SceneAssetBundle::serializeSmallData() const {

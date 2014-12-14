@@ -54,7 +54,7 @@ public:
 	void setExteriorMesh(const TexturedMesh& mesh);
 
 	// Sound
-	void addCollisionSound(const std::string& path);
+	void addCollisionSoundFromDir(const std::string& path);
 
 	// Queue to serialize given mesh, create a directory to contain
 	// bunch of material/texture files if necessary.

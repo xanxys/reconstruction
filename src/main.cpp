@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
 		("help", "show this message")
 		("debug", "output debug / visualization data (slow)")
 		("convert", value<std::vector<std::string>>()->multitoken(), "convert given scans")
+		("sound", value<std::string>(), "Path to a directory containing processed collision sound wave files.")
 		("hint", value<std::string>(), "Alignment hint (json path)")
 		("output", value<std::string>(), "scene asset output path");
 
@@ -42,6 +43,10 @@ int main(int argc, char** argv) {
 			std::cerr << "--hint is required" << std::endl;
 			return -1;
 		}
+		if(vars.count("sound") == 0) {
+			WARN("--sound not specified, collision sound will NOT be generated");
+		}
+
 		// Load scans.
 		const auto dir_paths = vars["convert"].as<std::vector<std::string>>();
 		INFO("Loading scans, #scans=", (int)dir_paths.size());
@@ -66,6 +71,7 @@ int main(int argc, char** argv) {
 		recon::SceneAssetBundle bundle(
 			vars["output"].as<std::string>(), debug);
 		recon::recognizeScene(bundle, scans, hint);
+		bundle.addCollisionSoundFromDir(vars["sound"].as<std::string>());
 		return 0;
 	} else {
 		std::cout << desc << std::endl;
