@@ -5,6 +5,7 @@
 
 #include <boost/optional.hpp>
 #include <Eigen/Dense>
+#include <jsoncpp/json/json.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -105,7 +106,9 @@ void linkMiniClusters(
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
-void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
+void recognizeScene(
+	SceneAssetBundle& bundle, const std::vector<SingleScan>& scans,
+	const Json::Value& hint);
 
 // Return textured exterior mesh and light location.
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>

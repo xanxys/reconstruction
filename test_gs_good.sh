@@ -37,6 +37,7 @@ time build/recon --debug --convert \
 	../data/scan-20140827-13:49-gakusei-small \
 	../data/scan-20140827-13:53-gakusei-small \
 	../data/scan-20140827-13:57-gakusei-small \
+	--hint hint-small-gakusei-20140827.json \
 	--output scene-small-gakusei
 
 # Unfortunately, it seems that 13:26 (current target)

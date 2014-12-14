@@ -28,7 +28,6 @@
 #include <CGAL/Boolean_set_operations_2.h>
 // ins
 #include <Eigen/QR>
-#include <jsoncpp/json/json.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
@@ -920,11 +919,13 @@ void linkMiniClusters(
 }
 
 
-void recognizeScene(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
+void recognizeScene(SceneAssetBundle& bundle,
+		const std::vector<SingleScan>& scans,
+		const Json::Value& hint) {
 	assert(!scans.empty());
 
 	INFO("Merging points in multiple scans");
-	const AlignedScans scans_aligned(bundle, scans);
+	const AlignedScans scans_aligned(bundle, scans, hint);
 	const auto points_merged = scans_aligned.getMergedPointsNormal();
 	bundle.addDebugPointCloud("points_merged", points_merged);
 	INFO("# of points after merge:", (int)points_merged->points.size());

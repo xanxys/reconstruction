@@ -192,22 +192,6 @@ void SceneAssetBundle::addCollisionSound(const std::string& p) {
 	collision_count++;
 }
 
-void SceneAssetBundle::setBackgroundSound(const std::string& p) {
-	boost::filesystem::copy_file(
-		path(p),
-		dir_path / path("bg.wav"),
-		boost::filesystem::copy_option::overwrite_if_exists);
-}
-
-
-void SceneAssetBundle::setAcceleration(const std::string& p) {
-	std::ifstream fs(p);
-	Json::Value v;
-	Json::Reader().parse(fs, v);
-	accel = v;
-}
-
-
 Json::Value SceneAssetBundle::serializeSmallData() const {
 	Json::Value small_data;
 	for(const auto& pos : point_lights) {

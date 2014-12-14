@@ -55,10 +55,6 @@ public:
 
 	// Sound
 	void addCollisionSound(const std::string& path);
-	void setBackgroundSound(const std::string& path);
-
-	// Acceleration pattern.
-	void setAcceleration(const std::string& path);
 
 	// Queue to serialize given mesh, create a directory to contain
 	// bunch of material/texture files if necessary.

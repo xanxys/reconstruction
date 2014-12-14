@@ -56,7 +56,9 @@ public:
 class AlignedScans {
 public:
 	// Create aligned scan from unaligned scans. (slow, takes a few minutes)
-	AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans);
+	AlignedScans(SceneAssetBundle& bundle,
+		const std::vector<SingleScan>& scans,
+		const Json::Value& hint);
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr getMergedPoints() const;
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr getMergedPointsNormal() const;
@@ -76,7 +78,7 @@ public:
 	static Eigen::Affine3f decodeAffine(const Json::Value& json, bool require_rigid=false);
 private:
 	// Load external json that contains poses, and initialize internal scan structure using it.
-	void loadInitialPoses(const std::string& path, const std::vector<SingleScan>& scans);
+	void loadInitialPoses(const Json::Value& initial_pose, const std::vector<SingleScan>& scans);
 
 	// Do finealignment to target scan id. (pose target of will not change)
 	void finealignToTarget(const std::string& fine_align_target_id);

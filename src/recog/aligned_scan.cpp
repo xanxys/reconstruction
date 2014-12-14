@@ -100,13 +100,15 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr CorrectedSingleScan::getCloudInWorl
 	return applyTransform(raw_scan.cloud, local_to_world);
 }
 
-AlignedScans::AlignedScans(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) {
+AlignedScans::AlignedScans(SceneAssetBundle& bundle,
+		const std::vector<SingleScan>& scans,
+		const Json::Value& hint) {
 	assert(!scans.empty());
-	loadInitialPoses("pose-20140827.json", scans);
+	loadInitialPoses(hint["initial_pose"], scans);
 	if(bundle.hasAlignmentCheckpoint()) {
 		loadCheckpoint(bundle.getAlignmentCheckpoint());
 	} else {
-		finealignToTarget("scan-20140827-13:26-gakusei-small");
+		finealignToTarget(hint["align_to"].asString());
 		assert(scans.size() == scans_with_pose.size());
 		bundle.setAlignmentCheckpoint(saveCheckpoint());
 	}
@@ -128,20 +130,11 @@ void AlignedScans::loadCheckpoint(const Json::Value& cp) {
 	}
 }
 
-void AlignedScans::loadInitialPoses(const std::string& path, const std::vector<SingleScan>& scans) {
+void AlignedScans::loadInitialPoses(const Json::Value& initial_pose, const std::vector<SingleScan>& scans) {
 	// Load pose json (scan_id -> local_to_world)
 	std::map<std::string, Eigen::Affine3f> poses;
 	{
-		Json::Value root;
-		Json::Reader reader;
-		std::ifstream test(path);
-		const bool success = reader.parse(test, root, false);
-		if(!success) {
-			WARN("couldn't parse scan pose json");
-			throw std::runtime_error(reader.getFormatedErrorMessages());
-		}
-
-		for(auto& entry : root) {
+		for(auto& entry : initial_pose) {
 			poses[entry["scan_id"].asString()] =
 				decodeAffine(entry["affine"]);
 		}
