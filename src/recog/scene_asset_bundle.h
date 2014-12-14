@@ -116,8 +116,6 @@ private:
 	// sound bookkeeping
 	int collision_count;
 
-	Json::Value accel;
-
 	const boost::filesystem::path dir_path;
 	const boost::filesystem::path cp_alignment_path = "checkpoints/alignment.json";
 };

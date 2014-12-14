@@ -227,7 +227,6 @@ Json::Value SceneAssetBundle::serializeSmallData() const {
 		small_data["objects"].append(oid);
 	}
 	small_data["collision_count"] = collision_count;
-	small_data["accel"] = accel;
 	return small_data;
 }
 
