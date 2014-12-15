@@ -24,10 +24,23 @@ private:
 
 	//FName GetPackagePath();
 
+	// Load experiment data.
+	void UnpackExperiment(const std::string& dir_path);
+
+	// Load scene data.
+	void UnpackScene(const std::string& dir_path);
+	
+	// Strip file name.
+	// C:\foo\bar.txt -> C:\foo\
+	// behavior undefined for directories
+	static std::string dirname(const std::string& path);
+	
 	picojson::value LoadJsonFromFile(const std::string& path);
 	Json::Value LoadJsonFromFileNew(const std::string& path);
 
 	AActor* InsertAssetToScene(FTransform pose, const std::string& asset_path);
 private:
+	const float assumed_scale = 100;  // uu/meter
+	static const std::string PathSplitter;
 	TSharedPtr<FUICommandList> commands;
 };

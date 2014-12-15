@@ -22,6 +22,7 @@
 
 #include "LoaderPluginCommands.h"
 
+const std::string FLoaderPlugin::PathSplitter = "\\";
 
 std::wstring widen(const std::string& s) {
 	const int n_wstring = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), nullptr, 0);
@@ -174,13 +175,34 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	}
 
 	// Read specified path.
-	FString selected_path = paths[0];
-	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
-	
-	const std::string file_path(TCHAR_TO_UTF8(*selected_path));
-	Json::Value exp_meta = LoadJsonFromFileNew(file_path);
+	try {
+		const std::string file_path(TCHAR_TO_UTF8(*paths[0]));
+		UnpackExperiment(dirname(file_path));
+	}
+	catch (const std::exception& exc) {
+		UE_LOG(LoaderPlugin, Warning, TEXT("Exception: %s"), widen(exc.what()).c_str());
+	}
+#undef LOCTEXT_NAMESPACE
+}
 
-	return;
+void FLoaderPlugin::UnpackExperiment(const std::string& dir_path) {
+	UE_LOG(LoaderPlugin, Log, TEXT("Unpacking experiment package %s"), widen(dir_path).c_str());
+	const Json::Value meta = LoadJsonFromFileNew(dir_path + PathSplitter + "meta.json");
+
+	UnpackScene(dir_path + "scene");
+}
+
+void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
+	UE_LOG(LoaderPlugin, Log, TEXT("Unpacking scene asset %s"), widen(dir_path).c_str());
+	const Json::Value meta = LoadJsonFromFileNew(dir_path + PathSplitter + "meta.json");
+
+	// Check if assumed scale and exported scale are similar enough.
+	if (std::abs(1 - meta["unit_per_meter"].asDouble() / assumed_scale) > 0.01) {
+		UE_LOG(LoaderPlugin, Warning, TEXT("Export scale is too different from UU scale."));
+		throw std::runtime_error("Wrong world scale");
+	}
+	
+	/*
 	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
 
 	TArray<FString> ImportFiles;
@@ -188,22 +210,21 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	ImportFiles.Add(TEXT("C:\\VRtemp\\import_Diffuse_0.png"));
 	ImportFiles.Add(TEXT("C:\\VRtemp\\Hachi.wav"));
 	AssetTools.ImportAssets(ImportFiles, TEXT("/Game/AutoLoaded"));
+	*/
 
+	UE_LOG(LoaderPlugin, Log, TEXT("* Number of Lights: %d"), meta["lights"].size());
 
-	picojson::object scene_root = LoadJsonFromFile(file_path).get<picojson::object>();
-	auto lights = scene_root["lights"].get<picojson::array>();
-	UE_LOG(LoaderPlugin, Log, TEXT("* Number of Lights: %d"), lights.size());
-
-	const float uu_per_meter = 100;
 	FVector offset(0, 0, 2.0);
-	
-	for (auto& light : lights) {
-		auto pos = light.get<picojson::object>()["pos"].get<picojson::object>();
-		FVector location(pos["x"].get<double>(), pos["y"].get<double>(), pos["z"].get<double>());
-		FTransform pose((location + offset) * uu_per_meter);
+
+	for (const auto& light : meta["lights"]) {
+		const FVector location(
+			light["pos"]["x"].asDouble(),
+			light["pos"]["y"].asDouble(),
+			light["pos"]["z"].asDouble());
+		const FTransform pose(location + offset);
 		InsertAssetToScene(pose, "/Script/Engine.PointLight");
 	}
-
+#if 0
 	// Insert exterior mesh
 	FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
 	AActor* actor = InsertAssetToScene(pose, "/Game/Auto/Object.Object");
@@ -236,7 +257,7 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		}
 		component->SetMobility(EComponentMobility::Movable);
 		component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
-		
+
 		auto* mesh = actor->FindComponentByClass<UStaticMeshComponent>();
 		if (!mesh) {
 			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't get StaticMeshComponent of inserted actor"));
@@ -246,8 +267,8 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		/*
 		UBodySetup* bs = mesh->StaticMesh->BodySetup;
 		if (!bs) {
-			UE_LOG(LoaderPlugin, Error, TEXT("Couldn't get StaticMeshComponent->BodySetup of inserted actor"));
-			return;
+		UE_LOG(LoaderPlugin, Error, TEXT("Couldn't get StaticMeshComponent->BodySetup of inserted actor"));
+		return;
 		}
 		*/
 		GenerateBoxAsSimpleCollision(mesh->StaticMesh);
@@ -263,7 +284,17 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		prim->SetSimulatePhysics(true);
 		actor->SetActorEnableCollision(true);
 	}
-#undef LOCTEXT_NAMESPACE
+#endif
+}
+
+std::string FLoaderPlugin::dirname(const std::string& path) {
+	const auto ix_split = path.rfind(PathSplitter);
+	if (ix_split == std::string::npos) {
+		return path;
+	}
+	else {
+		return path.substr(0, ix_split) + PathSplitter;
+	}
 }
 
 picojson::value FLoaderPlugin::LoadJsonFromFile(const std::string& path) {
