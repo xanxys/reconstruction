@@ -96,6 +96,12 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		const std::string id = std::to_string(count++);
 		const std::string mesh_name = "sm_" + id + ".obj";
 		const std::string tex_name = "diffuse_" + id + ".png";
+		// Predicted assets name when using
+		// IAssetTools::ImportAssets. LoaderPlugin
+		// need to make sure asset auto naming convention
+		// is kept same.
+		const std::string mesh_asset = "sm_" + id;
+		const std::string tex_asset = "diffuse_" + id;
 		// Write to paths.
 		std::ofstream of((dir_path / fs::path(mesh_name)).string());
 		TriangleMesh<Eigen::Vector2f> mesh_scaled = tm.mesh;
@@ -107,7 +113,9 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 
 		Json::Value meta_object;
 		meta_object["static_mesh"] = mesh_name;
+		meta_object["static_mesh:asset"] = mesh_asset;
 		meta_object["material"]["diffuse"] = tex_name;
+		meta_object["material"]["diffuse:asset"] = tex_asset;
 		return meta_object;
 	};
 
