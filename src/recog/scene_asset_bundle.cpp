@@ -131,6 +131,16 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 
 	for(const auto& interior : interiors) {
 		auto meta_object = serializeMesh(interior.getMesh());
+		const auto pose = interior.getPose();
+		const auto trans = pose.translation() * world_scale;
+		const auto quat = Eigen::Quaternionf(pose.linear());
+		meta_object["pose"]["pos"]["x"] = trans.x();
+		meta_object["pose"]["pos"]["y"] = trans.y();
+		meta_object["pose"]["pos"]["z"] = trans.z();
+		meta_object["pose"]["quat"]["x"] = quat.x();
+		meta_object["pose"]["quat"]["y"] = quat.y();
+		meta_object["pose"]["quat"]["z"] = quat.z();
+		meta_object["pose"]["quat"]["w"] = quat.w();
 		metadata["interior_objects"].append(meta_object);
 	}
 	metadata["exterior"] = serializeMesh(exterior_mesh);
