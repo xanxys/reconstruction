@@ -209,11 +209,17 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	if (!World) {
 		throw std::runtime_error("Couldn't get reference of UWorld");
 	}
-	TArray<AActor*> Targets;
-	UGameplayStatics::GetAllActorsOfClass(World, ATargetPoint::StaticClass(), Targets);
-	for (const AActor* Target : Targets) {
-		UE_LOG(LoaderPlugin, Log, TEXT("Target: %s"), *Target->GetName());
+	
+	AActor* RoomMarker = FindTargetPointByName(TargetRoom);
+	if (!RoomMarker) {
+		UE_LOG(LoaderPlugin, Warning, TEXT("You need to add TargetPoint with name %s to specify where to load scene"),
+			widen(TargetRoom).c_str());
+		throw std::runtime_error("RoomMarker not found");
 	}
+	const FVector RoomOrigin = RoomMarker->GetActorLocation();
+	UE_LOG(LoaderPlugin, Log, TEXT("Instantiating at %s"), *RoomOrigin.ToString());
+	
+	FVector PlayerOrigin;
 		
 	
 	/*
@@ -302,6 +308,23 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	}
 #endif
 }
+
+AActor* FLoaderPlugin::FindTargetPointByName(const std::string& name) {
+	UWorld* const World = GEditor->GetEditorWorldContext().World();
+	if (!World) {
+		return nullptr;
+	}
+
+	TArray<AActor*> Targets;
+	UGameplayStatics::GetAllActorsOfClass(World, ATargetPoint::StaticClass(), Targets);
+	for (AActor* Target : Targets) {
+		if (TCHAR_TO_UTF8(*Target->GetName()) == name) {
+			return Target;
+		}
+	}
+	return nullptr;
+}
+
 
 std::string FLoaderPlugin::dirname(const std::string& path) {
 	const std::string path_canon = canonicalize(path);

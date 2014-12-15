@@ -47,9 +47,15 @@ private:
 	Json::Value LoadJsonFromFileNew(const std::string& path);
 
 	AActor* InsertAssetToScene(FTransform pose, const std::string& asset_path);
+
+	// Return nullptr when not found.
+	AActor* FindTargetPointByName(const std::string& name);
 private:
 	const float assumed_scale = 100;  // uu/meter
 	static const std::string PathSplitter;
 	static const std::string AltPathSplitter;
 	TSharedPtr<FUICommandList> commands;
+
+	const std::string TargetRoom = "LoadMarker_Room";
+	const std::string TargetPlayer = "LoadMarker_Player";
 };
