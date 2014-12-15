@@ -233,13 +233,19 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 		InsertAssetToScene(pose, "/Script/Engine.PointLight");
 	}
 
-	// Instantiate exterior mesh. (add assets, and then add actor using the assets).
+	// Load all assets at once, to reduce mesh import dialog popup to only once.
 	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
 	TArray<FString> ImportFiles;
 	ImportFiles.Add(widen(join(dir_path, meta["exterior"]["static_mesh"].asString())).c_str());
 	ImportFiles.Add(widen(join(dir_path, meta["exterior"]["material"]["diffuse"].asString())).c_str());
+	// Load interior objects (no need to instantiate them, because they're loaded in runtime).
+	for (const auto& iobj : meta["interior_objects"]) {
+		ImportFiles.Add(widen(join(dir_path, iobj["static_mesh"].asString())).c_str());
+		ImportFiles.Add(widen(join(dir_path, iobj["material"]["diffuse"].asString())).c_str());
+	}
 	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
 
+	// Insert an Actor of extrior mesh.
 	const FTransform pose(FQuat(0, 0, 0, 1), RoomOffset);
 	const std::string SMAssetName = meta["exterior"]["static_mesh:asset"].asString();
 	AActor* actor = InsertAssetToScene(pose, AutoLoadAssetPath + "/" + SMAssetName + "." + SMAssetName);
@@ -247,7 +253,6 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 		UE_LOG(LoaderPlugin, Error, TEXT("Failed to insert exterior mesh"));
 		throw std::runtime_error("Actor creation failure");
 	}
-	auto* component = actor->FindComponentByClass<USceneComponent>();
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
 #if 0
