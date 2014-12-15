@@ -369,20 +369,6 @@ std::string FLoaderPlugin::join(const std::string& path0, const std::string& pat
 	}
 }
 
-
-picojson::value FLoaderPlugin::LoadJsonFromFile(const std::string& path) {
-	picojson::value root;
-	try {
-		std::ifstream test(path);
-		test >> root;
-	}
-	catch (...) {
-		UE_LOG(LoaderPlugin, Warning, TEXT("Failed to load text; aborting import"));
-	}
-	return root;
-}
-
-
 Json::Value FLoaderPlugin::LoadJsonFromFileNew(const std::string& path) {
 	try {
 		Json::Value root;
