@@ -10,17 +10,12 @@ SceneAssetBundle::SceneAssetBundle(
 		const std::string& dir_path, bool debug) :
 		debug_count(0), collision_count(0),
 		dir_path(boost::filesystem::absolute(dir_path)),
-		do_finalize(true), debug(debug) {
+		debug(debug) {
 	cleanDirectory(dir_path);
 }
 
 SceneAssetBundle::~SceneAssetBundle() {
-	if(do_finalize) {
-		serializeIntoDirectory(dir_path);
-	} else {
-		std::ofstream json_file((dir_path / fs::path("small_data.json")).string());
-		json_file << Json::FastWriter().write(serializeSmallData());
-	}
+	serializeIntoDirectory(dir_path);
 	if(debug) {
 		serializeWholeScene();
 	}
@@ -71,22 +66,27 @@ void SceneAssetBundle::cleanDirectory(const fs::path& dir_path) {
 
 void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	const float world_scale = 100;  // meter -> uu
-	{
-		std::ofstream json_file((dir_path / fs::path("small_data.json")).string());
-		json_file << Json::FastWriter().write(serializeSmallData());
+
+	Json::Value metadata;
+	metadata["unit_per_meter"] = world_scale;
+	// Add json-only objects.
+	for(const auto& pos : point_lights) {
+		Json::Value light;
+		light["pos"]["x"] = pos(0);
+		light["pos"]["y"] = pos(1);
+		light["pos"]["z"] = pos(2);
+		metadata["lights"].append(light);
 	}
+	metadata["collision_count"] = collision_count;
+
+	// Add json+file data.
 	int count = 0;
-	/*
-	for(const auto& interior : interior_objects) {
-		object_ids.push_back(std::to_string(count));
-		const std::string name = "flat_poly_" + std::to_string(count++);
-		interior.writeWavefrontObjectFlat((dir_path / name).string());
-	}
-	*/
 	for(const auto& interior : interiors) {
-		object_ids.push_back(std::to_string(count));
-		const std::string mesh_name = "import_SM_" + std::to_string(count) + ".obj";
-		const std::string tex_name = "import_Diffuse_" + std::to_string(count) + ".png";
+		// Issue id.
+		const std::string id = std::to_string(count++);
+		// Write to paths.
+		const std::string mesh_name = "sm_" + id + ".obj";
+		const std::string tex_name = "diffuse_" + id + ".png";
 		const auto mesh = interior.getMesh();
 		{
 			std::ofstream of((dir_path / fs::path(mesh_name)).string());
@@ -95,7 +95,16 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		}
 		cv::imwrite((dir_path / fs::path(tex_name)).string(), mesh.diffuse);
 
-		count++;
+		Json::Value meta_object;
+		meta_object["static_mesh"] = mesh_name;
+		meta_object["material"]["diffuse"] = tex_name;
+
+		metadata["interior_objects"].append(meta_object);
+	}
+
+	{
+		std::ofstream json_file((dir_path / fs::path("meta.json")).string());
+		json_file << Json::FastWriter().write(metadata);
 	}
 }
 
@@ -212,22 +221,6 @@ void SceneAssetBundle::addCollisionSoundFromDir(const std::string& src_dir_path)
 			fs::copy_option::overwrite_if_exists);
 	}
 	INFO("Total added #collisions is now", collision_count);
-}
-
-Json::Value SceneAssetBundle::serializeSmallData() const {
-	Json::Value small_data;
-	for(const auto& pos : point_lights) {
-		Json::Value light;
-		light["pos"]["x"] = pos(0);
-		light["pos"]["y"] = pos(1);
-		light["pos"]["z"] = pos(2);
-		small_data["lights"].append(light);
-	}
-	for(const auto& oid : object_ids) {
-		small_data["objects"].append(oid);
-	}
-	small_data["collision_count"] = collision_count;
-	return small_data;
 }
 
 }  // namespace

@@ -86,11 +86,6 @@ private:
 
 	void serializeWholeScene() const;
 
-	// Serialize relative small data that nicely fits into a JSON
-	// (e.g. <100MB).
-	// Don't store image-like things or huge triangle mesh here.
-	Json::Value serializeSmallData() const;
-
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;
 public:
@@ -103,14 +98,8 @@ private:
 	std::vector<TexturedMesh> interior_objects;
 	std::vector<InteriorObject> interiors;
 
-	// wtf???!
-	// this should be derived from interior_objects in serializer,
-	// not written temporarily to members!!!
-	std::vector<std::string> object_ids;
-
 	// book keeping
 	bool debug;
-	bool do_finalize;
 	int debug_count;
 
 	// sound bookkeeping
