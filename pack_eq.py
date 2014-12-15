@@ -33,6 +33,39 @@ def is_scene_asset_shallow(path):
         os.path.isfile(os.path.join(path, "small_data.json")))
 
 
+def copytree_wo_permission(src, dst, ignore=None):
+    """
+    Recursively copy a directory tree, without trying to
+    change permissions.
+    """
+    names = os.listdir(src)
+    if ignore is not None:
+        ignored_names = ignore(src, names)
+    else:
+        ignored_names = set()
+
+    os.makedirs(dst)
+    errors = []
+    for name in names:
+        if name in ignored_names:
+            continue
+        srcname = os.path.join(src, name)
+        dstname = os.path.join(dst, name)
+        try:
+            if os.path.isdir(srcname):
+                copytree_wo_permission(srcname, dstname, ignore)
+            else:
+                shutil.copyfile(srcname, dstname)
+        # catch the Error from the recursive copytree so that we can
+        # continue with other files
+        except Error as err:
+            errors.extend(err.args[0])
+        except EnvironmentError as why:
+            errors.append((srcname, dstname, str(why)))
+    if errors:
+        raise Error(errors)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="""
@@ -71,7 +104,7 @@ Result will be generated in another directory.
 
     package_meta = {}
 
-    shutil.copytree(args.scene_asset, os.path.join(package_path, "scene"))
+    copytree_wo_permission(args.scene_asset, os.path.join(package_path, "scene"))
     for quake in experiment["quakes"]:
         # TODO: generate BG sound
         data_to_sound.convert_acc_to_sound
