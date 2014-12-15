@@ -77,6 +77,19 @@ Example command sequence:
 1. `cd sound`
 2. `./simulate_collision --sound-assets ./raw_freesound/ --simulate collisions.wav`
 
+#### EqExperiment Runtime ####
+##### **WARNING** #####
+To avoid code complication, we store information that is passed from
+LoaderPlugin to EqExperiment runtime in **fixed location on the disk (`C:\VR14-runtime.json` **,
+so **you cannot run packaged exe on its own**. And you also can't have
+differently configured scene assets / experiment packages on the same
+machine at the same time.
+
+I think current fucking method is enough for relative stable spec
+of subject experiments.
+
+If you're bored, try to refactor implementation by using
+[DataTables](https://www.unrealengine.com/blog/driving-gameplay-with-data-from-excel).
 
 ### Related Repositories ###
 * [reconstruction](https://bitbucket.org/xanxys/reconstruction): this one
