@@ -13,12 +13,12 @@
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "Developer/RawMesh/Public/RawMesh.h"
 #include "ModuleManager.h"
-#include "picojson.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
-//#include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Slate.h"
+
+#include "json/json.h"
 
 #include "LoaderPluginCommands.h"
 
@@ -173,12 +173,14 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 		return;
 	}
 
-	// Get package path
-	/*
-	const FName PackagePath = GetPackagePath();
-	UE_LOG(LoaderPlugin, Log, TEXT("PackagePath: %s"), *PackagePath.ToString());
-	*/
+	// Read specified path.
+	FString selected_path = paths[0];
+	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
 	
+	const std::string file_path(TCHAR_TO_UTF8(*selected_path));
+	Json::Value exp_meta = LoadJsonFromFileNew(file_path);
+
+	return;
 	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
 
 	TArray<FString> ImportFiles;
@@ -186,13 +188,7 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	ImportFiles.Add(TEXT("C:\\VRtemp\\import_Diffuse_0.png"));
 	ImportFiles.Add(TEXT("C:\\VRtemp\\Hachi.wav"));
 	AssetTools.ImportAssets(ImportFiles, TEXT("/Game/AutoLoaded"));
-	
-	return;
 
-	FString selected_path = paths[0];
-	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
-	
-	const std::string file_path(TCHAR_TO_UTF8(*selected_path));
 
 	picojson::object scene_root = LoadJsonFromFile(file_path).get<picojson::object>();
 	auto lights = scene_root["lights"].get<picojson::array>();
@@ -280,6 +276,20 @@ picojson::value FLoaderPlugin::LoadJsonFromFile(const std::string& path) {
 		UE_LOG(LoaderPlugin, Warning, TEXT("Failed to load text; aborting import"));
 	}
 	return root;
+}
+
+
+Json::Value FLoaderPlugin::LoadJsonFromFileNew(const std::string& path) {
+	try {
+		Json::Value root;
+		std::ifstream ifs(path);
+		Json::Reader().parse(ifs, root);
+		return root;
+	}
+	catch (...) {
+		// UE_LOG(LoaderPlugin, Warning, TEXT("Failed to load text; aborting import"));
+		throw std::runtime_error("Couldn't parse " + path);
+	}
 }
 
 AActor* FLoaderPlugin::InsertAssetToScene(FTransform pose, const std::string& asset_path) {

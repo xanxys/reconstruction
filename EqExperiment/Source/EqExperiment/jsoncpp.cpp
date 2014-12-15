@@ -1,3 +1,4 @@
+#include "EqExperiment.h"
 /// Json-cpp amalgated source (http://jsoncpp.sourceforge.net/).
 /// It is intented to be used with #include <json/json.h>
 
@@ -73,7 +74,7 @@ license you like.
 
 
 
-#include <json/json.h>
+#include "json/json.h"
 
 
 // //////////////////////////////////////////////////////////////////////

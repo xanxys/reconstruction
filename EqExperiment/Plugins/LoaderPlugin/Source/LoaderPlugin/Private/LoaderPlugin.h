@@ -5,6 +5,7 @@
 #include "Slate.h"
 
 #include "picojson.h"
+#include "json/json.h"
 
 #include <string>
 
@@ -24,6 +25,8 @@ private:
 	//FName GetPackagePath();
 
 	picojson::value LoadJsonFromFile(const std::string& path);
+	Json::Value LoadJsonFromFileNew(const std::string& path);
+
 	AActor* InsertAssetToScene(FTransform pose, const std::string& asset_path);
 private:
 	TSharedPtr<FUICommandList> commands;
