@@ -23,6 +23,7 @@
 #include "LoaderPluginCommands.h"
 
 const std::string FLoaderPlugin::PathSplitter = "\\";
+const std::string FLoaderPlugin::AltPathSplitter = "/";
 
 std::wstring widen(const std::string& s) {
 	const int n_wstring = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), nullptr, 0);
@@ -187,20 +188,33 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 
 void FLoaderPlugin::UnpackExperiment(const std::string& dir_path) {
 	UE_LOG(LoaderPlugin, Log, TEXT("Unpacking experiment package %s"), widen(dir_path).c_str());
-	const Json::Value meta = LoadJsonFromFileNew(dir_path + PathSplitter + "meta.json");
+	const Json::Value meta = LoadJsonFromFileNew(join(dir_path, "meta.json"));
 
-	UnpackScene(dir_path + "scene");
+	UnpackScene(join(dir_path, "scene"));
 }
 
 void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	UE_LOG(LoaderPlugin, Log, TEXT("Unpacking scene asset %s"), widen(dir_path).c_str());
-	const Json::Value meta = LoadJsonFromFileNew(dir_path + PathSplitter + "meta.json");
+	const Json::Value meta = LoadJsonFromFileNew(join(dir_path, "meta.json"));
 
 	// Check if assumed scale and exported scale are similar enough.
 	if (std::abs(1 - meta["unit_per_meter"].asDouble() / assumed_scale) > 0.01) {
-		UE_LOG(LoaderPlugin, Warning, TEXT("Export scale is too different from UU scale."));
+		UE_LOG(LoaderPlugin, Warning, TEXT("Export scale %f is too different from UU scale %f ."),
+			meta["unit_per_meter"].asDouble(), assumed_scale);
 		throw std::runtime_error("Wrong world scale");
 	}
+
+	// Get scene instantiation from TargetPoint.
+	UWorld* const World = GEditor->GetEditorWorldContext().World();
+	if (!World) {
+		throw std::runtime_error("Couldn't get reference of UWorld");
+	}
+	TArray<AActor*> Targets;
+	UGameplayStatics::GetAllActorsOfClass(World, ATargetPoint::StaticClass(), Targets);
+	for (const AActor* Target : Targets) {
+		UE_LOG(LoaderPlugin, Log, TEXT("Target: %s"), *Target->GetName());
+	}
+		
 	
 	/*
 	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
@@ -224,6 +238,8 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 		const FTransform pose(location + offset);
 		InsertAssetToScene(pose, "/Script/Engine.PointLight");
 	}
+
+
 #if 0
 	// Insert exterior mesh
 	FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
@@ -288,14 +304,52 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 }
 
 std::string FLoaderPlugin::dirname(const std::string& path) {
-	const auto ix_split = path.rfind(PathSplitter);
+	const std::string path_canon = canonicalize(path);
+	const auto ix_split = path_canon.rfind(PathSplitter);
 	if (ix_split == std::string::npos) {
-		return path;
+		return path_canon;
 	}
 	else {
-		return path.substr(0, ix_split) + PathSplitter;
+		return path_canon.substr(0, ix_split) + PathSplitter;
 	}
 }
+
+std::string FLoaderPlugin::canonicalize(const std::string& path) {
+	std::string result;
+
+	int ix_curr = 0;
+	while (true) {
+		const auto ix = path.find(AltPathSplitter, ix_curr);
+		if (ix == std::string::npos) {
+			result += path.substr(ix_curr);
+			break;
+		}
+		else {
+			result += path.substr(ix_curr, ix - ix_curr);
+			result += PathSplitter;
+			ix_curr = ix + AltPathSplitter.size();
+		}
+	}
+	return result;
+}
+
+std::string FLoaderPlugin::join(const std::string& path0, const std::string& path1) {
+	const std::string pc0 = canonicalize(path0);
+	const std::string pc1 = canonicalize(path1);
+	if (pc0.size() < PathSplitter.size()) {
+		return path1;
+	}
+	else {
+		const bool ends_with_spl = pc0.substr(pc0.size() - PathSplitter.size(), PathSplitter.size()) == PathSplitter;
+		if (ends_with_spl) {
+			return pc0 + pc1;
+		}
+		else {
+			return pc0 + PathSplitter + pc1;
+		}
+	}
+}
+
 
 picojson::value FLoaderPlugin::LoadJsonFromFile(const std::string& path) {
 	picojson::value root;
@@ -314,6 +368,9 @@ Json::Value FLoaderPlugin::LoadJsonFromFileNew(const std::string& path) {
 	try {
 		Json::Value root;
 		std::ifstream ifs(path);
+		if (!ifs.is_open()) {
+			throw std::runtime_error("Couldn't open " + path);
+		}
 		Json::Reader().parse(ifs, root);
 		return root;
 	}

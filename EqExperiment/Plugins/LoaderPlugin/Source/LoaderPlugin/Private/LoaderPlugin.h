@@ -34,6 +34,14 @@ private:
 	// C:\foo\bar.txt -> C:\foo\
 	// behavior undefined for directories
 	static std::string dirname(const std::string& path);
+
+	// C:\foo bar.txt -> C:\foo\bar.txt
+	// C:\foo\ bar.txt -> C:\foo\bar.txt
+	// C:\foo\ test -> C:\foo\test
+	static std::string join(const std::string& path0, const std::string& path1);
+
+	// Convert all AltPathSplitter to PathSplitter
+	static std::string canonicalize(const std::string& path);
 	
 	picojson::value LoadJsonFromFile(const std::string& path);
 	Json::Value LoadJsonFromFileNew(const std::string& path);
@@ -42,5 +50,6 @@ private:
 private:
 	const float assumed_scale = 100;  // uu/meter
 	static const std::string PathSplitter;
+	static const std::string AltPathSplitter;
 	TSharedPtr<FUICommandList> commands;
 };
