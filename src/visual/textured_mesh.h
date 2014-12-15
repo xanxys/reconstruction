@@ -33,4 +33,8 @@ public:
 TexturedMesh mergeTexturedMeshes(
 	const std::vector<TexturedMesh>& meshes);
 
+void writeObjMaterial(std::ostream& output,
+	const std::string& texture_path,
+	const std::string& material_name);
+
 }  // namespace

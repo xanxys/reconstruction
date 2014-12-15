@@ -163,8 +163,10 @@ public:
 	// Serialize this mesh in ASCII PLY format.
 	// with UV coordinates.
 	// condition: Vertex = Eigen::Vector2f
-	void serializeObjWithUv(std::ostream& output, std::string mtllib) const {
-		output << "mtllib " << mtllib << std::endl;
+	void serializeObjWithUv(std::ostream& output,
+			const std::string& mat_lib_path,
+			const std::string& mat_name) const {
+		output << "mtllib " << mat_lib_path << std::endl;
 		for(const auto vertex : vertices) {
 			output << "v " <<
 				vertex.first(0) << " " <<
@@ -179,7 +181,7 @@ public:
 		}
 
 		output << "g " << "test_obj" << std::endl;
-		output << "usemtl " << "obj_uv" << std::endl;
+		output << "usemtl " << mat_name << std::endl;
 		for(const auto triangle : triangles) {
 			output << "f " <<
 				(1 + std::get<0>(triangle)) << "/" << (1 + std::get<0>(triangle)) << " " <<
@@ -189,8 +191,10 @@ public:
 	}
 
 	// condition: Vertex = std::pair<Eigen::Vector2f, Eigen::Vector3f>
-	void serializeObjWithUvNormal(std::ostream& output, std::string mtllib) const {
-		output << "mtllib " << mtllib << std::endl;
+	void serializeObjWithUvNormal(std::ostream& output,
+			const std::string& mat_lib_path,
+			const std::string& mat_name) const {
+		output << "mtllib " << mat_lib_path << std::endl;
 		for(const auto vertex : vertices) {
 			output << "v " <<
 				vertex.first(0) << " " <<
@@ -212,7 +216,7 @@ public:
 		}
 
 		output << "g " << "test_obj" << std::endl;
-		output << "usemtl " << "obj_uv" << std::endl;
+		output << "usemtl " << mat_name << std::endl;
 		for(const auto triangle : triangles) {
 			output << "f " <<
 				(1 + triangle[0]) << "/" << (1 + triangle[0]) << "/" << (1 + triangle[0]) << " " <<

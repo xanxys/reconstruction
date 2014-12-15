@@ -41,8 +41,12 @@ TEST(MeshPipelineTest, IsosurfaceWorks) {
 
 	std::ofstream test_uv("/tmp/recon-MeshPipelineTest-test_uv.obj");
 	std::ofstream test_mat("/tmp/recon-MeshPipelineTest-test_uv.mtl");
-	mesh_uv.serializeObjWithUv(test_uv, "/tmp/recon-MeshPipelineTest-test_uv.mtl");
-	recon::writeObjMaterial(test_mat, "/tmp/recon-MeshPipelineTest-uv_3d.png");
+	mesh_uv.serializeObjWithUv(test_uv,
+		"/tmp/recon-MeshPipelineTest-test_uv.mtl",
+		"mat_name");
+	recon::writeObjMaterial(test_mat,
+		"/tmp/recon-MeshPipelineTest-uv_3d.png",
+		"mat_name");
 }
 
 TEST(BundleAssetPipelineTest, ToySceneDoesntCrashWithoutDebug) {

@@ -29,10 +29,10 @@ void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
 
 	// Write bunch of files.
 	std::ofstream f_obj((dir_path / name_obj).string());
-	mesh.serializeObjWithUv(f_obj, name_mtl.string());
+	mesh.serializeObjWithUv(f_obj, name_mtl.string(), "the_material");
 
 	std::ofstream f_mtl((dir_path / name_mtl).string());
-	writeObjMaterial(f_mtl, name_diffuse.string());
+	writeObjMaterial(f_mtl, name_diffuse.string(), "the_material");
 
 	cv::imwrite((dir_path / name_diffuse).string(), diffuse);
 }
@@ -44,10 +44,12 @@ void TexturedMesh::writeWavefrontObjectFlat(std::string prefix) const {
 
 	// Write bunch of files.
 	std::ofstream f_obj(name_obj.string());
-	mesh.serializeObjWithUv(f_obj, name_mtl.filename().string());
+	mesh.serializeObjWithUv(f_obj, name_mtl.filename().string(),
+		"the_material");
 
 	std::ofstream f_mtl(name_mtl.string());
-	writeObjMaterial(f_mtl, name_diffuse.filename().string());
+	writeObjMaterial(f_mtl, name_diffuse.filename().string(),
+		"the_material");
 
 	cv::imwrite(name_diffuse.string(), diffuse);
 }
@@ -97,6 +99,17 @@ TexturedMesh mergeTexturedMeshes(
 	result.diffuse = result_diffuse;
 	result.mesh = result_mesh;
 	return result;
+}
+
+void writeObjMaterial(
+		std::ostream& output,
+		const std::string& texture_path,
+		const std::string& material_name) {
+	output << "newmtl " << material_name << std::endl;
+	output << "Ka 1.0 1.0 1.0" << std::endl;
+	output << "Kd 1.0 1.0 1.0" << std::endl;
+	output << "Ks 0.0 0.0 0.0" << std::endl;
+	output << "map_Kd " << texture_path << std::endl;
 }
 
 }  // namespace

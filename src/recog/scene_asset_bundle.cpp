@@ -94,27 +94,37 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 			const TexturedMesh& tm) {
 		// Issue id and path.
 		const std::string id = std::to_string(count++);
-		const std::string mesh_name = "sm_" + id + ".obj";
-		const std::string tex_name = "diffuse_" + id + ".png";
+		const std::string mesh_path = "sm_" + id + ".obj";
+		const std::string tex_path = "diffuse_" + id + ".png";
+		const std::string mtl_path = "mat_" + id + ".mtl";
 		// Predicted assets name when using
 		// IAssetTools::ImportAssets. LoaderPlugin
 		// need to make sure asset auto naming convention
 		// is kept same.
 		const std::string mesh_asset = "sm_" + id;
 		const std::string tex_asset = "diffuse_" + id;
+		const std::string mtl_asset = "mat_" + id;
 		// Write to paths.
-		std::ofstream of((dir_path / fs::path(mesh_name)).string());
 		TriangleMesh<Eigen::Vector2f> mesh_scaled = tm.mesh;
 		for(auto& vert : mesh_scaled.vertices) {
 			vert.first *= ws;
 		}
-		assignNormal(mesh_scaled).serializeObjWithUvNormal(of, "");
-		cv::imwrite((dir_path / fs::path(tex_name)).string(), tm.diffuse);
+		{
+			std::ofstream of((dir_path / fs::path(mesh_path)).string());
+			assignNormal(mesh_scaled).serializeObjWithUvNormal(of,
+				mtl_path, mtl_asset);
+		}
+		cv::imwrite((dir_path / fs::path(tex_path)).string(), tm.diffuse);
+		{
+			std::ofstream of((dir_path / fs::path(mtl_path)).string());
+			writeObjMaterial(of, tex_path, mtl_asset);
+		}
 
 		Json::Value meta_object;
-		meta_object["static_mesh"] = mesh_name;
+		meta_object["static_mesh"] = mesh_path;
+		meta_object["material"]["diffuse"] = tex_path;
 		meta_object["static_mesh:asset"] = mesh_asset;
-		meta_object["material"]["diffuse"] = tex_name;
+		meta_object["material:asset"] = mtl_asset;
 		meta_object["material"]["diffuse:asset"] = tex_asset;
 		return meta_object;
 	};
