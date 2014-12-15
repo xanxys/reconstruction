@@ -254,6 +254,20 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 		throw std::runtime_error("Actor creation failure");
 	}
 
+	// Pack runtime info to reset NoisyActors at proper locations.
+	Json::Value RuntimeInfo;
+	for (const auto& iobj : meta["interior_objects"]) {
+		Json::Value InteriorRI;
+		InteriorRI["static_mesh:asset_full"] = AutoLoadAssetPath + "/" +
+			iobj["static_mesh:asset"].asString() + "." + iobj["static_mesh:asset"].asString();
+		RuntimeInfo["interior_objects"].append(InteriorRI);
+	}
+	{
+		std::ofstream ofs(RuntimeInfoPath);
+		ofs << Json::FastWriter().write(RuntimeInfo) << std::endl;
+	}
+	UE_LOG(LoaderPlugin, Log, TEXT("Runtime info written to %s"), widen(RuntimeInfoPath).c_str());
+
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
 #if 0
 	for (const auto& object : scene_root["objects"].get<picojson::array>()) {
