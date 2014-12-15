@@ -57,4 +57,7 @@ private:
 	const std::string TargetRoom = "LoadMarker_Room";
 	const std::string TargetPlayer = "LoadMarker_Player";
 	const std::string AutoLoadAssetPath = "/Game/AutoLoaded";
+
+	// must be kept in sync with EqSimGameMode.h
+	const std::string RuntimeInfoPath = "C:\\VR14\\runtime.json";
 };

@@ -6,7 +6,6 @@
 #include <fstream>
 #include <string>
 
-#include "picojson.h"
 #include "InertialForceActor.h"
 #include "NoisyActor.h"
 
@@ -15,6 +14,8 @@ AEqSimGameMode::AEqSimGameMode(const class FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	DefaultPawnClass = ConstructorHelpers::FClassFinder<APawn>(TEXT("/Game/Blueprints/MyCharacter")).Class;
+
+
 
 	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/EarthquakeBG.EarthquakeBG"));
 	EqBgSound = Sound.Object;
@@ -25,45 +26,20 @@ AEqSimGameMode::AEqSimGameMode(const class FPostConstructInitializeProperties& P
 
 void AEqSimGameMode::BeginPlay() {
 	Super::BeginPlay();
-	UWorld* const World = GetWorld();
-	if (!World) {
-		return;
-	}
 
-	picojson::value root;
-	
-	const std::string path_derived = "C:\\VR14a\\derived_data.json";
-	std::ifstream test(path_derived);
-	if (!test.is_open()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("derived data json not found; reverting to toy mode"));
 
-		// "toy" mode
-		ANoisyActor* Actor0 = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());
-		Actor0->LoadInterior("SM_Lamp_Wall");
-
-		ANoisyActor* Actor1 = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());
-		Actor1->LoadInterior("SM_Lamp_Ceiling");
-
-		ANoisyActor* Actor2 = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());
-		Actor2->LoadInterior("SM_PillarFrame");
-		return;
-	}
-	test >> root;
-
-	if (root.get<picojson::object>()["test"].get<std::string>() == "good") {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Ext load ok"));
-		auto interior = root.get<picojson::object>()["interior"].get<picojson::array>();
-		for (auto& entry : interior) {
-			ANoisyActor* Actor = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());
-			Actor->LoadInteriorFullPath(entry.get<picojson::object>()["StaticMesh"].get<std::string>());
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("+interior object"));
+	// Load critical runtime info from fucking FIXED PATH.
+	{
+		std::ifstream ifs(RuntimeInfoPath);
+		if (!ifs.is_open()) {
+			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, TEXT("runtime info not found; CANNOT CONTINUE!"));
+			return;
 		}
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green, TEXT("Loaded: ready to go"));
+		Json::Reader().parse(ifs, RuntimeInfo);
 	}
-	else {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Ext load failed"));
-	}
-
+	SpawnInteriorObjects();
+	
+#if 0
 	// Accel gen.
 	{
 		// Load acc profile.
@@ -107,6 +83,33 @@ void AEqSimGameMode::BeginPlay() {
 	if (EqBgSound) {
 		UGameplayStatics::PlaySoundAtLocation(World, EqBgSound, FVector(0, 0, -1000));
 	}
+#endif
+}
+
+void AEqSimGameMode::PrepareSubExperiment(int SubExperimentId) {
+
+}
+
+void AEqSimGameMode::SpawnInteriorObjects() {
+	UWorld* const World = GetWorld();
+	if (!World || RuntimeInfo.isNull()) {
+		return;
+	}
+
+	for (const auto& IObj : RuntimeInfo["interior_objects"]) {
+		ANoisyActor* Actor = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());
+		Actor->LoadInteriorFullPath(IObj["static_mesh:asset_full"].asString());
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("+interior object"));
+	}
+}
+
+void AEqSimGameMode::ResetInteriorObjects() {
+	UWorld* const World = GetWorld();
+	if (!World || RuntimeInfo.isNull()) {
+		return;
+	}
+
+
 }
 
 
