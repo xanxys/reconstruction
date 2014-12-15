@@ -219,47 +219,38 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	const FVector RoomOrigin = RoomMarker->GetActorLocation();
 	UE_LOG(LoaderPlugin, Log, TEXT("Instantiating at %s"), *RoomOrigin.ToString());
 	
-	FVector PlayerOrigin;
-		
+	const FVector RoomOffset = RoomOrigin + FVector(0, 0, -meta["floor_level"].asDouble());
 	
-	/*
-	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
 
-	TArray<FString> ImportFiles;
-	ImportFiles.Add(TEXT("C:\\VRtemp\\import_SM_0.obj"));
-	ImportFiles.Add(TEXT("C:\\VRtemp\\import_Diffuse_0.png"));
-	ImportFiles.Add(TEXT("C:\\VRtemp\\Hachi.wav"));
-	AssetTools.ImportAssets(ImportFiles, TEXT("/Game/AutoLoaded"));
-	*/
-
+	// Instantiate lights.
 	UE_LOG(LoaderPlugin, Log, TEXT("* Number of Lights: %d"), meta["lights"].size());
-
-	FVector offset(0, 0, 2.0);
-
 	for (const auto& light : meta["lights"]) {
 		const FVector location(
 			light["pos"]["x"].asDouble(),
 			light["pos"]["y"].asDouble(),
 			light["pos"]["z"].asDouble());
-		const FTransform pose(location + offset);
+		const FTransform pose(location + RoomOffset);
 		InsertAssetToScene(pose, "/Script/Engine.PointLight");
 	}
 
+	// Instantiate exterior mesh. (add assets, and then add actor using the assets).
+	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+	TArray<FString> ImportFiles;
+	ImportFiles.Add(widen(join(dir_path, meta["exterior"]["static_mesh"].asString())).c_str());
+	ImportFiles.Add(widen(join(dir_path, meta["exterior"]["material"]["diffuse"].asString())).c_str());
+	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
 
-#if 0
-	// Insert exterior mesh
-	FTransform pose(FQuat(0, 0, 0, 1), offset * uu_per_meter);
-	AActor* actor = InsertAssetToScene(pose, "/Game/Auto/Object.Object");
+	const FTransform pose(FQuat(0, 0, 0, 1), RoomOffset);
+	const std::string SMAssetName = meta["exterior"]["static_mesh:asset"].asString();
+	AActor* actor = InsertAssetToScene(pose, AutoLoadAssetPath + "/" + SMAssetName + "." + SMAssetName);
 	if (!actor) {
 		UE_LOG(LoaderPlugin, Error, TEXT("Failed to insert exterior mesh"));
-		return;
+		throw std::runtime_error("Actor creation failure");
 	}
 	auto* component = actor->FindComponentByClass<USceneComponent>();
-	if (component) {
-		component->SetWorldScale3D(FVector(uu_per_meter, uu_per_meter, uu_per_meter));
-	}
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
+#if 0
 	for (const auto& object : scene_root["objects"].get<picojson::array>()) {
 		const std::string oid = object.get<std::string>();
 		const std::string name = "flat_poly_" + oid + "object";

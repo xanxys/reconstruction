@@ -58,4 +58,5 @@ private:
 
 	const std::string TargetRoom = "LoadMarker_Room";
 	const std::string TargetPlayer = "LoadMarker_Player";
+	const std::string AutoLoadAssetPath = "/Game/AutoLoaded";
 };
