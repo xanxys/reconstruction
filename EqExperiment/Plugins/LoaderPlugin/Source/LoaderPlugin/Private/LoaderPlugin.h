@@ -21,6 +21,8 @@ private:
 	void OnLoadButtonClicked();
 	void AddToolbarExtension(FToolBarBuilder& builder);
 
+	//FName GetPackagePath();
+
 	picojson::value LoadJsonFromFile(const std::string& path);
 	AActor* InsertAssetToScene(FTransform pose, const std::string& asset_path);
 private:

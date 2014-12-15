@@ -9,6 +9,7 @@
 
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
+#include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
 #include "Developer/RawMesh/Public/RawMesh.h"
 #include "ModuleManager.h"
@@ -162,15 +163,32 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 	// crash when ParentWindowWindowHandle is nullptr?
 	const bool selected = desktop->OpenFileDialog(
 		ParentWindowWindowHandle,
-		TEXT("Choose Scan Directory"),
+		TEXT("Choose Experiment Package"),
 		TEXT(""),
 		TEXT(""),
-		TEXT("Scene Description (*.json)|*.json"),
+		TEXT("Experiment Metadata (*.json)|*.json"),
 		EFileDialogFlags::None,
 		paths);
 	if (!selected || paths.Num() < 1) {
 		return;
 	}
+
+	// Get package path
+	/*
+	const FName PackagePath = GetPackagePath();
+	UE_LOG(LoaderPlugin, Log, TEXT("PackagePath: %s"), *PackagePath.ToString());
+	*/
+	
+	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+
+	TArray<FString> ImportFiles;
+	ImportFiles.Add(TEXT("C:\\VRtemp\\import_SM_0.obj"));
+	ImportFiles.Add(TEXT("C:\\VRtemp\\import_Diffuse_0.png"));
+	ImportFiles.Add(TEXT("C:\\VRtemp\\Hachi.wav"));
+	AssetTools.ImportAssets(ImportFiles, TEXT("/Game/AutoLoaded"));
+	
+	return;
+
 	FString selected_path = paths[0];
 	UE_LOG(LoaderPlugin, Log, TEXT("Loading scan directory %s"), *selected_path);
 	
