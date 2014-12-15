@@ -64,17 +64,20 @@ void SceneAssetBundle::cleanDirectory(const fs::path& dir_path) {
 	}
 }
 
-void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
-	const float world_scale = 100;  // meter -> uu
+void SceneAssetBundle::addPointLight(const Eigen::Vector3f& pos) {
+	point_lights.push_back(pos);
+}
 
+void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	Json::Value metadata;
 	metadata["unit_per_meter"] = world_scale;
 	// Add json-only objects.
-	for(const auto& pos : point_lights) {
+	for(const auto& pos_w : point_lights) {
+		const Eigen::Vector3f pos_uw = pos_w * world_scale;
 		Json::Value light;
-		light["pos"]["x"] = pos(0);
-		light["pos"]["y"] = pos(1);
-		light["pos"]["z"] = pos(2);
+		light["pos"]["x"] = pos_uw(0);
+		light["pos"]["y"] = pos_uw(1);
+		light["pos"]["z"] = pos_uw(2);
 		metadata["lights"].append(light);
 	}
 	metadata["collision_count"] = collision_count;
