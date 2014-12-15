@@ -80,7 +80,7 @@ Example command sequence:
 #### EqExperiment Runtime ####
 ##### **WARNING** #####
 To avoid code complication, we store information that is passed from
-LoaderPlugin to EqExperiment runtime in **fixed location on the disk (`C:\VR14-runtime.json` **,
+LoaderPlugin to EqExperiment runtime in **fixed location on the disk (`C:\VR14\runtime.json` **,
 so **you cannot run packaged exe on its own**. And you also can't have
 differently configured scene assets / experiment packages on the same
 machine at the same time.
@@ -90,6 +90,9 @@ of subject experiments.
 
 If you're bored, try to refactor implementation by using
 [DataTables](https://www.unrealengine.com/blog/driving-gameplay-with-data-from-excel).
+
+You **need to manually create** `C:\VR14` to avoid any User Access Control
+problems. (symptom: LoaderPlugin not writing the file)
 
 ### Related Repositories ###
 * [reconstruction](https://bitbucket.org/xanxys/reconstruction): this one
