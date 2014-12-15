@@ -21,7 +21,7 @@ InteriorObject::InteriorObject(
 	// Transform mesh to local coordinates.
 	const Eigen::Affine3f world_to_local = local_to_world.inverse();
 	this->mesh = mesh;
-	for(auto vert : this->mesh.mesh.vertices) {
+	for(auto& vert : this->mesh.mesh.vertices) {
 		vert.first = world_to_local * vert.first;
 	}
 	for(const auto& coll_obb : collision) {
