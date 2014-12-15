@@ -1033,6 +1033,9 @@ void populateToyScene(SceneAssetBundle& bundle) {
 		bundle.setExteriorMesh(tm);
 	}
 
+	// Add Light.
+	bundle.addPointLight(Eigen::Vector3f(0, 0, 2.95));
+
 	// Add InteriorObjects.
 	{
 		TexturedMesh tm;
