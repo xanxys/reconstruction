@@ -996,7 +996,9 @@ void recognizeScene(SceneAssetBundle& bundle,
 		bundle, rframe,
 		scans_aligned, extrusion_mesh,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
-	bundle.point_lights = exterior.second;
+	for(const auto& pos : exterior.second) {
+		bundle.addPointLight(pos);
+	}
 	bundle.setExteriorMesh(exterior.first);
 }
 

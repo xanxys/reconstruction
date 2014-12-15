@@ -59,6 +59,8 @@ public:
 	// Sound
 	void addCollisionSoundFromDir(const std::string& path);
 
+	void addPointLight(const Eigen::Vector3f& pos);
+
 	// Queue to serialize given mesh, create a directory to contain
 	// bunch of material/texture files if necessary.
 	void addMesh(std::string name, const TriangleMesh<std::nullptr_t>& mesh);
@@ -88,13 +90,13 @@ private:
 
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;
-public:
-	// actual room contents
-	// TODO: make these private for instant serialziation.
-	std::vector<Eigen::Vector3f> point_lights;
 private:
-	TexturedMesh exterior_mesh;
+	// UE4 export settings.
+	const float world_scale = 100;  // meter -> uu
 
+	// actual room contents
+	std::vector<Eigen::Vector3f> point_lights;
+	TexturedMesh exterior_mesh;
 	std::vector<TexturedMesh> interior_objects;
 	std::vector<InteriorObject> interiors;
 
