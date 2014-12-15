@@ -9,6 +9,7 @@ namespace fs = boost::filesystem;
 SceneAssetBundle::SceneAssetBundle(
 		const std::string& dir_path, bool debug) :
 		debug_count(0), collision_count(0),
+		z_floor(0),
 		dir_path(boost::filesystem::absolute(dir_path)),
 		debug(debug) {
 	cleanDirectory(dir_path);
@@ -64,6 +65,10 @@ void SceneAssetBundle::cleanDirectory(const fs::path& dir_path) {
 	}
 }
 
+void SceneAssetBundle::setFloorLevel(float z_floor) {
+	this->z_floor = z_floor;
+}
+
 void SceneAssetBundle::addPointLight(const Eigen::Vector3f& pos) {
 	point_lights.push_back(pos);
 }
@@ -83,27 +88,35 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	metadata["collision_count"] = collision_count;
 
 	// Add json+file data.
+	const float ws = world_scale;
 	int count = 0;
-	for(const auto& interior : interiors) {
-		// Issue id.
+	auto serializeMesh = [&count, &dir_path, ws](
+			const TexturedMesh& tm) {
+		// Issue id and path.
 		const std::string id = std::to_string(count++);
-		// Write to paths.
 		const std::string mesh_name = "sm_" + id + ".obj";
 		const std::string tex_name = "diffuse_" + id + ".png";
-		const auto mesh = interior.getMesh();
-		{
-			std::ofstream of((dir_path / fs::path(mesh_name)).string());
-			assignNormal(mesh.mesh)
-				.serializeObjWithUvNormal(of, "");
+		// Write to paths.
+		std::ofstream of((dir_path / fs::path(mesh_name)).string());
+		TriangleMesh<Eigen::Vector2f> mesh_scaled = tm.mesh;
+		for(auto& vert : mesh_scaled.vertices) {
+			vert.first *= ws;
 		}
-		cv::imwrite((dir_path / fs::path(tex_name)).string(), mesh.diffuse);
+		assignNormal(mesh_scaled).serializeObjWithUvNormal(of, "");
+		cv::imwrite((dir_path / fs::path(tex_name)).string(), tm.diffuse);
 
 		Json::Value meta_object;
 		meta_object["static_mesh"] = mesh_name;
 		meta_object["material"]["diffuse"] = tex_name;
+		return meta_object;
+	};
 
+	for(const auto& interior : interiors) {
+		auto meta_object = serializeMesh(interior.getMesh());
 		metadata["interior_objects"].append(meta_object);
 	}
+	metadata["exterior"] = serializeMesh(exterior_mesh);
+	metadata["floor_level"] = world_scale * z_floor;
 
 	{
 		std::ofstream json_file((dir_path / fs::path("meta.json")).string());
