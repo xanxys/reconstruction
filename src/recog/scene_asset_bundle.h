@@ -46,6 +46,9 @@ public:
 	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
 	void addDebugPointCloud(std::string name, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 
+	// Coordinate system.
+	void setFloorLevel(float z_floor);
+
 	// Add a TexturedMesh corresponding to a single object.
 	// Debug results are written immediately to disk,
 	// while final results are written at destruction.
@@ -95,6 +98,7 @@ private:
 	const float world_scale = 100;  // meter -> uu
 
 	// actual room contents
+	float z_floor;
 	std::vector<Eigen::Vector3f> point_lights;
 	TexturedMesh exterior_mesh;
 	std::vector<TexturedMesh> interior_objects;

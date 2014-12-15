@@ -1006,21 +1006,44 @@ void recognizeScene(SceneAssetBundle& bundle,
 void populateToyScene(SceneAssetBundle& bundle) {
 	INFO("Populating bundle with toys");
 
-	TexturedMesh tex;
-	tex.mesh = mapSecond(assignUV(createBox(Eigen::Vector3f(0, 0, 0.5), 0.5)));
-	tex.diffuse = cv::Mat(256, 256, CV_8UC3);
+	cv::Mat grid_tex(256, 256, CV_8UC3);
 	for(const int y : boost::irange(0, 256)) {
 		for(const int x : boost::irange(0, 256)) {
-			tex.diffuse.at<cv::Vec3b>(y, x) =
+			grid_tex.at<cv::Vec3b>(y, x) =
 				((x % 16 == 0) || (y % 16 == 0)) ?
 				cv::Vec3b(0, 0, 0) : cv::Vec3b(255, 255, 255);
 		}
 	}
 
-	std::vector<OBB3f> collisions;
-	collisions.emplace_back(AABB3f(Eigen::Vector3f(-0.5, -0.5, 0), Eigen::Vector3f(0.5, 0.5, 1)));
-	InteriorObject iobj(tex, collisions);
-	bundle.addInteriorObject(iobj);
+	// Set coordinates.
+	bundle.setFloorLevel(0);
+
+	// Set ExteriorMesh.
+	{
+		// Create 6x4x3 meter room.
+		TexturedMesh tm;
+		tm.mesh = mapSecond(assignUV(
+			flipTriangles(
+			createBox(Eigen::Vector3f(0, 0, 1.5),
+				Eigen::Vector3f(3, 0, 0),
+				Eigen::Vector3f(0, 2, 0),
+				Eigen::Vector3f(0, 0, 1.5)))));
+		tm.diffuse = grid_tex;
+
+		bundle.setExteriorMesh(tm);
+	}
+
+	// Add InteriorObjects.
+	{
+		TexturedMesh tm;
+		tm.mesh = mapSecond(assignUV(createBox(Eigen::Vector3f(0, 0, 0.5), 0.5)));
+		tm.diffuse = grid_tex;
+
+		std::vector<OBB3f> collisions;
+		collisions.emplace_back(AABB3f(Eigen::Vector3f(-0.5, -0.5, 0), Eigen::Vector3f(0.5, 0.5, 1)));
+		InteriorObject iobj(tm, collisions);
+		bundle.addInteriorObject(iobj);
+	}
 }
 
 

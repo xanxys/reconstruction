@@ -236,6 +236,19 @@ TriangleMesh<std::nullptr_t> dropAttrib(const TriangleMesh<Vertex>& mesh) {
 	return new_mesh;
 }
 
+// Flip triangles by reversing triangle rotation CCW <-> CW
+template<typename Vertex>
+TriangleMesh<Vertex> flipTriangles(const TriangleMesh<Vertex>& mesh) {
+	TriangleMesh<Vertex> result;
+	result.vertices = mesh.vertices;
+	for(const auto& tri : mesh.triangles) {
+		result.triangles.push_back({{
+			tri[2], tri[1], tri[0]
+		}});
+	}
+	return result;
+}
+
 // Calculate vertex normals assuming sharp edges.
 TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>>
 	assignNormal(const TriangleMesh<Eigen::Vector2f>& mesh);
