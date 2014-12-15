@@ -1006,14 +1006,19 @@ void recognizeScene(SceneAssetBundle& bundle,
 void populateToyScene(SceneAssetBundle& bundle) {
 	INFO("Populating bundle with toys");
 
-	cv::Mat grid_tex(256, 256, CV_8UC3);
-	for(const int y : boost::irange(0, 256)) {
-		for(const int x : boost::irange(0, 256)) {
-			grid_tex.at<cv::Vec3b>(y, x) =
-				((x % 16 == 0) || (y % 16 == 0)) ?
-				cv::Vec3b(0, 0, 0) : cv::Vec3b(255, 255, 255);
+	// Create a texture image of a 1px black grid, overlaid
+	// on top of flat base_color background.
+	auto gen_grid_tex = [](const cv::Vec3b base_color) {
+		cv::Mat grid_tex(256, 256, CV_8UC3);
+		for(const int y : boost::irange(0, 256)) {
+			for(const int x : boost::irange(0, 256)) {
+				grid_tex.at<cv::Vec3b>(y, x) =
+					((x % 16 == 0) || (y % 16 == 0)) ?
+					cv::Vec3b(0, 0, 0) : base_color;
+			}
 		}
-	}
+		return grid_tex;
+	};
 
 	// Set coordinates.
 	bundle.setFloorLevel(0);
@@ -1028,7 +1033,7 @@ void populateToyScene(SceneAssetBundle& bundle) {
 				Eigen::Vector3f(3, 0, 0),
 				Eigen::Vector3f(0, 2, 0),
 				Eigen::Vector3f(0, 0, 1.5)))));
-		tm.diffuse = grid_tex;
+		tm.diffuse = gen_grid_tex(cv::Vec3b(255, 255, 255));
 
 		bundle.setExteriorMesh(tm);
 	}
@@ -1036,11 +1041,11 @@ void populateToyScene(SceneAssetBundle& bundle) {
 	// Add Light.
 	bundle.addPointLight(Eigen::Vector3f(0, 0, 2.95));
 
-	// Add InteriorObjects.
+	// Add colored InteriorObjects.
 	{
 		TexturedMesh tm;
 		tm.mesh = mapSecond(assignUV(createBox(Eigen::Vector3f(0, 0, 0.5), 0.5)));
-		tm.diffuse = grid_tex;
+		tm.diffuse = gen_grid_tex(cv::Vec3b(200, 255, 200));
 
 		std::vector<OBB3f> collisions;
 		collisions.emplace_back(AABB3f(Eigen::Vector3f(-0.5, -0.5, 0), Eigen::Vector3f(0.5, 0.5, 1)));
