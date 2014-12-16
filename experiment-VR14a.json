@@ -5,21 +5,27 @@
 			"point": "MYG004",
 			"date": "1103111446",
 			"comment": "scale=6.6 (max)",
-			"acc_scale": 1.0
+			"acc_scale": 1.0,
+			"t_begin": 20,
+			"t_end": 140
 		},
 		{
 			"type": "K-NET",
 			"point": "GNM011",
 			"date": "1103111446",
 			"comment": "scale=5.0",
-			"acc_scale": 1.0
+			"acc_scale": 1.0,
+			"t_begin": 20,
+			"t_end": 140
 		},
 		{
 			"type": "K-NET",
 			"point": "AKT006",
 			"date": "1103111446",
 			"comment": "scale=4.0",
-			"acc_scale": 1.0
+			"acc_scale": 1.0,
+			"t_begin": 20,
+			"t_end": 140
 		}
 	]
 }

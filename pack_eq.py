@@ -19,8 +19,11 @@ import os.path
 import json
 import shutil
 import tarfile
+import math
 import numpy as np
 import data_to_sound
+import simulate_collision
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -156,12 +159,32 @@ def process_quake(package_path, knet_path, quake_desc):
     freq = 100
     logger.info("Loaded %s-shaped acceleration at %f Hz" % (acc3d.shape, freq))
 
+    # Choose subregion
+    ts = np.arange(len(acc3d), dtype=float) / freq
+    acc3d = acc3d[(quake_desc["t_begin"] <= ts) & (ts <= quake_desc["t_end"])]
+    logger.info("Choosing %d samples of interest", len(acc3d))
+
+    # Output as sound.
     bg_name = "bg-%s.wav" % quake_desc["point"]
     bg_path = os.path.join(package_path, bg_name)
     data_to_sound.convert_acc_to_sound(acc3d, freq, bg_path)
 
+    # Output as acceleration wave.
+    framerate = 60
+    assert(framerate < freq)
+    low_acc3d = []
+    for axis in range(3):
+        samples = simulate_collision.butter_lowpass_filter(
+            acc3d[:, axis], framerate / 2, freq)
+        low_acc3d.append(samples)
+    low_acc3d = np.array(low_acc3d).T
+
     return {
-        "bg_sound": bg_name
+        "bg_sound": bg_name,
+        "accel": {
+            "acc": [list(map(float, v)) for v in low_acc3d],
+            "freq": freq
+        }
     }
 
 
