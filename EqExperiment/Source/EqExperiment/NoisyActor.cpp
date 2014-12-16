@@ -15,6 +15,7 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	StaticMeshComponent->SetStaticMesh(StaticMesh.Object);
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
+	StaticMeshComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
 	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	StaticMeshComponent->SetNotifyRigidBodyCollision(true);
@@ -48,6 +49,13 @@ void ANoisyActor::LoadInteriorFullPath(const std::string& name) {
 		return;
 	}
 	StaticMeshComponent->SetStaticMesh(StaticMesh);
+
+	// Redo collision settings just in case.
+	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
+	StaticMeshComponent->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	StaticMeshComponent->SetNotifyRigidBodyCollision(true);
 }
 
 void ANoisyActor::BeginPlay() {
