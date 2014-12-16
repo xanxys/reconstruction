@@ -12,13 +12,16 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable)
 class EQEXPERIMENT_API AEqSimGameMode : public AGameMode
 {
 	GENERATED_UCLASS_BODY()
 
 	void BeginPlay() override;
 
+	// Reset all interior object poses.
+	UFUNCTION(BlueprintCallable, Category="EqSim")
+	void ResetInteriorObjects();
 
 	void PrepareSubExperiment(int SubExperimentId);
 	
@@ -28,8 +31,7 @@ private:
 	// DO NOT CALL THIS TWICE.
 	void SpawnInteriorObjects();
 
-	// Reset all interior object poses.
-	void ResetInteriorObjects();
+
 
 	static FTransform DeserializeTransform(const Json::Value& Trans);
 private:

@@ -116,6 +116,8 @@ void AEqSimGameMode::ResetInteriorObjects() {
 		return;
 	}
 
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("Resetting"));
+
 	// Remove all live actors spawned by SpawnInteriorObjects.
 	for (auto It = TActorIterator<ANoisyActor>(World); It; ++It) {
 		const std::string name = TCHAR_TO_UTF8(*It->GetName());
