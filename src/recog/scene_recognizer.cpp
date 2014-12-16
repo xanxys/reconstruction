@@ -999,7 +999,11 @@ void recognizeScene(SceneAssetBundle& bundle,
 	for(const auto& pos : exterior.second) {
 		bundle.addPointLight(pos);
 	}
-	bundle.setExteriorMesh(exterior.first);
+	bundle.setInteriorBoundary(
+		InteriorBoundary(
+			exterior.first,
+			rframe.wall_polygon,
+			rframe.getHRange()));
 }
 
 
@@ -1023,9 +1027,10 @@ void populateToyScene(SceneAssetBundle& bundle) {
 	// Set coordinates.
 	bundle.setFloorLevel(0);
 
-	// Set ExteriorMesh.
+	// Set InteriorBoundary.
 	{
-		// Create 6x4x3 meter room.
+		// Create 6x4x3 meter room, spanning
+		// [-3, -2, 0], [3, 2, 3]
 		TexturedMesh tm;
 		tm.mesh = mapSecond(assignUV(
 			flipTriangles(
@@ -1035,14 +1040,22 @@ void populateToyScene(SceneAssetBundle& bundle) {
 				Eigen::Vector3f(0, 0, 1.5)))));
 		tm.diffuse = gen_grid_tex(cv::Vec3b(255, 255, 255));
 
-		bundle.setExteriorMesh(tm);
+		std::vector<Eigen::Vector2f> polygon = {
+			{-3, -2},
+			{3, -2},
+			{3, 2},
+			{-3, 2}
+		};
+		std::pair<float, float> z_range = {0, 3};
+		bundle.setInteriorBoundary(
+			InteriorBoundary(tm, polygon, z_range));
 	}
 
 	// Add Light.
 	bundle.addPointLight(Eigen::Vector3f(0, 0, 2.95));
 
 	// Add green InteriorObject (simple cube).
-	// [-0.5, -0.5, 0] * [0.5, 0.5, 1]
+	// [-0.5, -0.5, 0], [0.5, 0.5, 1]
 	{
 		TexturedMesh tm;
 		tm.mesh = mapSecond(assignUV(createBox(Eigen::Vector3f(0, 0, 0.5), 0.5)));
@@ -1054,7 +1067,7 @@ void populateToyScene(SceneAssetBundle& bundle) {
 		bundle.addInteriorObject(iobj);
 	}
 	// Add red InteriorObject (small cube + stick attached on top).
-	// occupating [-1.5, -1.5, 0] * [-1, -1, 1]
+	// occupating [-1.5, -1.5, 0], [-1, -1, 1]
 	//     |   0.5m stick
 	//   |---|  0.5m box
 	//__ |___| __

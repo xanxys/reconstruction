@@ -131,22 +131,40 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 
 	for(const auto& interior : interiors) {
 		auto meta_object = serializeMesh(interior.getMesh());
-		// Add pose
-		const auto pose = interior.getPose();
-		const auto trans = pose.translation() * world_scale;
-		const auto quat = Eigen::Quaternionf(pose.linear());
-		meta_object["pose"] = serializePose(quat, trans);
-		// Add collision as union on OBBs.
-		meta_object["collision_boxes"] = serializeCollisionShape(interior.getCollision());
+		meta_object["pose"] =
+			serializePoseWithScaling(interior.getPose());
+		meta_object["collision_boxes"] =
+			serializeCollisionShapeWithScaling(interior.getCollision());
 		metadata["interior_objects"].append(meta_object);
 	}
-	metadata["exterior"] = serializeMesh(exterior_mesh);
+	// serialize boundary.
+	{
+		const float col_thickness_w = 0.1;
+		if(!boundary) {
+			throw std::runtime_error(
+				"You must call setInteriorBoundary before trying to serialize!");
+		}
+		auto meta_bnd = serializeMesh(boundary->getMesh());
+		meta_bnd["pose"] =
+			serializePoseWithScaling(boundary->getPose());
+		meta_bnd["collision_boxes"] =
+			serializeCollisionShapeWithScaling(
+				boundary->getCollision(col_thickness_w));
+		metadata["boundary"] = meta_bnd;
+	}
 	metadata["floor_level"] = world_scale * z_floor;
 
 	{
 		std::ofstream json_file((dir_path / fs::path("meta.json")).string());
 		json_file << Json::FastWriter().write(metadata);
 	}
+}
+
+Json::Value SceneAssetBundle::serializePoseWithScaling(
+		const Eigen::Affine3f& transf) {
+	const auto trans = transf.translation() * world_scale;
+	const auto quat = Eigen::Quaternionf(transf.linear());
+	return serializePose(quat, trans);
 }
 
 Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, const Eigen::Vector3f& trans) {
@@ -162,7 +180,7 @@ Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, cons
 }
 
 // Make it FKBoxElem (in UE4)-friendly.
-Json::Value SceneAssetBundle::serializeCollisionShape(const std::vector<OBB3f>& obbs) {
+Json::Value SceneAssetBundle::serializeCollisionShapeWithScaling(const std::vector<OBB3f>& obbs) {
 	assert(!obbs.empty());
 	Json::Value col_shape;
 	for(const auto& obb : obbs) {
@@ -216,10 +234,12 @@ void SceneAssetBundle::addInteriorObject(const InteriorObject& iobj) {
 	interiors.push_back(iobj);
 }
 
-void SceneAssetBundle::setExteriorMesh(const TexturedMesh& mesh) {
-	exterior_mesh = mesh;
-	exterior_mesh.writeWavefrontObject(
-		(dir_path / fs::path("exterior_mesh")).string());
+void SceneAssetBundle::setInteriorBoundary(const InteriorBoundary& ibnd) {
+	if(debug) {
+		ibnd.getMesh().writeWavefrontObject(
+			(dir_path / fs::path("debug_exterior_mesh")).string());
+	}
+	boundary = ibnd;
 }
 
 void SceneAssetBundle::addDebugPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {

@@ -19,6 +19,7 @@
 
 #include <logging.h>
 #include <geom/util.h>
+#include <recog/interior_boundary.h>
 #include <recog/interior_object.h>
 #include <visual/textured_mesh.h>
 
@@ -55,8 +56,8 @@ public:
 	// while final results are written at destruction.
 	void addInteriorObject(const InteriorObject& iobj);
 
-	// Set the exterior mesh.
-	void setExteriorMesh(const TexturedMesh& mesh);
+	// Set interior boundary (wall + floor + ceiling)
+	void setInteriorBoundary(const InteriorBoundary& ibnd);
 
 	// Sound
 	void addCollisionSoundFromDir(const std::string& path);
@@ -90,9 +91,10 @@ private:
 
 	void serializeWholeScene() const;
 
+	Json::Value serializePoseWithScaling(const Eigen::Affine3f& transf);
 	Json::Value serializePose(const Eigen::Quaternionf& rot, const Eigen::Vector3f& trans);
 
-	Json::Value serializeCollisionShape(const std::vector<OBB3f>& obbs);
+	Json::Value serializeCollisionShapeWithScaling(const std::vector<OBB3f>& obbs);
 
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;
@@ -103,7 +105,7 @@ private:
 	// actual room contents
 	float z_floor;
 	std::vector<Eigen::Vector3f> point_lights;
-	TexturedMesh exterior_mesh;
+	boost::optional<InteriorBoundary> boundary;
 	std::vector<InteriorObject> interiors;
 
 	// book keeping

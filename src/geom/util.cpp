@@ -17,6 +17,10 @@ Eigen::Vector3f AABB3f::getMax() const {
 	return vmax;
 }
 
+Eigen::Vector3f AABB3f::getCenter() const {
+	return (vmin + vmax) / 2;
+}
+
 Eigen::Vector3f AABB3f::getSize() const {
 	return vmax - vmin;
 }
@@ -56,6 +60,15 @@ OBB3f::OBB3f() {
 OBB3f::OBB3f(const AABB3f& aabb) :
 		center((aabb.getMin() + aabb.getMax()) / 2),
 		axis((aabb.getMax() - aabb.getMin()).asDiagonal()) {
+}
+
+OBB3f::OBB3f(const AABB3f& aabb, const Eigen::Affine3f& pose) {
+	center = pose * aabb.getCenter();
+	axis = pose.linear() * aabb.getSize().asDiagonal();
+}
+
+OBB3f::OBB3f(const Eigen::Vector3f& center, const Eigen::Matrix3f& axis) :
+		center(center), axis(axis) {
 }
 
 AABB3f OBB3f::toAABB() const {
