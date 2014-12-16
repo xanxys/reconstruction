@@ -124,10 +124,11 @@ void AEqSimGameMode::ResetInteriorObjects() {
 		if (ActorNames.find(name) == ActorNames.end()) {
 			continue;
 		}
-		World->RemoveActor(static_cast<AActor*>(*It), false);
+		It->Destroy();
 	}
 	ActorNames.clear();
 
+	SpawnInteriorObjects();
 }
 
 FTransform AEqSimGameMode::DeserializeTransform(const Json::Value& Trans) {
