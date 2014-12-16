@@ -18,6 +18,8 @@ import os
 import os.path
 import json
 import shutil
+import tarfile
+import numpy as np
 import data_to_sound
 
 logging.basicConfig(level=logging.DEBUG)
@@ -35,6 +37,14 @@ def is_scene_asset_shallow(path):
 
 
 class InvalidSceneAsset(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+
+class InvalidExpDesc(Exception):
     def __init__(self, msg):
         self.msg = msg
 
@@ -91,6 +101,70 @@ def copytree_wo_permission(src, dst, ignore=None):
         raise Error(errors)
 
 
+def parse_knet(fobj):
+    """
+    Parse K-NET ascii file.
+    http://www.kyoshin.bosai.go.jp/kyoshin/man/knetform.html
+
+    return: {
+        "accel": acceleration [in cm/s^2]
+        "freq": sampling frequency
+    }
+    """
+    metadata = {}
+    for i in range(17):
+        entry = fobj.readline()
+        key = entry[:18].rstrip().decode('ascii')
+        value = entry[18:].rstrip().decode('utf8')
+        metadata[key] = value
+
+    if metadata["Scale Factor"] != "3920(gal)/6182761":
+        raise Exception("Unknown scale factor in k-net file")
+
+    values = []
+    for line in fobj:
+        values += list(map(float, line.split()))
+    acc = np.array(values) * (3920 / 6182761)
+    if metadata["Sampling Freq(Hz)"] != "100Hz":
+        raise Exception("Unknown sampling frequency")
+
+    return {
+        "accel": acc,
+        "freq": 100
+    }
+
+
+def process_quake(package_path, knet_path, quake_desc):
+    """
+    Write asset files and return meta info
+    Return json
+    """
+    if quake_desc["type"] != "K-NET":
+        raise InvalidExpDesc("Unknown quake type: %s" % quake_desc["type"])
+    # Open K-Net archive
+    archive_filename = "%s%s.tar.gz" % (quake_desc["point"], quake_desc["date"])
+    archive_path = os.path.join(knet_path, archive_filename)
+    archive = tarfile.open(archive_path, "r")
+    logger.info("Opening K-NET archive file at %s", archive_path)
+
+    acc_data = []
+    for channel in ["EW", "NS", "UD"]:
+        knet_fobj = archive.extractfile(
+            "./%s%s.%s" % (quake_desc["point"], quake_desc["date"], channel))
+        acc_data.append(parse_knet(knet_fobj)["accel"])
+    acc3d = np.array(acc_data).T
+    freq = 100
+    logger.info("Loaded %s-shaped acceleration at %f Hz" % (acc3d.shape, freq))
+
+    bg_name = "bg-%s.wav" % quake_desc["point"]
+    bg_path = os.path.join(package_path, bg_name)
+    data_to_sound.convert_acc_to_sound(acc3d, freq, bg_path)
+
+    return {
+        "bg_sound": bg_name
+    }
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="""
@@ -107,6 +181,9 @@ Result will be generated in another directory.
     parser.add_argument(
         '--experiment', required=True, type=str,
         help='Path to experiment setup json file.')
+    parser.add_argument(
+        '--k-net', required=True, type=str,
+        help="Path containing K-NET tar.gz files with names like 'MYG0041103111446.tar.gz'")
     parser.add_argument(
         '--output', required=True, type=str,
         help='Output wave file path for soundscape simulation.')
@@ -131,10 +208,10 @@ Result will be generated in another directory.
     os.mkdir(package_path)
 
     package_meta = {}
-
+    package_meta["quakes"] = []
     copy_stripped_scene(args.scene_asset, os.path.join(package_path, "scene"))
-    for quake in experiment["quakes"]:
-        # TODO: generate BG sound
-        data_to_sound.convert_acc_to_sound
+    for quake_desc in experiment["quakes"]:
+        package_meta["quakes"].append(
+            process_quake(package_path, args.k_net, quake_desc))
 
     json.dump(package_meta, open(os.path.join(package_path, "meta.json"), "w"))

@@ -45,16 +45,11 @@ def convert_acc_to_sound(acc3d, s_freq, path):
         # acc
         to_samples = resample_linear(
             acc, s_freq, to_frequency)
-        print("NS: %d" % len(to_samples))
 
         def integrate(xs):
             v = 0
             dt = 1 / to_frequency
-            vs = []
-            for x in xs:
-                v += x * dt
-                vs.append(v)
-            return np.array(vs)
+            return v + np.cumsum(xs) * dt
 
         # acc -> pos
         to_samples = integrate(integrate(to_samples))
@@ -72,7 +67,7 @@ def convert_acc_to_sound(acc3d, s_freq, path):
             accum_sound += to_samples
 
     accum_sound = accum_sound[:int(len(accum_sound) * 0.95)]
-    print("#smp: %d" % len(accum_sound))
+    logger.info("#sample: %d" % len(accum_sound))
 
     wav = wave.open(path, mode='w')
     wav.setnchannels(1)
@@ -110,11 +105,7 @@ def convert_bcj_to_sound():
     def integrate(xs):
         v = 0
         dt = 1 / to_frequency
-        vs = []
-        for x in xs:
-            v += x * dt
-            vs.append(v)
-        return np.array(vs)
+        return v + np.cumsum(xs) * dt
 
     # acc -> pos
     to_samples = integrate(integrate(to_samples))
