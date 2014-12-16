@@ -207,16 +207,12 @@ Json::Value SceneAssetBundle::loadJson(std::string name) const {
 	return root;
 }
 
-void SceneAssetBundle::addInteriorObject(const TexturedMesh& mesh) {
+void SceneAssetBundle::addInteriorObject(const InteriorObject& iobj) {
 	if(debug) {
 		addMesh(
-			"poly_" + std::to_string(interior_objects.size()),
-			mesh);
+			"debug_poly_" + std::to_string(interiors.size()),
+			iobj.getMesh());
 	}
-	interior_objects.push_back(mesh);
-}
-
-void SceneAssetBundle::addInteriorObject(const InteriorObject& iobj) {
 	interiors.push_back(iobj);
 }
 
@@ -262,6 +258,7 @@ void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
 }
 
 void SceneAssetBundle::serializeWholeScene() const {
+	/*
 	TriangleMesh<std::nullptr_t> whole_scene;
 	whole_scene.merge(dropAttrib(exterior_mesh.mesh));
 	for(const auto& interior_object : interior_objects) {
@@ -270,6 +267,7 @@ void SceneAssetBundle::serializeWholeScene() const {
 
 	std::ofstream mesh_f((dir_path / fs::path("whole.ply")).string());
 	whole_scene.serializePLY(mesh_f);
+	*/
 }
 
 
