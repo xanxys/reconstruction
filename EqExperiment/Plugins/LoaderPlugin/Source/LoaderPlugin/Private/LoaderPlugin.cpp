@@ -260,22 +260,21 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 			UE_LOG(LoaderPlugin, Error, TEXT("Somehow unable to get just-inserted StaticMesh: %s"), widen(FullPath).c_str());
 			continue;
 		}
+		// Ensure there's a BodySetup.
 		StaticMesh->CreateBodySetup();
 		assert(StaticMesh->BodySetup);
-
 		// Start from scratch.
 		StaticMesh->BodySetup->AggGeom.EmptyElements();
-
-		FVector Center(0, 0, 0);
-		FVector Extents(100, 100, 100);
-
-		// StaticMesh->BodySetup->Modify();
-		FKBoxElem BoxElem;
-		BoxElem.Center = Center;
-		BoxElem.X = Extents.X * 2.0f;
-		BoxElem.Y = Extents.Y * 2.0f;
-		BoxElem.Z = Extents.Z * 2.0f;
-		StaticMesh->BodySetup->AggGeom.BoxElems.Add(BoxElem);
+		for (const auto& ColBox : IObj["collision_boxes"]) {
+			const FTransform Trans = DeserializeTransform(ColBox["pose"]);
+			FKBoxElem BoxElem;
+			BoxElem.Center = Trans.GetTranslation();
+			BoxElem.Orientation = Trans.GetRotation();
+			BoxElem.X = ColBox["size"]["x"].asDouble();
+			BoxElem.Y = ColBox["size"]["y"].asDouble();
+			BoxElem.Z = ColBox["size"]["z"].asDouble();
+			StaticMesh->BodySetup->AggGeom.BoxElems.Add(BoxElem);
+		}
 	}
 
 	// Insert an Actor of extrior mesh.
