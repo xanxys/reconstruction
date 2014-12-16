@@ -80,6 +80,10 @@ OBB3f OBB3f::rigidlyTransformed(const Eigen::Affine3f& trans) const {
 	return obb;
 }
 
+std::pair<Eigen::Vector3f, Eigen::Matrix3f> OBB3f::getCenterAndAxis() const {
+	return std::make_pair(center, axis);
+}
+
 Eigen::Matrix3f createOrthogonalBasis(
 		const Eigen::Vector3f& z) {
 	// Choose an arbitrary unit vector

@@ -34,6 +34,8 @@ public:
 
 	// Return AABB that contains this OBB.
 	AABB3f toAABB() const;
+
+	std::pair<Eigen::Vector3f, Eigen::Matrix3f> getCenterAndAxis() const;
 private:
 	OBB3f();  // used for construction
 private:

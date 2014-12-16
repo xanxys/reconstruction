@@ -18,6 +18,7 @@
 #include <pcl/point_types.h>
 
 #include <logging.h>
+#include <geom/util.h>
 #include <recog/interior_object.h>
 #include <visual/textured_mesh.h>
 
@@ -90,6 +91,10 @@ private:
 	void serializeIntoDirectory(const boost::filesystem::path& dir_path);
 
 	void serializeWholeScene() const;
+
+	Json::Value serializePose(const Eigen::Quaternionf& rot, const Eigen::Vector3f& trans);
+
+	Json::Value serializeCollisionShape(const std::vector<OBB3f>& obbs);
 
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;

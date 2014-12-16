@@ -131,16 +131,13 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 
 	for(const auto& interior : interiors) {
 		auto meta_object = serializeMesh(interior.getMesh());
+		// Add pose
 		const auto pose = interior.getPose();
 		const auto trans = pose.translation() * world_scale;
 		const auto quat = Eigen::Quaternionf(pose.linear());
-		meta_object["pose"]["pos"]["x"] = trans.x();
-		meta_object["pose"]["pos"]["y"] = trans.y();
-		meta_object["pose"]["pos"]["z"] = trans.z();
-		meta_object["pose"]["quat"]["x"] = quat.x();
-		meta_object["pose"]["quat"]["y"] = quat.y();
-		meta_object["pose"]["quat"]["z"] = quat.z();
-		meta_object["pose"]["quat"]["w"] = quat.w();
+		meta_object["pose"] = serializePose(quat, trans);
+		// Add collision as union on OBBs.
+		meta_object["collision_boxes"] = serializeCollisionShape(interior.getCollision());
 		metadata["interior_objects"].append(meta_object);
 	}
 	metadata["exterior"] = serializeMesh(exterior_mesh);
@@ -150,6 +147,50 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		std::ofstream json_file((dir_path / fs::path("meta.json")).string());
 		json_file << Json::FastWriter().write(metadata);
 	}
+}
+
+Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, const Eigen::Vector3f& trans) {
+	Json::Value pose;
+	pose["pos"]["x"] = trans.x();
+	pose["pos"]["y"] = trans.y();
+	pose["pos"]["z"] = trans.z();
+	pose["quat"]["x"] = quat.x();
+	pose["quat"]["y"] = quat.y();
+	pose["quat"]["z"] = quat.z();
+	pose["quat"]["w"] = quat.w();
+	return pose;
+}
+
+// Make it FKBoxElem (in UE4)-friendly.
+Json::Value SceneAssetBundle::serializeCollisionShape(const std::vector<OBB3f>& obbs) {
+	assert(!obbs.empty());
+	Json::Value col_shape;
+	for(const auto& obb : obbs) {
+		const auto ca = obb.getCenterAndAxis();
+		Json::Value geom;
+		geom["type"] = "OBB";
+
+		Eigen::Matrix3f axis = ca.second;
+		const Eigen::Vector3f size(
+			axis.col(0).norm(), axis.col(1).norm(), axis.col(2).norm());
+		axis.col(0) /= size(0);
+		axis.col(1) /= size(1);
+		axis.col(2) /= size(2);
+		// axis should be rotational now.
+		assert(std::abs(axis.determinant() - 1) < 1e-3);
+
+		const Eigen::Vector3f trans = ca.first * world_scale;
+		const Eigen::Quaternionf q(axis);
+		geom["pose"] = serializePose(q, trans);
+
+		const Eigen::Vector3f size_uw = size * world_scale;
+		geom["size"]["x"] = size_uw.x();
+		geom["size"]["y"] = size_uw.y();
+		geom["size"]["z"] = size_uw.z();
+
+		col_shape.append(geom);
+	}
+	return col_shape;
 }
 
 std::string SceneAssetBundle::reservePath(const std::string& filename) {
