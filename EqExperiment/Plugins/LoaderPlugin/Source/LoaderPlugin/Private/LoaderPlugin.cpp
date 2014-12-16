@@ -243,8 +243,8 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	// Load all assets at once, to reduce mesh import dialog popup to only once.
 	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
 	TArray<FString> ImportFiles;
-	ImportFiles.Add(widen(join(dir_path, meta["exterior"]["static_mesh"].asString())).c_str());
-	ImportFiles.Add(widen(join(dir_path, meta["exterior"]["material"]["diffuse"].asString())).c_str());
+	ImportFiles.Add(widen(join(dir_path, meta["boundary"]["static_mesh"].asString())).c_str());
+	ImportFiles.Add(widen(join(dir_path, meta["boundary"]["material"]["diffuse"].asString())).c_str());
 	// Load interior objects (no need to instantiate them, because they're loaded in runtime).
 	for (const auto& iobj : meta["interior_objects"]) {
 		ImportFiles.Add(widen(join(dir_path, iobj["static_mesh"].asString())).c_str());
@@ -252,9 +252,11 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	}
 	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
 
-	// Set collision geometry of interior objects.
-	for (const auto& IObj : meta["interior_objects"]) {
-		const auto FullPath = GetFullPathForInteriorObjectSMAsset(IObj);
+	// Set collision geometry of all objects.
+	std::vector<Json::Value> CollisionObjectMDs(meta["interior_objects"].begin(), meta["interior_objects"].end());
+	CollisionObjectMDs.push_back(meta["boundary"]);
+	for (const auto& IObj : CollisionObjectMDs) {
+		const auto FullPath = GetFullPathForObjectSMAsset(IObj);
 		UStaticMesh* StaticMesh = LoadObjFromPath<UStaticMesh>(widen(FullPath).c_str());
 		if (!StaticMesh) {
 			UE_LOG(LoaderPlugin, Error, TEXT("Somehow unable to get just-inserted StaticMesh: %s"), widen(FullPath).c_str());
@@ -277,12 +279,12 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 		}
 	}
 
-	// Insert an Actor of extrior mesh.
-	const FTransform pose(FQuat(0, 0, 0, 1), RoomOffset);
-	const std::string SMAssetName = meta["exterior"]["static_mesh:asset"].asString();
-	AActor* actor = InsertAssetToScene(pose, AutoLoadAssetPath + "/" + SMAssetName + "." + SMAssetName);
+	// Insert an Actor of interior boundary.
+	AActor* actor = InsertAssetToScene(
+		DeserializeTransform(meta["boundary"]["pose"]) * FTransform(RoomOffset),
+		GetFullPathForObjectSMAsset(meta["boundary"]));
 	if (!actor) {
-		UE_LOG(LoaderPlugin, Error, TEXT("Failed to insert exterior mesh"));
+		UE_LOG(LoaderPlugin, Error, TEXT("Failed to insert boundary mesh"));
 		throw std::runtime_error("Actor creation failure");
 	}
 
@@ -290,7 +292,7 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	Json::Value RuntimeInfo;
 	for (const auto& iobj : meta["interior_objects"]) {
 		Json::Value InteriorRI;
-		InteriorRI["static_mesh:asset_full"] = GetFullPathForInteriorObjectSMAsset(iobj);
+		InteriorRI["static_mesh:asset_full"] = GetFullPathForObjectSMAsset(iobj);
 
 		// Transform pose:
 		// scene asset: interior -> room
@@ -359,7 +361,7 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 #endif
 }
 
-std::string FLoaderPlugin::GetFullPathForInteriorObjectSMAsset(const Json::Value& InteriorObj) {
+std::string FLoaderPlugin::GetFullPathForObjectSMAsset(const Json::Value& InteriorObj) {
 	return "StaticMesh'" + AutoLoadAssetPath + "/" +
 		InteriorObj["static_mesh:asset"].asString() + "." + InteriorObj["static_mesh:asset"].asString() + "'";
 
