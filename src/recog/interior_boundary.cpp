@@ -37,6 +37,17 @@ TexturedMesh InteriorBoundary::getMesh() const {
 
 std::vector<OBB3f> InteriorBoundary::getCollision(float thickness) const {
 	assert(thickness > 0);
+	// Calculate 2D aabb.
+	Eigen::Vector2f vmin_2d(1e10, 1e10);
+	Eigen::Vector2f vmax_2d = -vmin_2d;
+	for(const auto& pt : wall_polygon) {
+		vmin_2d = vmin_2d.cwiseMin(pt);
+		vmax_2d = vmax_2d.cwiseMax(pt);
+	}
+	// Extend by thickness to secure edges.
+	vmin_2d -= Eigen::Vector2f(thickness, thickness);
+	vmax_2d += Eigen::Vector2f(thickness, thickness);
+
 	std::vector<OBB3f> collision;
 	// wall
 	//   <outside>
@@ -64,6 +75,19 @@ std::vector<OBB3f> InteriorBoundary::getCollision(float thickness) const {
 		axis.col(1) = Eigen::Vector3f(
 			normal.x() * thickness, normal.y() * thickness, 0);
 		axis.col(2) = Eigen::Vector3f(0, 0, height);
+		collision.emplace_back(center, axis);
+	}
+	// floor + ceiling
+	std::vector<float> z_centers = {-thickness / 2, height + thickness / 2};
+	for(const float z_center : z_centers) {
+		const Eigen::Vector2f size_2d = vmax_2d - vmin_2d;
+		const Eigen::Vector2f center_2d = (vmin_2d + vmax_2d) / 2;
+
+		const Eigen::Vector3f center(center_2d.x(), center_2d.y(), z_center);
+		Eigen::Matrix3f axis;
+		axis.col(0) = Eigen::Vector3f(size_2d.x(), 0, 0);
+		axis.col(1) = Eigen::Vector3f(0, size_2d.y(), 0);
+		axis.col(2) = Eigen::Vector3f(0, 0, thickness);
 		collision.emplace_back(center, axis);
 	}
 	return collision;
