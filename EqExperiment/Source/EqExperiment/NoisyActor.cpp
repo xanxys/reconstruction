@@ -9,8 +9,6 @@ template <typename ObjClass>
 static ObjClass* LoadObjFromPath(const FName& Path)
 {
 	if (Path == NAME_None) return NULL;
-	//~
-
 	return Cast<ObjClass>(StaticLoadObject(ObjClass::StaticClass(), NULL, *Path.ToString()));
 }
 
@@ -32,17 +30,8 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	StaticMeshComponent = PCIP.CreateAbstractDefaultSubobject<UStaticMeshComponent>(this, TEXT("staticmesh"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMesh(TEXT("StaticMesh'/Game/Props/SM_Lamp_Wall.SM_Lamp_Wall'"));
-	//static ConstructorHelpers::FObjectFinder<UMaterial> Material(TEXT("MaterialInstanceConstant'/Game/Materials/M_Basic_Floor.M_Basic_Floor'"));
 	StaticMeshComponent->SetStaticMesh(StaticMesh.Object);
-	//StaticMeshComponent->SetMaterial(0, Material.Object);
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
-		
-	/*
-	BoxComponent = PCIP.CreateAbstractDefaultSubobject<UBoxComponent>(this, TEXT("box"));
-	BoxComponent->InitBoxExtent(FVector(100, 100, 100));
-	StaticMeshComponent->AttachTo(BoxComponent);
-	*/
-
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
@@ -53,8 +42,6 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	StaticMeshComponent->SetWorldLocation(FVector(100, 100, 1000));
 	StaticMeshComponent->SetPhysicsLinearVelocity(FVector(0, 0, 0));
-
-	UpdateStaticMeshCollision();
 
 	// set collision handler (for playing sounds)
 	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
@@ -72,48 +59,13 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	RootComponent = StaticMeshComponent;
 }
 
-void ANoisyActor::UpdateStaticMeshCollision() {
-	// Setup Collision
-	UBodySetup* bs = StaticMeshComponent->StaticMesh->BodySetup;
-
-	// should be given by creator
-	FVector Center(0, 0, 0);
-	FVector Extents(100, 100, 100);
-
-	bs->Modify();
-	// bs->InvalidatePhysicsData();  // comment this out to make "launch" & "cooking" pass. but without this, physics is a bit strange??
-
-	FKBoxElem BoxElem;
-	BoxElem.Center = Center;
-	BoxElem.X = Extents.X * 2.0f;
-	BoxElem.Y = Extents.Y * 2.0f;
-	BoxElem.Z = Extents.Z * 2.0f;
-	bs->AggGeom.BoxElems.Add(BoxElem);
-
-	StaticMeshComponent->RecreatePhysicsState();
-	StaticMeshComponent->StaticMesh->MarkPackageDirty();
-}
-
-/*
-void ANoisyActor::LoadInterior(const std::string& name) {
-	UStaticMesh* sm = LoadObjFromPath<UStaticMesh>(widen("StaticMesh'/Game/Props/" + name + "." + name + "'").c_str());
-	if (!sm) {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("StaticMesh not found"));
-		return;
-	}
-	StaticMeshComponent->SetStaticMesh(sm);
-	UpdateStaticMeshCollision();
-}
-*/
-
 void ANoisyActor::LoadInteriorFullPath(const std::string& name) {
-	UStaticMesh* sm = LoadObjFromPath<UStaticMesh>(widen(name).c_str());
-	if (!sm) {
+	UStaticMesh* StaticMesh = LoadObjFromPath<UStaticMesh>(widen(name).c_str());
+	if (!StaticMesh) {
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("StaticMesh not found"));
 		return;
 	}
-	StaticMeshComponent->SetStaticMesh(sm);
-	UpdateStaticMeshCollision();
+	StaticMeshComponent->SetStaticMesh(StaticMesh);
 }
 
 void ANoisyActor::BeginPlay() {

@@ -49,6 +49,8 @@ private:
 	// Return nullptr when not found.
 	AActor* FindTargetPointByName(const std::string& name);
 
+	std::string GetFullPathForInteriorObjectSMAsset(const Json::Value& InteriorObj);
+
 	static FTransform DeserializeTransform(const Json::Value& Trans);
 	static Json::Value SerializeTransform(const FTransform& Trans);
 private:

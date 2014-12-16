@@ -25,6 +25,13 @@
 const std::string FLoaderPlugin::PathSplitter = "\\";
 const std::string FLoaderPlugin::AltPathSplitter = "/";
 
+template <typename ObjClass>
+static ObjClass* LoadObjFromPath(const FName& Path)
+{
+	if (Path == NAME_None) return NULL;
+	return Cast<ObjClass>(StaticLoadObject(ObjClass::StaticClass(), NULL, *Path.ToString()));
+}
+
 std::wstring widen(const std::string& s) {
 	const int n_wstring = MultiByteToWideChar(CP_UTF8, 0, s.data(), s.size(), nullptr, 0);
 	if (n_wstring == 0) {
@@ -245,6 +252,32 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	}
 	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
 
+	// Set collision geometry of interior objects.
+	for (const auto& IObj : meta["interior_objects"]) {
+		const auto FullPath = GetFullPathForInteriorObjectSMAsset(IObj);
+		UStaticMesh* StaticMesh = LoadObjFromPath<UStaticMesh>(widen(FullPath).c_str());
+		if (!StaticMesh) {
+			UE_LOG(LoaderPlugin, Error, TEXT("Somehow unable to get just-inserted StaticMesh: %s"), widen(FullPath).c_str());
+			continue;
+		}
+		StaticMesh->CreateBodySetup();
+		assert(StaticMesh->BodySetup);
+
+		// Start from scratch.
+		StaticMesh->BodySetup->AggGeom.EmptyElements();
+
+		FVector Center(0, 0, 0);
+		FVector Extents(100, 100, 100);
+
+		// StaticMesh->BodySetup->Modify();
+		FKBoxElem BoxElem;
+		BoxElem.Center = Center;
+		BoxElem.X = Extents.X * 2.0f;
+		BoxElem.Y = Extents.Y * 2.0f;
+		BoxElem.Z = Extents.Z * 2.0f;
+		StaticMesh->BodySetup->AggGeom.BoxElems.Add(BoxElem);
+	}
+
 	// Insert an Actor of extrior mesh.
 	const FTransform pose(FQuat(0, 0, 0, 1), RoomOffset);
 	const std::string SMAssetName = meta["exterior"]["static_mesh:asset"].asString();
@@ -258,8 +291,7 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	Json::Value RuntimeInfo;
 	for (const auto& iobj : meta["interior_objects"]) {
 		Json::Value InteriorRI;
-		InteriorRI["static_mesh:asset_full"] = "StaticMesh'" + AutoLoadAssetPath + "/" +
-			iobj["static_mesh:asset"].asString() + "." + iobj["static_mesh:asset"].asString() + "'";
+		InteriorRI["static_mesh:asset_full"] = GetFullPathForInteriorObjectSMAsset(iobj);
 
 		// Transform pose:
 		// scene asset: interior -> room
@@ -326,6 +358,12 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 		actor->SetActorEnableCollision(true);
 	}
 #endif
+}
+
+std::string FLoaderPlugin::GetFullPathForInteriorObjectSMAsset(const Json::Value& InteriorObj) {
+	return "StaticMesh'" + AutoLoadAssetPath + "/" +
+		InteriorObj["static_mesh:asset"].asString() + "." + InteriorObj["static_mesh:asset"].asString() + "'";
+
 }
 
 FTransform FLoaderPlugin::DeserializeTransform(const Json::Value& Trans) {
