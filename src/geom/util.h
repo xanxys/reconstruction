@@ -21,13 +21,24 @@ private:
 	Eigen::Vector3f vmax;
 };
 
+AABB3f operator|(AABB3f lhs, const AABB3f& rhs);
+
 class OBB3f {
 public:
 	OBB3f(const AABB3f& aabb);
+
+	// Return OBB that is transformed by a rigid transform.
+	// if trans is rigid, result is undefined.
+	// This transformation won't make OBB bigger.
+	OBB3f rigidlyTransformed(const Eigen::Affine3f& trans) const;
+
+	// Return AABB that contains this OBB.
+	AABB3f toAABB() const;
 private:
-	Eigen::Vector3f vmin;
-	Eigen::Vector3f vmax;
-	Eigen::Matrix3f local_to_world;
+	OBB3f();  // used for construction
+private:
+	Eigen::Vector3f center;
+	Eigen::Matrix3f axis;  // each col vector is X, Y, Z full edge vector.
 };
 
 

@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include <boost/range/irange.hpp>
+
 namespace recon {
 
 
@@ -41,12 +43,42 @@ bool AABB3f::overlap(const AABB3f& other) const {
 	return (n_vmin.array() < n_vmax.array()).all();
 }
 
-
-OBB3f::OBB3f(const AABB3f& aabb) :
-	vmin(aabb.getMin()), vmax(aabb.getMax()),
-	local_to_world(Eigen::Matrix3f::Identity()) {
+AABB3f operator|(AABB3f lhs, const AABB3f& rhs) {
+	return AABB3f(
+		lhs.getMin().cwiseMin(rhs.getMin()),
+		lhs.getMax().cwiseMax(rhs.getMax()));
 }
 
+
+OBB3f::OBB3f() {
+}
+
+OBB3f::OBB3f(const AABB3f& aabb) :
+		center((aabb.getMin() + aabb.getMax()) / 2),
+		axis((aabb.getMax() - aabb.getMin()).asDiagonal()) {
+}
+
+AABB3f OBB3f::toAABB() const {
+	Eigen::Vector3f n_vmin(1e10, 1e10, 1e10);
+	Eigen::Vector3f n_vmax = -n_vmin;
+	const Eigen::Matrix3f half_axis = axis / 2;
+	for(const int i : boost::irange(0, 8)) {
+		const auto v =
+			(((i & 1) == 0) ? -1 : 1) * half_axis.col(0) +
+			(((i & 2) == 0) ? -1 : 1) * half_axis.col(1) +
+			(((i & 4) == 0) ? -1 : 1) * half_axis.col(2);
+		n_vmin = n_vmin.cwiseMin(v);
+		n_vmax = n_vmax.cwiseMax(v);
+	}
+	return AABB3f(center + n_vmin, center + n_vmax);
+}
+
+OBB3f OBB3f::rigidlyTransformed(const Eigen::Affine3f& trans) const {
+	OBB3f obb;
+	obb.center = trans * center;
+	obb.axis = trans.linear() * axis;
+	return obb;
+}
 
 Eigen::Matrix3f createOrthogonalBasis(
 		const Eigen::Vector3f& z) {
