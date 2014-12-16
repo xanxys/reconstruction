@@ -163,6 +163,7 @@ def process_quake(package_path, knet_path, quake_desc):
     ts = np.arange(len(acc3d), dtype=float) / freq
     acc3d = acc3d[(quake_desc["t_begin"] <= ts) & (ts <= quake_desc["t_end"])]
     logger.info("Choosing %d samples of interest", len(acc3d))
+    logger.info("Max gal: %f", np.max(np.abs(acc3d)))
 
     # Output as sound.
     bg_name = "bg-%s.wav" % quake_desc["point"]
@@ -179,6 +180,7 @@ def process_quake(package_path, knet_path, quake_desc):
             acc3d[:, axis], framerate / 2, freq)
         low_acc3d.append(samples)
     low_acc3d = np.array(low_acc3d).T
+    logger.info("Max gal (after LPF): %f", np.max(np.abs(low_acc3d)))
 
     return {
         "bg_sound": bg_name,
