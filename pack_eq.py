@@ -166,6 +166,7 @@ def process_quake(package_path, knet_path, quake_desc):
 
     # Output as sound.
     bg_name = "bg-%s.wav" % quake_desc["point"]
+    bg_asset = "bg-%s" % quake_desc["point"]
     bg_path = os.path.join(package_path, bg_name)
     data_to_sound.convert_acc_to_sound(acc3d, freq, bg_path)
 
@@ -181,6 +182,7 @@ def process_quake(package_path, knet_path, quake_desc):
 
     return {
         "bg_sound": bg_name,
+        "bg_sound:asset": bg_asset,
         "accel": {
             "acc": [list(map(float, v)) for v in low_acc3d],
             "freq": freq
