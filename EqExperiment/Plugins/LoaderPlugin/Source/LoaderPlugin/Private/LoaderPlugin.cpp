@@ -195,12 +195,32 @@ void FLoaderPlugin::OnLoadButtonClicked() {
 
 void FLoaderPlugin::UnpackExperiment(const std::string& dir_path) {
 	UE_LOG(LoaderPlugin, Log, TEXT("Unpacking experiment package %s"), widen(dir_path).c_str());
-	const Json::Value meta = LoadJsonFromFileNew(join(dir_path, "meta.json"));
+	const Json::Value Meta = LoadJsonFromFileNew(join(dir_path, "meta.json"));
+	
+	Json::Value RuntimeInfo;
+	UnpackScene(join(dir_path, "scene"), RuntimeInfo);
 
-	UnpackScene(join(dir_path, "scene"));
+	// load quakes.
+	if (Meta["quakes"].size() != 3) {
+		UE_LOG(LoaderPlugin, Error, TEXT("Expected number of quakes 3, found %d"), Meta["quakes"].size());
+		throw std::runtime_error("#quake must be 3");
+	}
+	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+	TArray<FString> ImportFiles;
+	for (const auto& Quake : Meta["quakes"]) {
+		ImportFiles.Add(widen(join(dir_path, Quake["bg_sound"].asString())).c_str());
+	}
+	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
+
+	// Dump runtime info.
+	{
+		std::ofstream ofs(RuntimeInfoPath);
+		ofs << Json::FastWriter().write(RuntimeInfo) << std::endl;
+	}
+	UE_LOG(LoaderPlugin, Log, TEXT("Runtime info written to %s"), widen(RuntimeInfoPath).c_str());
 }
 
-void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
+void FLoaderPlugin::UnpackScene(const std::string& dir_path, Json::Value& RuntimeInfo) {
 	UE_LOG(LoaderPlugin, Log, TEXT("Unpacking scene asset %s"), widen(dir_path).c_str());
 	const Json::Value meta = LoadJsonFromFileNew(join(dir_path, "meta.json"));
 
@@ -289,7 +309,6 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	}
 
 	// Pack runtime info to reset NoisyActors at proper locations.
-	Json::Value RuntimeInfo;
 	for (const auto& iobj : meta["interior_objects"]) {
 		Json::Value InteriorRI;
 		InteriorRI["static_mesh:asset_full"] = GetFullPathForObjectSMAsset(iobj);
@@ -304,11 +323,6 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 
 		RuntimeInfo["interior_objects"].append(InteriorRI);
 	}
-	{
-		std::ofstream ofs(RuntimeInfoPath);
-		ofs << Json::FastWriter().write(RuntimeInfo) << std::endl;
-	}
-	UE_LOG(LoaderPlugin, Log, TEXT("Runtime info written to %s"), widen(RuntimeInfoPath).c_str());
 
 	// Reference: https://wiki.unrealengine.com/Procedural_Mesh_Generation
 #if 0

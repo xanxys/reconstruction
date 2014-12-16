@@ -27,7 +27,7 @@ private:
 	void UnpackExperiment(const std::string& dir_path);
 
 	// Load scene data.
-	void UnpackScene(const std::string& dir_path);
+	void UnpackScene(const std::string& dir_path, Json::Value& RuntimeInfo);
 	
 	// Strip file name.
 	// C:\foo\bar.txt -> C:\foo\
