@@ -27,17 +27,17 @@ class EQEXPERIMENT_API AEqSimGameMode : public AGameMode
 	UFUNCTION(BlueprintCallable, Category="EqSim")
 	void PrepareSubExperiment(int32 SubExperimentId);
 
-	// Stop all sound+accel.
+	// Stop all accel. (CANNOT STOP BG SOUNDS YET)
 	UFUNCTION(BlueprintCallable, Category = "EqSim")
 	void AbortSubExperiment();
-	
-	USoundBase* EqBgSound;
 private:
 	// Spawn interior objects as Actors.
 	// DO NOT CALL THIS TWICE.
 	void SpawnInteriorObjects();
 
+	void StartQuake(const Json::Value& Quake);
 
+	AActor* FindTargetPointByName(const std::string& name);
 
 	static FTransform DeserializeTransform(const Json::Value& Trans);
 private:
@@ -46,4 +46,6 @@ private:
 	Json::Value RuntimeInfo;
 	// must be kept in sync with LoaderPlugin.h
 	const std::string RuntimeInfoPath = "C:\\VR14\\runtime.json";
+
+	const std::string TargetRoom = "LoadMarker_Room";
 };
