@@ -1,5 +1,3 @@
-
-
 #include "EqExperiment.h"
 #include "EqSimGameMode.h"
 
@@ -14,19 +12,10 @@ AEqSimGameMode::AEqSimGameMode(const class FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	DefaultPawnClass = ConstructorHelpers::FClassFinder<APawn>(TEXT("/Game/Blueprints/MyCharacter")).Class;
-
-
-
-	static ConstructorHelpers::FObjectFinder<USoundWave> Sound(TEXT("/Game/Audio/EarthquakeBG.EarthquakeBG"));
-	EqBgSound = Sound.Object;
-	if (!EqBgSound) {
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("BG sound load failed"));
-	}
 }
 
 void AEqSimGameMode::BeginPlay() {
 	Super::BeginPlay();
-
 
 	// Load critical runtime info from fucking FIXED PATH.
 	{
@@ -38,56 +27,69 @@ void AEqSimGameMode::BeginPlay() {
 		Json::Reader().parse(ifs, RuntimeInfo);
 	}
 	SpawnInteriorObjects();
-	
-#if 0
-	// Accel gen.
-	{
-		// Load acc profile.
-		picojson::value acc_root;
-		{
-			std::ifstream fs_acc("C:\\VR14a\\Hachi.json");
-			if (!fs_acc.is_open()) {
-				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Hachi.json not found!!! Aborting experiment."));
-				return;
-			}
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("Opened acc prof"));
-			fs_acc >> acc_root;
-		}
-
-		// cm/s^2 == uu/s^2
-		if (!acc_root.is<picojson::object>() || !acc_root.get<picojson::object>()["freq"].is<double>()) {
-			GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Hachi.json: wrong format"));
-			return;
-		}
-		const float resolution = 1.0 / acc_root.get<picojson::object>()["freq"].get<double>();
-		std::vector<FVector> accs;
-		for (auto& v : acc_root.get<picojson::object>()["accel"].get<picojson::array>()) {
-			auto va = v.get<picojson::array>();
-			accs.push_back(FVector(va[0].get<double>(), va[1].get<double>(), va[2].get<double>()) * 10);
-		}
-		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Green,
-			FString::Printf(TEXT("Loaded %d entries w/ delta=%f s"), accs.size(), resolution));
-
-		// Create force gen.
-		AInertialForceActor* Inertia = World->SpawnActor<AInertialForceActor>(AInertialForceActor::StaticClass());
-		Inertia->ForceComponent->Radius = 1500;
-		Inertia->ForceComponent->SetAccelerationProfile(accs, resolution);
-
-		Inertia->ForceComponent->Activate();
-		Inertia->ForceComponent->StartPlaying();
-		Inertia->ForceComponent->IsConstant = false;
-	}
-	
-
-	// Play BG sound
-	if (EqBgSound) {
-		UGameplayStatics::PlaySoundAtLocation(World, EqBgSound, FVector(0, 0, -1000));
-	}
-#endif
 }
 
-void AEqSimGameMode::PrepareSubExperiment(int SubExperimentId) {
+void AEqSimGameMode::PrepareSubExperiment(int32 SubExperimentId) {
+	UWorld* const World = GetWorld();
+	if (!World || RuntimeInfo.isNull()) {
+		return;
+	}
 
+	// Add InertialForce gen.
+	if (SubExperimentId < 1 || static_cast<int>(RuntimeInfo["quakes"].size()) < SubExperimentId) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red,
+			*FString::Printf(TEXT("SubExperimentId=%d is out of range; cannot continue")));
+	}
+
+	StartQuake(RuntimeInfo["quakes"][SubExperimentId - 1]);
+
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("Commencing SubExperiment"));
+}
+
+void AEqSimGameMode::AbortSubExperiment() {
+	UWorld* const World = GetWorld();
+	if (!World || RuntimeInfo.isNull()) {
+		return;
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Aborting SubExperiment"));
+	// Remove all InertialForce generator.
+	for (auto It = TActorIterator<AInertialForceActor>(World); It; ++It) {
+		It->Destroy();
+	}
+}
+
+void AEqSimGameMode::StartQuake(const Json::Value& Quake) {
+	const AActor* RoomMarker = FindTargetPointByName(TargetRoom);
+	if (!GetWorld() || !RoomMarker) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("RoomMaker Not Found; cannot continue"));
+		return;
+	}
+	const FVector RoomOrigin = RoomMarker->GetActorLocation();
+	
+	const float resolution = 1.0 / Quake["accel"]["freq"].asDouble();
+	std::vector<FVector> accs;
+	for (const auto& v : Quake["accel"]["acc"]) {
+		accs.push_back(FVector(v[0].asDouble(), v[1].asDouble(), v[2].asDouble()));
+	}
+
+	// Create force gen and start.
+	AInertialForceActor* Inertia = GetWorld()->SpawnActor<AInertialForceActor>(RoomOrigin, FRotator(0, 0, 0));
+	Inertia->ForceComponent->Radius = 600;
+	Inertia->ForceComponent->SetAccelerationProfile(accs, resolution);
+
+	Inertia->ForceComponent->Activate();
+	Inertia->ForceComponent->StartPlaying();
+	Inertia->ForceComponent->IsConstant = false;
+
+	// Start playing bg sound.
+	USoundBase* EqBgSound = LoadObjFromPath<USoundBase>(widen(Quake["bg_sound:asset_full"].asString()).c_str());
+	if (!EqBgSound) {
+		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, TEXT("Not playing sound"));
+		return;
+	}
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), EqBgSound,
+		RoomOrigin - FVector(0, 0, -500));
 }
 
 void AEqSimGameMode::SpawnInteriorObjects() {
@@ -116,16 +118,19 @@ void AEqSimGameMode::ResetInteriorObjects() {
 		return;
 	}
 
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("Resetting"));
+
 	// Remove all live actors spawned by SpawnInteriorObjects.
 	for (auto It = TActorIterator<ANoisyActor>(World); It; ++It) {
 		const std::string name = TCHAR_TO_UTF8(*It->GetName());
 		if (ActorNames.find(name) == ActorNames.end()) {
 			continue;
 		}
-		World->RemoveActor(static_cast<AActor*>(*It), false);
+		It->Destroy();
 	}
 	ActorNames.clear();
 
+	SpawnInteriorObjects();
 }
 
 FTransform AEqSimGameMode::DeserializeTransform(const Json::Value& Trans) {
@@ -133,4 +138,20 @@ FTransform AEqSimGameMode::DeserializeTransform(const Json::Value& Trans) {
 		FQuat(Trans["quat"]["x"].asDouble(), Trans["quat"]["y"].asDouble(),
 		Trans["quat"]["z"].asDouble(), Trans["quat"]["w"].asDouble()),
 		FVector(Trans["pos"]["x"].asDouble(), Trans["pos"]["y"].asDouble(), Trans["pos"]["z"].asDouble()));
+}
+
+AActor* AEqSimGameMode::FindTargetPointByName(const std::string& name) {
+	UWorld* const World = GetWorld();
+	if (!World) {
+		return nullptr;
+	}
+
+	TArray<AActor*> Targets;
+	UGameplayStatics::GetAllActorsOfClass(World, ATargetPoint::StaticClass(), Targets);
+	for (AActor* Target : Targets) {
+		if (TCHAR_TO_UTF8(*Target->GetName()) == name) {
+			return Target;
+		}
+	}
+	return nullptr;
 }

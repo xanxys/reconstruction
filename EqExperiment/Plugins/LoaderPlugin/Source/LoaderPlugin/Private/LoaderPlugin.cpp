@@ -212,6 +212,16 @@ void FLoaderPlugin::UnpackExperiment(const std::string& dir_path) {
 	}
 	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
 
+	// Copy acc + asset name quakes to runtime.
+	// Pack runtime info to reset NoisyActors at proper locations.
+	for (const auto& Quake : Meta["quakes"]) {
+		Json::Value QuakeRI;
+		QuakeRI["bg_sound:asset_full"] = "SoundBase'" + AutoLoadAssetPath + "/" +
+			Quake["bg_sound:asset"].asString() + "." + Quake["bg_sound:asset"].asString() + "'";
+		QuakeRI["accel"] = Quake["accel"];
+		RuntimeInfo["quakes"].append(QuakeRI);
+	}
+
 	// Dump runtime info.
 	{
 		std::ofstream ofs(RuntimeInfoPath);
@@ -378,7 +388,6 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path, Json::Value& Runtim
 std::string FLoaderPlugin::GetFullPathForObjectSMAsset(const Json::Value& InteriorObj) {
 	return "StaticMesh'" + AutoLoadAssetPath + "/" +
 		InteriorObj["static_mesh:asset"].asString() + "." + InteriorObj["static_mesh:asset"].asString() + "'";
-
 }
 
 FTransform FLoaderPlugin::DeserializeTransform(const Json::Value& Trans) {
