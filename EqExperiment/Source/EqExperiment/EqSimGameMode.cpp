@@ -97,8 +97,15 @@ void AEqSimGameMode::SpawnInteriorObjects() {
 	}
 
 	for (const auto& IObj : RuntimeInfo["interior_objects"]) {
+		const FTransform Pose = DeserializeTransform(IObj["pose"]);
+
 		ANoisyActor* Actor = World->SpawnActor<ANoisyActor>(ANoisyActor::StaticClass());
+		ActorNames.insert(TCHAR_TO_UTF8(*Actor->GetName()));
+
+		// Dunno why, but you need to set transform first, and then change SM.
+		Actor->StaticMeshComponent->SetWorldTransform(Pose);
 		Actor->LoadInteriorFullPath(IObj["static_mesh:asset_full"].asString());
+		
 		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("+interior object"));
 	}
 }
@@ -109,8 +116,21 @@ void AEqSimGameMode::ResetInteriorObjects() {
 		return;
 	}
 
+	// Remove all live actors spawned by SpawnInteriorObjects.
+	for (auto It = TActorIterator<ANoisyActor>(World); It; ++It) {
+		const std::string name = TCHAR_TO_UTF8(*It->GetName());
+		if (ActorNames.find(name) == ActorNames.end()) {
+			continue;
+		}
+		World->RemoveActor(static_cast<AActor*>(*It), false);
+	}
+	ActorNames.clear();
 
 }
 
-
-
+FTransform AEqSimGameMode::DeserializeTransform(const Json::Value& Trans) {
+	return FTransform(
+		FQuat(Trans["quat"]["x"].asDouble(), Trans["quat"]["y"].asDouble(),
+		Trans["quat"]["z"].asDouble(), Trans["quat"]["w"].asDouble()),
+		FVector(Trans["pos"]["x"].asDouble(), Trans["pos"]["y"].asDouble(), Trans["pos"]["z"].asDouble()));
+}

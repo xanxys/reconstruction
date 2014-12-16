@@ -18,7 +18,7 @@ class EQEXPERIMENT_API ANoisyActor : public AActor
 	GENERATED_UCLASS_BODY()
 
 	// "toy"
-	void LoadInterior(const std::string& name);
+	//void LoadInterior(const std::string& name);
 
 	void LoadInteriorFullPath(const std::string& name);
 

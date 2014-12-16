@@ -48,6 +48,9 @@ private:
 
 	// Return nullptr when not found.
 	AActor* FindTargetPointByName(const std::string& name);
+
+	static FTransform DeserializeTransform(const Json::Value& Trans);
+	static Json::Value SerializeTransform(const FTransform& Trans);
 private:
 	const float assumed_scale = 100;  // uu/meter
 	static const std::string PathSplitter;

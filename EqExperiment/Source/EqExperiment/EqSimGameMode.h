@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <set>
 #include <string>
 
 #include "json/json.h"
@@ -29,7 +30,11 @@ private:
 
 	// Reset all interior object poses.
 	void ResetInteriorObjects();
+
+	static FTransform DeserializeTransform(const Json::Value& Trans);
 private:
+	std::set<std::string> ActorNames;
+
 	Json::Value RuntimeInfo;
 	// must be kept in sync with LoaderPlugin.h
 	const std::string RuntimeInfoPath = "C:\\VR14\\runtime.json";

@@ -258,8 +258,17 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	Json::Value RuntimeInfo;
 	for (const auto& iobj : meta["interior_objects"]) {
 		Json::Value InteriorRI;
-		InteriorRI["static_mesh:asset_full"] = AutoLoadAssetPath + "/" +
-			iobj["static_mesh:asset"].asString() + "." + iobj["static_mesh:asset"].asString();
+		InteriorRI["static_mesh:asset_full"] = "StaticMesh'" + AutoLoadAssetPath + "/" +
+			iobj["static_mesh:asset"].asString() + "." + iobj["static_mesh:asset"].asString() + "'";
+
+		// Transform pose:
+		// scene asset: interior -> room
+		// runtime: interior -> world
+		const FTransform Interior_To_Room = DeserializeTransform(iobj["pose"]);
+		const FTransform Room_To_World(RoomOffset);
+		const FTransform Interior_To_World = Interior_To_Room * Room_To_World;  // this looks strange, but UE4 Transform is different from math matrices.
+		InteriorRI["pose"] = SerializeTransform(Interior_To_World);
+
 		RuntimeInfo["interior_objects"].append(InteriorRI);
 	}
 	{
@@ -318,6 +327,28 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path) {
 	}
 #endif
 }
+
+FTransform FLoaderPlugin::DeserializeTransform(const Json::Value& Trans) {
+	return FTransform(
+		FQuat(Trans["quat"]["x"].asDouble(), Trans["quat"]["y"].asDouble(),
+			Trans["quat"]["z"].asDouble(), Trans["quat"]["w"].asDouble()),
+		FVector(Trans["pos"]["x"].asDouble(), Trans["pos"]["y"].asDouble(), Trans["pos"]["z"].asDouble()));
+}
+
+Json::Value FLoaderPlugin::SerializeTransform(const FTransform& Transform) {
+	const FVector Trans = Transform.GetTranslation();
+	const FQuat Quat = Transform.GetRotation();
+	Json::Value Value;
+	Value["pos"]["x"] = Trans.X;
+	Value["pos"]["y"] = Trans.Y;
+	Value["pos"]["z"] = Trans.Z;
+	Value["quat"]["x"] = Quat.X;
+	Value["quat"]["y"] = Quat.Y;
+	Value["quat"]["z"] = Quat.Z;
+	Value["quat"]["w"] = Quat.W;
+	return Value;
+}
+
 
 AActor* FLoaderPlugin::FindTargetPointByName(const std::string& name) {
 	UWorld* const World = GEditor->GetEditorWorldContext().World();

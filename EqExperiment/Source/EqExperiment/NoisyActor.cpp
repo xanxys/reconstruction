@@ -32,9 +32,9 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 
 	StaticMeshComponent = PCIP.CreateAbstractDefaultSubobject<UStaticMeshComponent>(this, TEXT("staticmesh"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMesh(TEXT("StaticMesh'/Game/Props/SM_Lamp_Wall.SM_Lamp_Wall'"));
-	static ConstructorHelpers::FObjectFinder<UMaterial> Material(TEXT("MaterialInstanceConstant'/Game/Materials/M_Basic_Floor.M_Basic_Floor'"));
+	//static ConstructorHelpers::FObjectFinder<UMaterial> Material(TEXT("MaterialInstanceConstant'/Game/Materials/M_Basic_Floor.M_Basic_Floor'"));
 	StaticMeshComponent->SetStaticMesh(StaticMesh.Object);
-	StaticMeshComponent->SetMaterial(0, Material.Object);
+	//StaticMeshComponent->SetMaterial(0, Material.Object);
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 		
 	/*
@@ -68,7 +68,8 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 		}
 		hit_sounds.push_back(Sound.Object);
 	}
-	
+
+	RootComponent = StaticMeshComponent;
 }
 
 void ANoisyActor::UpdateStaticMeshCollision() {
@@ -93,6 +94,7 @@ void ANoisyActor::UpdateStaticMeshCollision() {
 	StaticMeshComponent->StaticMesh->MarkPackageDirty();
 }
 
+/*
 void ANoisyActor::LoadInterior(const std::string& name) {
 	UStaticMesh* sm = LoadObjFromPath<UStaticMesh>(widen("StaticMesh'/Game/Props/" + name + "." + name + "'").c_str());
 	if (!sm) {
@@ -102,6 +104,7 @@ void ANoisyActor::LoadInterior(const std::string& name) {
 	StaticMeshComponent->SetStaticMesh(sm);
 	UpdateStaticMeshCollision();
 }
+*/
 
 void ANoisyActor::LoadInteriorFullPath(const std::string& name) {
 	UStaticMesh* sm = LoadObjFromPath<UStaticMesh>(widen(name).c_str());
