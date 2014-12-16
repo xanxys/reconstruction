@@ -23,7 +23,13 @@ class EQEXPERIMENT_API AEqSimGameMode : public AGameMode
 	UFUNCTION(BlueprintCallable, Category="EqSim")
 	void ResetInteriorObjects();
 
-	void PrepareSubExperiment(int SubExperimentId);
+	// Start sound+accel in addition to ongoing ones.
+	UFUNCTION(BlueprintCallable, Category="EqSim")
+	void PrepareSubExperiment(int32 SubExperimentId);
+
+	// Stop all sound+accel.
+	UFUNCTION(BlueprintCallable, Category = "EqSim")
+	void AbortSubExperiment();
 	
 	USoundBase* EqBgSound;
 private:

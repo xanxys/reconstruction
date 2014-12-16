@@ -87,7 +87,23 @@ void AEqSimGameMode::BeginPlay() {
 }
 
 void AEqSimGameMode::PrepareSubExperiment(int SubExperimentId) {
+	UWorld* const World = GetWorld();
+	if (!World || RuntimeInfo.isNull()) {
+		return;
+	}
 
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("Commencing SubExperiment"));
+
+
+}
+
+void AEqSimGameMode::AbortSubExperiment() {
+	UWorld* const World = GetWorld();
+	if (!World || RuntimeInfo.isNull()) {
+		return;
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Aborting SubExperiment"));
 }
 
 void AEqSimGameMode::SpawnInteriorObjects() {
