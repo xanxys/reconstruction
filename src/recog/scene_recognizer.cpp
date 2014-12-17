@@ -701,6 +701,7 @@ void linkMiniClusters(
 	const MCId floor_id = -1;
 
 	// Pre-calculate independent properties.
+	INFO("Calculating MiniCluster independent props");
 	for(auto& mc : mcs) {
 		// AABB.
 		Eigen::Vector3f vmin(1e3, 1e3, 1e3);
@@ -719,8 +720,8 @@ void linkMiniClusters(
 		mc.grav_center = accum / mc.cloud->points.size();
 	}
 
-	//
-	INFO("Calculating MiniCluster distance table");
+	// Pre-calculate pairwise properties.
+	INFO("Calculating MiniCluster pairwise props.");
 	const float dist_cutoff = 0.3;  // above this thresh, two MiniClusters MUST NOT CONNECT
 	Eigen::MatrixXf pc_min_dist(mcs.size(), mcs.size());
 
@@ -730,7 +731,7 @@ void linkMiniClusters(
 			if(i == j) {
 				pc_min_dist(i, j) = 0;
 				continue;
-			} else if(i < j) {
+			} else if(i > j) {
 				pc_min_dist(i, j) = pc_min_dist(j, i);
 				continue;
 			}
@@ -749,6 +750,42 @@ void linkMiniClusters(
 			}
 		}
 	}
+	if(bundle.isDebugEnabled()) {
+		Json::Value root;
+		for(const MCId i : boost::irange(0, (int)mcs.size())) {
+			Json::Value row;
+			for(const MCId j : boost::irange(0, (int)mcs.size())) {
+				row.append(pc_min_dist(i, j));
+			}
+			root.append(row);
+		}
+		std::ofstream of(bundle.reservePath("mc_dist.json"));
+		of << Json::FastWriter().write(root);
+	}
+	// cluster vs. group distance accessor.
+	auto dist_between_cg = [&pc_min_dist](const MCId cl0, const std::set<MCId>& cls1) {
+		assert(!cls1.empty());
+		float md = 1e10;
+		for(const auto& cl1 : cls1) {
+			md = std::min(md, pc_min_dist(cl0, cl1));
+		}
+		return md;
+	};
+	auto dist_between_gg = [&pc_min_dist](
+			const std::set<MCId>& cls0,
+			const std::set<MCId>& cls1) {
+		assert(!cls0.empty());
+		assert(!cls1.empty());
+		float md = 1e10;
+		for(const auto& cl0 : cls0) {
+			for(const auto& cl1 : cls1) {
+				md = std::min(md, pc_min_dist(cl0, cl1));
+			}
+		}
+		return md;
+	};
+
+
 
 	// We assume tree structure.
 	// For N clusters, there are only N - 1 edges.
@@ -851,11 +888,36 @@ void linkMiniClusters(
 
 	// divide supported_ids into CCs.
 	// and check group stability.
-	const auto ccs = getCC(supported_ids, merge_adj);
+	const auto ccs_support = getCC(supported_ids, merge_adj);
 	INFO("Supporte Ids: ", (int)supported_ids.size());
-	INFO("Merged CCs: ", (int)ccs.size());
+	INFO("Merged CCs: ", (int)ccs_support.size());
+
+	// Further merge overlapping clusters
+	// using 3d distance.
+	// Fixed group vs. (another fixed group | cluster)
+	const float ovr_thresh = 0.05;
+	int count_gg_overlap = 0;
+	for(const auto& group0 : ccs_support) {
+		for(const auto& group1 : ccs_support) {
+			if(group0 == group1) {
+				continue;
+			}
+
+			if(dist_between_gg(group0, group1) < ovr_thresh) {
+				merge_adj[*group0.begin()].insert(*group1.begin());
+				count_gg_overlap++;
+			}
+		}
+	}
+	INFO("G-G overlap * 2: ", count_gg_overlap);
 
 
+	std::set<MCId> merged_ids = supported_ids;
+
+	const auto ccs_overlapping = getCC(merged_ids, merge_adj);
+	INFO("Merged Ids: ", (int)merged_ids.size());
+	INFO("Merged CCs: ", (int)ccs_overlapping.size());
+	const auto groups = ccs_overlapping;
 
 
 	if(bundle.isDebugEnabled()) {
@@ -908,6 +970,14 @@ void linkMiniClusters(
 			e.append(edge.first);
 			e.append(edge.second);
 			root["merging"].append(e);
+		}
+		// groups
+		for(const auto& group : groups) {
+			Json::Value e;
+			for(const auto id : group) {
+				e.append(id);
+			}
+			root["groups"].append(e);
 		}
 		// rframe
 		root["rframe"]["z0"] = rframe.getHRange().first;

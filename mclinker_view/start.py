@@ -19,7 +19,7 @@ def serve_static(path):
 def api_data():
     result = {
         "status": "success",
-        "data": json.load(open("../scan-20140827-12:57-gakusei-small/link_mc.json"))
+        "data": json.load(open("../scene-small-gakusei/link_mc.json"))
     }
     return flask.jsonify(**result)
 
