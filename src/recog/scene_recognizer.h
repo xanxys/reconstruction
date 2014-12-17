@@ -67,7 +67,17 @@ std::vector<TexturedMesh> extractVisualGroups(
 
 class MiniCluster {
 public:
-	MiniCluster();
+	MiniCluster(
+		CorrectedSingleScan* c_scan,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
+
+	// Extract textured mesh soup (might be empty)
+	// by using extractVisualGroups. (slow)
+	boost::optional<TexturedMesh> toMeshSoup(SceneAssetBundle& bundle) const;
+
+
+	static AABB3f calculateAABB(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 public:
 	// original info
 	CorrectedSingleScan* c_scan;  // borrowed
@@ -86,6 +96,17 @@ public:  // linking info
 	bool stable;
 };
 
+
+// We want to have:
+// physically-stable, maximally separated objects.
+// = minimize #links while making objects stable.
+//
+// Dirty truth is we also need to reject outlier clusters
+// (patch of walls etc.) && hallucinate hidden surface.
+// (esp. desks)
+//
+// Process basically starts from floor-touching MiniClusters,
+// and we go up connecting.
 class MCLinker {
 public:
 	MCLinker(
@@ -93,7 +114,7 @@ public:
 		const RoomFrame& rframe,
 		const std::vector<MiniCluster>& mcs);
 
-	void getResult();
+	std::vector<std::set<int>> getResult();
 private:
 	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
@@ -127,25 +148,13 @@ private:
 	Eigen::MatrixXf cluster_dist;
 };
 
+
 // Label each point as part of room boundary, inside, or outside.
 // Small error between RoomFrame and aligned coordinate will be
 // compensated, but CorrectedSingleScan must not have ghosting.
 std::vector<MiniCluster> splitEachScan(
 	SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe);
 
-// We want to have:
-// physically-stable, maximally separated objects.
-// = minimize #links while making objects stable.
-//
-// Dirty truth is we also need to reject outlier clusters
-// (patch of walls etc.) && hallucinate hidden surface.
-// (esp. desks)
-//
-// Process basically starts from floor-touching MiniClusters,
-// and we go up connecting.
-void linkMiniClusters(
-	SceneAssetBundle& bundle,
-	const RoomFrame& rframe, std::vector<MiniCluster>& mcs);
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.

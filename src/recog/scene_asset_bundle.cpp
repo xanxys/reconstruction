@@ -79,6 +79,7 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	Json::Value metadata;
 	metadata["unit_per_meter"] = world_scale;
 	// Add json-only objects.
+	metadata["lights"] = Json::arrayValue;
 	for(const auto& pos_w : point_lights) {
 		const Eigen::Vector3f pos_uw = pos_w * world_scale;
 		Json::Value light;
@@ -138,6 +139,7 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		return meta_object;
 	};
 
+	metadata["interior_objects"] = Json::arrayValue;
 	for(const auto& interior : interiors) {
 		auto meta_object = serializeMesh(interior.getMesh());
 		meta_object["pose"] =

@@ -606,10 +606,7 @@ std::vector<MiniCluster> splitEachScan(
 			}
 
 			// Accept cluster
-			MiniCluster mc;
-			mc.c_scan = &ccs;
-			mc.cloud = cluster_cloud;
-			mini_clusters.push_back(mc);
+			mini_clusters.emplace_back(&ccs, cluster_cloud);
 
 			/*
 			const auto groups = extractVisualGroups(
@@ -683,12 +680,62 @@ std::pair<
 	return std::make_pair(points_inside, points_outside);
 }
 
-// TODO: AABB shouldn't be initialized by itself.
-MiniCluster::MiniCluster() :
-	aabb(Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero()),
-	is_supported(false), stable(false) {
+
+MiniCluster::MiniCluster(
+		CorrectedSingleScan* c_scan,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) :
+		c_scan(c_scan), cloud(cloud),
+		aabb(calculateAABB(cloud)),
+		is_supported(false), stable(false) {
+	assert(c_scan);
+	assert(cloud);
+	assert(!cloud->points.empty());
+
+	// Approx center of gravity.
+	Eigen::Vector3f accum = Eigen::Vector3f::Zero();
+	for(const auto& pt : cloud->points) {
+		accum += pt.getVector3fMap();
+	}
+	grav_center = accum / cloud->points.size();
 }
 
+AABB3f MiniCluster::calculateAABB(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+	assert(cloud);
+	Eigen::Vector3f vmin(1e3, 1e3, 1e3);
+	Eigen::Vector3f vmax = -vmin;
+	for(const auto& pt : cloud->points) {
+		vmin = vmin.cwiseMin(pt.getVector3fMap());
+		vmax = vmax.cwiseMax(pt.getVector3fMap());
+	}
+	return AABB3f(vmin, vmax);
+}
+
+
+boost::optional<TexturedMesh> MiniCluster::toMeshSoup(SceneAssetBundle& bundle) const {
+	Eigen::Vector3f pos_accum = Eigen::Vector3f::Zero();
+	Eigen::Vector3f normal_accum = Eigen::Vector3f::Zero();
+	int n_accum = 0;
+	for(const auto& pt : cloud->points) {
+		pos_accum += pt.getVector3fMap();
+		normal_accum += pt.getNormalVector3fMap();
+		n_accum++;
+	}
+	assert(n_accum > 0);
+	const Eigen::Vector3f pos_mean = pos_accum / n_accum;
+	const Eigen::Vector3f normal_mean = normal_accum.normalized();
+
+	const auto groups = extractVisualGroups(
+		bundle, *c_scan, cloud, pos_mean, normal_mean,
+		"unknown");
+
+	assert(groups.size() < 2);
+	if(groups.empty()) {
+		return boost::none;
+	} else {
+		return groups[0];
+	}
+}
 
 MCLinker::MCLinker(
 		SceneAssetBundle& bundle,
@@ -696,26 +743,6 @@ MCLinker::MCLinker(
 		const std::vector<MiniCluster>& raw_mcs) :
 		mcs(raw_mcs), rframe(rframe), bundle(bundle) {
 	INFO("Linking MiniCulsters N=", (int)mcs.size());
-
-	// Pre-calculate independent properties.
-	INFO("Calculating MiniCluster independent props");
-	for(auto& mc : mcs) {
-		// AABB.
-		Eigen::Vector3f vmin(1e3, 1e3, 1e3);
-		Eigen::Vector3f vmax = -vmin;
-		for(const auto& pt : mc.cloud->points) {
-			vmin = vmin.cwiseMin(pt.getVector3fMap());
-			vmax = vmax.cwiseMax(pt.getVector3fMap());
-		}
-		mc.aabb = AABB3f(vmin, vmax);
-
-		// Approx center of gravity.
-		Eigen::Vector3f accum = Eigen::Vector3f::Zero();
-		for(const auto& pt : mc.cloud->points) {
-			accum += pt.getVector3fMap();
-		}
-		mc.grav_center = accum / mc.cloud->points.size();
-	}
 
 	// Pre-calculate pairwise properties.
 	INFO("Calculating MiniCluster pairwise props.");
@@ -761,7 +788,7 @@ MCLinker::MCLinker(
 	}
 }
 
-void MCLinker::getResult() {
+std::vector<std::set<int>> MCLinker::getResult() {
 	const MCId floor_id = -1;
 
 	// Cluster by distance.
@@ -915,6 +942,15 @@ void MCLinker::getResult() {
 		std::ofstream of(bundle.reservePath("link_mc.json"));
 		of << Json::FastWriter().write(root);
 	}
+
+	// Filter stable CCS.
+	std::vector<std::set<MCId>> stable_ccs;
+	for(const auto& cc : ccs) {
+		if(isStable(cc, 0.05)) {
+			stable_ccs.push_back(cc);
+		}
+	}
+	return stable_ccs;
 }
 
 auto MCLinker::join(
@@ -1014,16 +1050,6 @@ Eigen::Vector3f MCLinker::getCG(const std::set<MCId>& cl) const {
 	return cog_accum / n_accum;
 }
 
-// In this function, we call
-// MiniCluster: cluster,
-// aggregated object: object.
-void linkMiniClusters(
-		SceneAssetBundle& bundle,
-		const RoomFrame& rframe, std::vector<MiniCluster>& mcs) {
-	MCLinker(bundle, rframe, mcs).getResult();
-}
-
-
 void recognizeScene(SceneAssetBundle& bundle,
 		const std::vector<SingleScan>& scans,
 		const Json::Value& hint) {
@@ -1052,7 +1078,8 @@ void recognizeScene(SceneAssetBundle& bundle,
 	rframe.wall_polygon = contour_points;
 
 	std::vector<MiniCluster> mcs;
-	for(auto& ccs :  scans_aligned.getScansWithPose()) {
+	auto scans_with_pose = scans_aligned.getScansWithPose();  // required for lending scan pointer to MiniCluster
+	for(auto& ccs : scans_with_pose) {
 		const auto mcs_per_scan = splitEachScan(bundle, ccs, rframe);
 		mcs.insert(mcs.end(), mcs_per_scan.begin(), mcs_per_scan.end());
 	}
@@ -1094,7 +1121,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 	// DEPRECATED: END
 
 	INFO("Linking miniclusters");
-	linkMiniClusters(bundle, rframe, mcs);
+	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
@@ -1103,6 +1130,42 @@ void recognizeScene(SceneAssetBundle& bundle,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	for(const auto& pos : exterior.second) {
 		bundle.addPointLight(pos);
+	}
+	for(const auto& group : groups) {
+		// Generate render proxy.
+		
+		std::vector<TexturedMesh> tms;
+		for(const auto& mc_id : group) {
+			const auto maybe_tm = mcs[mc_id].toMeshSoup(bundle);
+			if(!maybe_tm) {
+				continue;
+			}
+			tms.push_back(*maybe_tm);
+		}
+		if(tms.empty()) {
+			WARN("TM Soup is empty for current group, ignoring");
+			continue;
+		}
+		const auto tm = mergeTexturedMeshes(tms);
+		
+
+		// Generate collisions.
+		std::vector<OBB3f> collisions;
+		for(const auto& mc_id : group) {
+			// TODO: finer collision.
+			
+			INFO("AABB:min",
+				mcs[mc_id].aabb.getMin().x(),
+				mcs[mc_id].aabb.getMin().y(),
+				mcs[mc_id].aabb.getMin().z());
+			INFO("AABB:max",
+				mcs[mc_id].aabb.getMax().x(),
+				mcs[mc_id].aabb.getMax().y(),
+				mcs[mc_id].aabb.getMax().z());
+			assert(mcs[mc_id].aabb.getVolume() > 0);
+			collisions.push_back(OBB3f(mcs[mc_id].aabb));
+		}
+		bundle.addInteriorObject(InteriorObject(tm, collisions));
 	}
 	bundle.setInteriorBoundary(
 		InteriorBoundary(
