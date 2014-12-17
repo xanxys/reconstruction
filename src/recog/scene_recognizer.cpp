@@ -730,7 +730,7 @@ void linkMiniClusters(
 			if(i == j) {
 				pc_min_dist(i, j) = 0;
 				continue;
-			} else if(i < j) {
+			} else if(i > j) {
 				pc_min_dist(i, j) = pc_min_dist(j, i);
 				continue;
 			}
@@ -748,6 +748,18 @@ void linkMiniClusters(
 				pc_min_dist(i, j) = dist_cutoff;
 			}
 		}
+	}
+	if(bundle.isDebugEnabled()) {
+		Json::Value root;
+		for(const MCId i : boost::irange(0, (int)mcs.size())) {
+			Json::Value row;
+			for(const MCId j : boost::irange(0, (int)mcs.size())) {
+				row.append(pc_min_dist(i, j));
+			}
+			root.append(row);
+		}
+		std::ofstream of(bundle.reservePath("mc_dist.json"));
+		of << Json::FastWriter().write(root);
 	}
 
 	// We assume tree structure.
@@ -855,7 +867,7 @@ void linkMiniClusters(
 	INFO("Supporte Ids: ", (int)supported_ids.size());
 	INFO("Merged CCs: ", (int)ccs.size());
 
-
+	const auto groups = ccs;
 
 
 	if(bundle.isDebugEnabled()) {
@@ -908,6 +920,14 @@ void linkMiniClusters(
 			e.append(edge.first);
 			e.append(edge.second);
 			root["merging"].append(e);
+		}
+		// groups
+		for(const auto& group : groups) {
+			Json::Value e;
+			for(const auto id : group) {
+				e.append(id);
+			}
+			root["groups"].append(e);
 		}
 		// rframe
 		root["rframe"]["z0"] = rframe.getHRange().first;
