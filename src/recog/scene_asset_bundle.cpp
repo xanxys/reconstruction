@@ -81,11 +81,8 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	// Add json-only objects.
 	metadata["lights"] = Json::arrayValue;
 	for(const auto& pos_w : point_lights) {
-		const Eigen::Vector3f pos_uw = pos_w * world_scale;
 		Json::Value light;
-		light["pos"]["x"] = pos_uw(0);
-		light["pos"]["y"] = pos_uw(1);
-		light["pos"]["z"] = pos_uw(2);
+		light["pos"] = serializeLocationWithConversion(pos_w);
 		metadata["lights"].append(light);
 	}
 	metadata["collisions"] = Json::arrayValue;
@@ -196,6 +193,14 @@ Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, cons
 	pose["quat"]["z"] = quat.z();
 	pose["quat"]["w"] = quat.w();
 	return pose;
+}
+
+Json::Value SceneAssetBundle::serializeLocationWithConversion(const Eigen::Vector3f& loc) {
+	Json::Value p;
+	p["x"] = loc.x() * world_scale;
+	p["y"] = -loc.y() * world_scale;
+	p["z"] = loc.z() * world_scale;
+	return p;
 }
 
 // Make it FKBoxElem (in UE4)-friendly.
