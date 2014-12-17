@@ -102,11 +102,21 @@ private:
 	using MCId = int;
 
 	float distanceBetween(MCId cl0, MCId cl1) const;
+	float distanceBetween(
+		const std::set<MCId>& cl0,
+		const std::set<MCId>& cl1) const;
 
 	// Group level queries.
 	Eigen::Vector3f getCG(const std::set<MCId>& cl) const;
 	boost::optional<Polygon_2> getSupportPolygon(
 		const std::set<MCId>& cl) const;
+
+	bool isStable(const std::set<MCId>& cls,
+		float disturbance_radius) const;
+
+	// Simple util.
+	static std::set<MCId> join(
+		const std::set<MCId>& a, const std::set<MCId>& b);
 private:
 	const RoomFrame& rframe;
 	SceneAssetBundle& bundle;

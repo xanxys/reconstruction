@@ -127,7 +127,7 @@ Viewer.prototype.get_cluster_vertex_colors = function(mcid) {
 			color = color.clone();
 		}
 		if(cluster.stable) {
-			color = color.lerp(new THREE.Color(0, 0, 0), 0.8);
+			color = color.lerp(new THREE.Color(0, 0, 0), 0.1);
 		} else {
 			color = color.lerp(new THREE.Color(1, 1, 1), 0.8);
 		}

@@ -1,5 +1,6 @@
 #include "scene_recognizer.h"
 
+#include <algorithm>
 #include <fstream>
 #include <vector>
 
@@ -777,7 +778,7 @@ void MCLinker::getResult() {
 			}
 		}
 	}
-	auto ccs = getCC(ids, adj);
+	std::vector<std::set<MCId>> ccs = getCC(ids, adj);
 	INFO("#CCs: ", (int)ccs.size());
 
 	// unstable variations:
@@ -791,39 +792,14 @@ void MCLinker::getResult() {
 		std::vector<std::set<MCId>> stable_ccs;
 		std::vector<std::set<MCId>> unstable_ccs;
 		for(const auto& cc : ccs) {
-			const auto support = getSupportPolygon(cc);
-			if(!support) {
+			if(isStable(cc, 0.05)) {
+				for(const auto& id : cc) {
+					mcs[id].stable = true;
+				}
+				stable_ccs.push_back(cc);
+			} else {
 				unstable_ccs.push_back(cc);
-				continue;
 			}
-
-			// Check if cluster is stable.
-			// stable == CG falls within polygon
-			const std::vector<Eigen::Vector2f> noises = {
-				{0, 0},
-				{0.05, 0},
-				{-0.05, 0},
-				{0, 0.05},
-				{0, -0.05}
-			};
-			const Eigen::Vector3f cog = getCG(cc);
-			bool stable = true;
-			for(const auto& noise : noises) {
-				const Eigen::Vector2f cog_w_n = cog.head<2>() + noise;
-				const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
-				stable &= (support->bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
-			}
-			if(!stable) {
-				unstable_ccs.push_back(cc);
-				continue;
-			}
-
-			// Mark MC as stable.
-			for(const auto& id : cc) {
-				mcs[id].stable = true;
-			}
-
-			stable_ccs.push_back(cc);
 		}
 		assert(stable_ccs.size() + unstable_ccs.size() == ccs.size());
 		INFO("#Stable CC:", (int)stable_ccs.size(), "#All CC", (int)ccs.size());
@@ -833,10 +809,40 @@ void MCLinker::getResult() {
 
 		// Try to connect most natural unconnected CC.
 		// <improve ccs>
+		float action_cost = 1e10;
+		std::pair<std::set<int>, std::set<int>> action;  // unstable, stable
 		for(const auto& cc : unstable_ccs) {
+			float min_dist_to_stable = 1e10;
+			std::set<MCId> min_stable;
+			for(const auto cc_stable : stable_ccs) {
+				const float dist = distanceBetween(cc, cc_stable);
+				if(dist >= min_dist_to_stable) {
+					continue;
+				}
+				min_dist_to_stable = dist;
+				min_stable = cc_stable;
+			}
+			assert(!min_stable.empty());  // something must be closest.
 
+			// Does linking the two make them stable?
+			const std::set<MCId> merge_hypothesis = join(cc, min_stable);
+			if(!isStable(merge_hypothesis, 0.05)) {
+				continue;
+			}
+			// Register new action.
+			if(min_dist_to_stable < action_cost) {
+				action_cost = min_dist_to_stable;
+				action = std::make_pair(cc, min_stable);
+			}
 		}
-		break;
+		if(action_cost > 1000) {
+			INFO("Action exhausted");
+			break;
+		}
+		INFO("Taking join action w/ cost=", action_cost);
+		ccs.erase(std::find(ccs.begin(), ccs.end(), action.first));
+		ccs.erase(std::find(ccs.begin(), ccs.end(), action.second));
+		ccs.push_back(join(action.first, action.second));
 	}
 
 	const auto groups = ccs;
@@ -911,6 +917,41 @@ void MCLinker::getResult() {
 	}
 }
 
+auto MCLinker::join(
+		const std::set<MCId>& a, const std::set<MCId>& b) -> std::set<MCId> {
+	std::set<MCId> result = a;
+	result.insert(b.begin(), b.end());
+	return result;
+}
+
+bool MCLinker::isStable(const std::set<MCId>& cls,
+		float disturbance) const {
+	assert(disturbance >= 0);
+
+	const auto support = getSupportPolygon(cls);
+	if(!support) {
+		return false;
+	}
+
+	// Check if cluster is stable.
+	// stable == CG falls within polygon
+	const std::vector<Eigen::Vector2f> noises = {
+		{0, 0},
+		{1, 0},
+		{-1, 0},
+		{0, 1},
+		{0, -1}
+	};
+	const Eigen::Vector3f cog = getCG(cls);
+	bool stable = true;
+	for(const auto& noise : noises) {
+		const Eigen::Vector2f cog_w_n = cog.head<2>() + noise * disturbance;
+		const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
+		stable &= (support->bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
+	}
+	return stable;
+}
+
 boost::optional<MCLinker::Polygon_2> MCLinker::getSupportPolygon(
 		const std::set<MCId>& cl) const {
 	const float z_floor = rframe.getHRange().first;
@@ -946,6 +987,20 @@ boost::optional<MCLinker::Polygon_2> MCLinker::getSupportPolygon(
 
 float MCLinker::distanceBetween(MCId cl0, MCId cl1) const {
 	return cluster_dist(cl0, cl1);
+}
+
+float MCLinker::distanceBetween(
+		const std::set<MCId>& cls0,
+		const std::set<MCId>& cls1) const {
+	assert(!cls0.empty());
+	assert(!cls1.empty());
+	float dist = 1e10;
+	for(const auto& cl0 : cls0) {
+		for(const auto& cl1 : cls1) {
+			dist = std::min(dist, cluster_dist(cl0, cl1));
+		}
+	}
+	return dist;
 }
 
 Eigen::Vector3f MCLinker::getCG(const std::set<MCId>& cl) const {
