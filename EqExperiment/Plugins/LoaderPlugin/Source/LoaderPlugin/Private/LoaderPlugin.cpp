@@ -280,6 +280,10 @@ void FLoaderPlugin::UnpackScene(const std::string& dir_path, Json::Value& Runtim
 		ImportFiles.Add(widen(join(dir_path, iobj["static_mesh"].asString())).c_str());
 		ImportFiles.Add(widen(join(dir_path, iobj["material"]["diffuse"].asString())).c_str());
 	}
+	// Load collision sounds.
+	for (const auto& ColObj : meta["collisions"]) {
+		ImportFiles.Add(widen(join(dir_path, ColObj["sound"].asString())).c_str());
+	}
 	AssetTools.ImportAssets(ImportFiles, widen(AutoLoadAssetPath).c_str());
 
 	// Set collision geometry of all objects.
