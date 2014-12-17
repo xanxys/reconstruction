@@ -62,9 +62,16 @@ def copy_stripped_scene(src, dst):
     throws InvalidSceneAsset when encountering unexpected files etc.
     """
     def ignore(src, names):
+        prefix_whitelist = [
+            "sm_", "mat_", "diffuse_",
+            "collision_", "meta.json", ]
         if os.path.abspath(src) == os.path.abspath(src):
-            # root directory: ignore checkpoints
-            return set(["checkpoints"])
+            black = []
+            for name in names:
+                white = any(name.startswith(pw) for pw in prefix_whitelist)
+                if not white:
+                    black.append(name)
+            return set(black)
         else:
             return set()
     logger.info("Copying stripped scene asset to %s", dst)
