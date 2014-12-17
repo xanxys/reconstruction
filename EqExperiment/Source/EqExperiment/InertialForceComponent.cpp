@@ -64,31 +64,13 @@ void UInertialForceComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		}
 
 		// Iterate over each and apply force
-		for (int32 OverlapIdx = 0; OverlapIdx<Overlaps.Num(); OverlapIdx++)
-		{
-			UPrimitiveComponent* PokeComp = Overlaps[OverlapIdx].Component.Get();
-			if (PokeComp)
-			{
-				PokeComp->AddForce(PokeComp->GetMass() * AccelNow, NAME_None);
-
-				// see if this is a target for a movement component
-				/*
-				AActor* PokeOwner = PokeComp->GetOwner();
-				if (PokeOwner)
-				{
-					TArray<UMovementComponent*> MovementComponents;
-					PokeOwner->GetComponents<UMovementComponent>(MovementComponents);
-					for (const auto& MovementComponent : MovementComponents)
-					{
-						if (MovementComponent->UpdatedComponent == PokeComp)
-						{
-							MovementComponent->AddForce(ForceStrength, NAME_None);
-							break;
-						}
-					}
-				}
-				*/
+		for (auto& Overlap : Overlaps) {
+			UPrimitiveComponent* PokeComp = Overlap.Component.Get();
+			if (!PokeComp) {
+				continue;
 			}
+			//GEngine->AddOnScreenDebugMessage(1, 1, FColor::White, *FString::Printf(TEXT("Mass=%f : %s"), PokeComp->GetMass(), *PokeComp->GetOwner()->GetName()));
+			PokeComp->AddForce(PokeComp->GetMass() * AccelNow, NAME_None);
 		}
 	}
 }

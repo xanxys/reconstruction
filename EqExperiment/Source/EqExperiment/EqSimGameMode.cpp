@@ -107,6 +107,9 @@ void AEqSimGameMode::SpawnInteriorObjects() {
 		// Dunno why, but you need to set transform first, and then change SM.
 		Actor->StaticMeshComponent->SetWorldTransform(Pose);
 		Actor->LoadInteriorFullPath(IObj["static_mesh:asset_full"].asString());
+
+		// Need this to calculate and set Mass etc. (StaticMesh asset's BodySetup -> SM component's BodyInstance)
+		Actor->StaticMeshComponent->RecreatePhysicsState();
 		
 		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::White, TEXT("+interior object"));
 	}
