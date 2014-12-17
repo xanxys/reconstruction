@@ -122,11 +122,11 @@ Viewer.prototype.get_cluster_vertex_colors = function(mcid) {
 			this.cluster_colors_by_group[mcid] :
 			this.cluster_colors[mcid];
 		if(color === null) {
-			color = new THREE.Color(1.0, 0, 1.0);
+			color = new THREE.Color(0, 0, 0);
 		} else {
 			color = color.clone();
 		}
-		color.r = cluster.stable ? 0 : 1;
+		//color.r = cluster.stable ? 0 : 1;
 		return _.map(cluster.cloud, function(v) {
 			return color;
 		});
