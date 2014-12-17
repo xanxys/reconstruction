@@ -143,9 +143,9 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	for(const auto& interior : interiors) {
 		auto meta_object = serializeMesh(interior.getMesh());
 		meta_object["pose"] =
-			serializePoseWithScaling(interior.getPose());
+			serializePoseWithConversion(interior.getPose());
 		meta_object["collision_boxes"] =
-			serializeCollisionShapeWithScaling(interior.getCollision());
+			serializeCollisionShapeWithConversion(interior.getCollision());
 		metadata["interior_objects"].append(meta_object);
 	}
 	// serialize boundary.
@@ -157,9 +157,9 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		}
 		auto meta_bnd = serializeMesh(boundary->getMesh());
 		meta_bnd["pose"] =
-			serializePoseWithScaling(boundary->getPose());
+			serializePoseWithConversion(boundary->getPose());
 		meta_bnd["collision_boxes"] =
-			serializeCollisionShapeWithScaling(
+			serializeCollisionShapeWithConversion(
 				boundary->getCollision(col_thickness_w));
 		metadata["boundary"] = meta_bnd;
 	}
@@ -171,11 +171,19 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	}
 }
 
-Json::Value SceneAssetBundle::serializePoseWithScaling(
+Json::Value SceneAssetBundle::serializePoseWithConversion(
 		const Eigen::Affine3f& transf) {
 	const auto trans = transf.translation() * world_scale;
 	const auto quat = Eigen::Quaternionf(transf.linear());
-	return serializePose(quat, trans);
+	// I think we can leave quaternion (or any other rotation)
+	// as is? Because same representation corresponds to
+	// inverted rotation in LHS vs. RHS coordinates,
+	// and that's ok.
+	return serializePose(quat,
+		Eigen::Vector3f(
+			trans.x(),
+			-trans.y(),
+			trans.z()));
 }
 
 Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, const Eigen::Vector3f& trans) {
@@ -191,7 +199,7 @@ Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, cons
 }
 
 // Make it FKBoxElem (in UE4)-friendly.
-Json::Value SceneAssetBundle::serializeCollisionShapeWithScaling(const std::vector<OBB3f>& obbs) {
+Json::Value SceneAssetBundle::serializeCollisionShapeWithConversion(const std::vector<OBB3f>& obbs) {
 	assert(!obbs.empty());
 	Json::Value col_shape;
 	for(const auto& obb : obbs) {
@@ -208,12 +216,14 @@ Json::Value SceneAssetBundle::serializeCollisionShapeWithScaling(const std::vect
 		// axis should be rotational now.
 		assert(std::abs(axis.determinant() - 1) < 1e-3);
 
-		const Eigen::Vector3f trans = ca.first * world_scale;
-		const Eigen::Quaternionf q(axis);
-		geom["pose"] = serializePose(q, trans);
+		Eigen::Affine3f trans;
+		trans.linear() = axis;
+		trans.translation() = ca.first;
+		geom["pose"] = serializePoseWithConversion(trans);
 
 		const Eigen::Vector3f size_uw = size * world_scale;
 		geom["size"]["x"] = size_uw.x();
+		// this is not a vector, don't flip it! (it won't matter anyway because it's cnetered OBB)
 		geom["size"]["y"] = size_uw.y();
 		geom["size"]["z"] = size_uw.z();
 
