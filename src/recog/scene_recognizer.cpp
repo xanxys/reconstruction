@@ -1199,22 +1199,24 @@ void populateToyScene(SceneAssetBundle& bundle) {
 
 	// Set InteriorBoundary.
 	{
-		// Create 6x4x3 meter room, spanning
-		// [-3, -2, 0], [3, 2, 3]
+		// Create 6x5x3 meter room, spanning
+		// Notice Y-asymmetry, to test Y-flip phenomenon that
+		// once ocurred.
+		// [-3, -2, 0], [3, 3, 3]
 		TexturedMesh tm;
 		tm.mesh = mapSecond(assignUV(
 			flipTriangles(
-			createBox(Eigen::Vector3f(0, 0, 1.5),
+			createBox(Eigen::Vector3f(0, 0.5, 1.5),
 				Eigen::Vector3f(3, 0, 0),
-				Eigen::Vector3f(0, 2, 0),
+				Eigen::Vector3f(0, 2.5, 0),
 				Eigen::Vector3f(0, 0, 1.5)))));
 		tm.diffuse = gen_grid_tex(cv::Vec3b(255, 255, 255));
 
 		std::vector<Eigen::Vector2f> polygon = {
 			{-3, -2},
 			{3, -2},
-			{3, 2},
-			{-3, 2}
+			{3, 3},
+			{-3, 3}
 		};
 		std::pair<float, float> z_range = {0, 3};
 		bundle.setInteriorBoundary(
