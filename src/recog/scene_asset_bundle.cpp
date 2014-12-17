@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include <boost/range/irange.hpp>
+
 namespace recon {
 
 namespace fs = boost::filesystem;
@@ -85,7 +87,14 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		light["pos"]["z"] = pos_uw(2);
 		metadata["lights"].append(light);
 	}
-	metadata["collision_count"] = collision_count;
+	metadata["collisions"] = Json::arrayValue;
+	for(const int i : boost::irange(0, collision_count)) {
+		const std::string id = std::to_string(i);
+		Json::Value entry;
+		entry["sound"] = "collision_" + id + ".wav";
+		entry["sound:asset"] = "collision_" + id;
+		metadata["collisions"].append(entry);
+	}
 
 	// Add json+file data.
 	const float ws = world_scale;
@@ -317,7 +326,7 @@ void SceneAssetBundle::addCollisionSoundFromDir(const std::string& src_dir_path)
 	for(auto it = fs::directory_iterator(fs::path(src_dir_path));
 			it != fs::directory_iterator(); it++) {
 		const fs::path& p_src = *it;
-		const std::string name = "collision-" +
+		const std::string name = "collision_" +
 			std::to_string(collision_count++) + ".wav";
 		fs::copy_file(
 			p_src, dir_path / fs::path(name),
