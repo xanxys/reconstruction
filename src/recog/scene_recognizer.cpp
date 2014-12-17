@@ -895,6 +895,7 @@ void linkMiniClusters(
 	// Further merge overlapping clusters
 	// using 3d distance.
 	// Fixed group vs. (another fixed group | cluster)
+	std::set<MCId> merged_ids = supported_ids;
 	const float ovr_thresh = 0.05;
 	int count_gg_overlap = 0;
 	for(const auto& group0 : ccs_support) {
@@ -910,9 +911,24 @@ void linkMiniClusters(
 		}
 	}
 	INFO("G-G overlap * 2: ", count_gg_overlap);
-
-
-	std::set<MCId> merged_ids = supported_ids;
+	std::set<MCId> remaining_ids;
+	for(const auto id : boost::irange(0, (int)mcs.size())) {
+		if(supported_ids.find(id) != supported_ids.end()) {
+			continue;
+		}
+		remaining_ids.insert(id);
+	}
+	int count_cg_overlap = 0;
+	for(const auto& group : ccs_support) {
+		for(const auto cl : remaining_ids) {
+			if(dist_between_cg(cl, group) < ovr_thresh) {
+				merged_ids.insert(cl);
+				merge_adj[cl].insert(*group.begin());
+				count_cg_overlap++;
+			}
+		}
+	}
+	INFO("C-G overlap: ", count_cg_overlap);
 
 	const auto ccs_overlapping = getCC(merged_ids, merge_adj);
 	INFO("Merged Ids: ", (int)merged_ids.size());
