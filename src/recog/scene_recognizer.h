@@ -4,6 +4,9 @@
 #include <vector>
 
 #include <boost/optional.hpp>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Polygon_2.h>
 #include <Eigen/Dense>
 #include <jsoncpp/json/json.h>
 #include <pcl/point_cloud.h>
@@ -83,6 +86,36 @@ public:  // linking info
 	bool stable;
 };
 
+class MCLinker {
+public:
+	MCLinker(
+		SceneAssetBundle& bundle,
+		const RoomFrame& rframe,
+		const std::vector<MiniCluster>& mcs);
+
+	void getResult();
+private:
+	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
+	using Point_2 = K::Point_2;
+	using Polygon_2 = CGAL::Polygon_2<K>;
+	using MCId = int;
+
+	float distanceBetween(MCId cl0, MCId cl1) const;
+
+	// Group level queries.
+	Eigen::Vector3f getCG(const std::set<MCId>& cl) const;
+	boost::optional<Polygon_2> getSupportPolygon(
+		const std::set<MCId>& cl) const;
+private:
+	const RoomFrame& rframe;
+	SceneAssetBundle& bundle;
+
+	std::vector<MiniCluster> mcs;
+
+	// Minimum point-point distance between clusters.
+	Eigen::MatrixXf cluster_dist;
+};
 
 // Label each point as part of room boundary, inside, or outside.
 // Small error between RoomFrame and aligned coordinate will be

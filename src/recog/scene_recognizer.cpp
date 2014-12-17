@@ -688,17 +688,13 @@ MiniCluster::MiniCluster() :
 	is_supported(false), stable(false) {
 }
 
-// In this function, we call
-// MiniCluster: cluster,
-// aggregated object: object.
-void linkMiniClusters(
+
+MCLinker::MCLinker(
 		SceneAssetBundle& bundle,
-		const RoomFrame& rframe, std::vector<MiniCluster>& mcs) {
-	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
-	using Point_2 = K::Point_2;
-	using MCId = int;
-	const MCId floor_id = -1;
+		const RoomFrame& rframe,
+		const std::vector<MiniCluster>& raw_mcs) :
+		mcs(raw_mcs), rframe(rframe), bundle(bundle) {
+	INFO("Linking MiniCulsters N=", (int)mcs.size());
 
 	// Pre-calculate independent properties.
 	INFO("Calculating MiniCluster independent props");
@@ -724,7 +720,6 @@ void linkMiniClusters(
 	INFO("Calculating MiniCluster pairwise props.");
 	const float dist_cutoff = 0.3;  // above this thresh, two MiniClusters MUST NOT CONNECT
 	Eigen::MatrixXf pc_min_dist(mcs.size(), mcs.size());
-
 	for(const MCId i : boost::irange(0, (int)mcs.size())) {
 		const auto enl_aabb = mcs[i].aabb.enlarged(dist_cutoff);
 		for(const MCId j : boost::irange(0, (int)mcs.size())) {
@@ -750,6 +745,7 @@ void linkMiniClusters(
 			}
 		}
 	}
+	cluster_dist = pc_min_dist;
 	if(bundle.isDebugEnabled()) {
 		Json::Value root;
 		for(const MCId i : boost::irange(0, (int)mcs.size())) {
@@ -762,179 +758,88 @@ void linkMiniClusters(
 		std::ofstream of(bundle.reservePath("mc_dist.json"));
 		of << Json::FastWriter().write(root);
 	}
-	// cluster vs. group distance accessor.
-	auto dist_between_cg = [&pc_min_dist](const MCId cl0, const std::set<MCId>& cls1) {
-		assert(!cls1.empty());
-		float md = 1e10;
-		for(const auto& cl1 : cls1) {
-			md = std::min(md, pc_min_dist(cl0, cl1));
-		}
-		return md;
-	};
-	auto dist_between_gg = [&pc_min_dist](
-			const std::set<MCId>& cls0,
-			const std::set<MCId>& cls1) {
-		assert(!cls0.empty());
-		assert(!cls1.empty());
-		float md = 1e10;
-		for(const auto& cl0 : cls0) {
-			for(const auto& cl1 : cls1) {
-				md = std::min(md, pc_min_dist(cl0, cl1));
-			}
-		}
-		return md;
-	};
+}
 
+void MCLinker::getResult() {
+	const MCId floor_id = -1;
 
-
-	// We assume tree structure.
-	// For N clusters, there are only N - 1 edges.
-	// But we include floor, there are N edges.
-	std::set<MCId> floating;
-	floating.insert(
-		boost::irange(0, static_cast<int>(mcs.size())).begin(),
-		boost::irange(0, static_cast<int>(mcs.size())).end());
-
-	std::map<MCId, MCId> parent;  // child -> parent
-	std::multimap<MCId, MCId> merging;
-
-	// Identitify clusters touching floor.
-	INFO("Linking near-floor");
-	const MCId id_support = floor_id;
-	const float z_floor = rframe.getHRange().first;
-	const float z_thresh = 0.2;
-	const float bond_radius = 0.02;
-	for(const MCId id : floating) {
-		auto& mc = mcs[id];
-
-		// Bottom point not touching the supporting surface
-		// -> must be floating
-		if(std::abs(mc.aabb.getMin().z() - z_floor) > z_thresh) {
-			continue;
-		}
-
-		// Calculate support polygon.
-		std::vector<Point_2> support_points;
-		for(const auto& pt : mcs[id].cloud->points) {
-			if(std::abs(pt.z - mc.aabb.getMin().z()) < bond_radius) {
-				support_points.emplace_back(pt.x, pt.y);
-			}
-		}
-		if(support_points.size() < 3) {
-			WARN("Too few support points", (int)support_points.size());
-			continue;
-		}
-
-		std::vector<Point_2> support_vertices;
-		CGAL::ch_graham_andrew(
-			support_points.cbegin(), support_points.cend(),
-			std::back_inserter(support_vertices));
-
-		mc.is_supported = true;
-		mc.support_z = mc.aabb.getMin().z();
-		mc.support_polygon.clear();
-		for(const auto& p : support_vertices) {
-			mc.support_polygon.emplace_back(p.x(), p.y());
-		}
-
-		// Check if cluster is stable.
-		// stable == CoG falls within polygon
-		const CGAL::Polygon_2<K> poly_support(support_vertices.begin(), support_vertices.end());
-		const std::vector<Eigen::Vector2f> noises = {
-			{0, 0},
-			{0.05, 0},
-			{-0.05, 0},
-			{0, 0.05},
-			{0, -0.05}
-		};
-		bool stable = true;
-		for(const auto& noise : noises) {
-			const Eigen::Vector2f cog_w_n = mc.grav_center.head<2>() + noise;
-			const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
-			stable &= (poly_support.bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
-		}
-		mc.stable = stable;
+	// Cluster by distance.
+	const float cluster_thresh = 0.05;
+	std::set<MCId> ids;
+	for(const MCId id : boost::irange(0, (int)mcs.size())) {
+		ids.insert(id);
 	}
-
-	auto toCGALPoly = [](const std::vector<Eigen::Vector2f>& vs) {
-		CGAL::Polygon_2<Kex> poly;
-		for(const auto& v : vs) {
-			poly.push_back(Kex::Point_2(v.x(), v.y()));
-		}
-		return poly;
-	};
-
-	// Group supported mcs by overlap of supports.
-	std::set<MCId> supported_ids;
-	for(const MCId id : floating) {
-		if(mcs[id].is_supported) {
-			supported_ids.insert(id);
-		}
-	}
-	std::map<int, std::set<int>> merge_adj;
-	for(const auto& id0 : supported_ids) {
-		const auto poly0 = toCGALPoly(mcs[id0].support_polygon);
-		for(const auto& id1 : supported_ids) {
-			if(id1 == id0) {
-				continue;
-			}
-			const auto poly1 = toCGALPoly(mcs[id1].support_polygon);
-			if(CGAL::do_intersect(poly0, poly1)) {
-				merging.emplace(id0, id1);
-				merge_adj[id0].insert(id1);
+	std::map<MCId, std::set<MCId>> adj;
+	for(const MCId i : ids) {
+		for(const MCId j : ids) {
+			if(cluster_dist(i, j) < cluster_thresh) {
+				adj[i].insert(j);
 			}
 		}
 	}
+	auto ccs = getCC(ids, adj);
+	INFO("#CCs: ", (int)ccs.size());
 
-	// divide supported_ids into CCs.
-	// and check group stability.
-	const auto ccs_support = getCC(supported_ids, merge_adj);
-	INFO("Supporte Ids: ", (int)supported_ids.size());
-	INFO("Merged CCs: ", (int)ccs_support.size());
-
-	// Further merge overlapping clusters
-	// using 3d distance.
-	// Fixed group vs. (another fixed group | cluster)
-	std::set<MCId> merged_ids = supported_ids;
-	const float ovr_thresh = 0.05;
-	int count_gg_overlap = 0;
-	for(const auto& group0 : ccs_support) {
-		for(const auto& group1 : ccs_support) {
-			if(group0 == group1) {
+	// unstable variations:
+	// supported (unstable due to CoG offset) ->
+	// * search nearby conn
+	// non-supported ->
+	// * floor extension (add mesh)
+	// * nearby conn
+	while(true) {
+		// Partition CCs by stability.
+		std::vector<std::set<MCId>> stable_ccs;
+		std::vector<std::set<MCId>> unstable_ccs;
+		for(const auto& cc : ccs) {
+			const auto support = getSupportPolygon(cc);
+			if(!support) {
+				unstable_ccs.push_back(cc);
 				continue;
 			}
 
-			if(dist_between_gg(group0, group1) < ovr_thresh) {
-				merge_adj[*group0.begin()].insert(*group1.begin());
-				count_gg_overlap++;
+			// Check if cluster is stable.
+			// stable == CG falls within polygon
+			const std::vector<Eigen::Vector2f> noises = {
+				{0, 0},
+				{0.05, 0},
+				{-0.05, 0},
+				{0, 0.05},
+				{0, -0.05}
+			};
+			const Eigen::Vector3f cog = getCG(cc);
+			bool stable = true;
+			for(const auto& noise : noises) {
+				const Eigen::Vector2f cog_w_n = cog.head<2>() + noise;
+				const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
+				stable &= (support->bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
 			}
-		}
-	}
-	INFO("G-G overlap * 2: ", count_gg_overlap);
-	std::set<MCId> remaining_ids;
-	for(const auto id : boost::irange(0, (int)mcs.size())) {
-		if(supported_ids.find(id) != supported_ids.end()) {
-			continue;
-		}
-		remaining_ids.insert(id);
-	}
-	int count_cg_overlap = 0;
-	for(const auto& group : ccs_support) {
-		for(const auto cl : remaining_ids) {
-			if(dist_between_cg(cl, group) < ovr_thresh) {
-				merged_ids.insert(cl);
-				merge_adj[cl].insert(*group.begin());
-				count_cg_overlap++;
+			if(!stable) {
+				unstable_ccs.push_back(cc);
+				continue;
 			}
+
+			// Mark MC as stable.
+			for(const auto& id : cc) {
+				mcs[id].stable = true;
+			}
+
+			stable_ccs.push_back(cc);
 		}
+		assert(stable_ccs.size() + unstable_ccs.size() == ccs.size());
+		INFO("#Stable CC:", (int)stable_ccs.size(), "#All CC", (int)ccs.size());
+		if(unstable_ccs.size() == 0) {
+			break;
+		}
+
+		// Try to connect most natural unconnected CC.
+		// <improve ccs>
+		for(const auto& cc : unstable_ccs) {
+
+		}
+		break;
 	}
-	INFO("C-G overlap: ", count_cg_overlap);
 
-	const auto ccs_overlapping = getCC(merged_ids, merge_adj);
-	INFO("Merged Ids: ", (int)merged_ids.size());
-	INFO("Merged CCs: ", (int)ccs_overlapping.size());
-	const auto groups = ccs_overlapping;
-
+	const auto groups = ccs;
 
 	if(bundle.isDebugEnabled()) {
 		Json::Value root;
@@ -975,6 +880,7 @@ void linkMiniClusters(
 			root["clusters"].append(mc_entry);
 		}
 		// edges
+		/*
 		for(const auto& edge : parent) {
 			Json::Value e;
 			e.append(edge.first);
@@ -987,6 +893,7 @@ void linkMiniClusters(
 			e.append(edge.second);
 			root["merging"].append(e);
 		}
+		*/
 		// groups
 		for(const auto& group : groups) {
 			Json::Value e;
@@ -1002,6 +909,63 @@ void linkMiniClusters(
 		std::ofstream of(bundle.reservePath("link_mc.json"));
 		of << Json::FastWriter().write(root);
 	}
+}
+
+boost::optional<MCLinker::Polygon_2> MCLinker::getSupportPolygon(
+		const std::set<MCId>& cl) const {
+	const float z_floor = rframe.getHRange().first;
+	const float z_thresh = 0.2;
+	const float bond_radius = 0.02;
+
+	// Get all points near floor.
+	std::vector<Point_2> support_points;
+	for(const auto& id : cl) {
+		auto& mc = mcs[id];
+		// Cull completely floating cluster.
+		if(std::abs(mc.aabb.getMin().z() - z_floor) > z_thresh) {
+			continue;
+		}
+		for(const auto& pt : mc.cloud->points) {
+			if(std::abs(pt.z - mc.aabb.getMin().z()) < bond_radius) {
+				support_points.emplace_back(pt.x, pt.y);
+			}
+		}
+	}
+	// Too few support points: no support polygon.
+	if(support_points.size() < 3) {
+		return boost::none;
+	}
+	std::vector<Point_2> support_vertices;
+	CGAL::ch_graham_andrew(
+		support_points.cbegin(), support_points.cend(),
+		std::back_inserter(support_vertices));
+
+	return MCLinker::Polygon_2(
+		support_vertices.begin(), support_vertices.end());
+}
+
+float MCLinker::distanceBetween(MCId cl0, MCId cl1) const {
+	return cluster_dist(cl0, cl1);
+}
+
+Eigen::Vector3f MCLinker::getCG(const std::set<MCId>& cl) const {
+	assert(!cl.empty());
+	Eigen::Vector3f cog_accum = Eigen::Vector3f::Zero();
+	float n_accum = 0;
+	for(const auto& id : cl) {
+		cog_accum += mcs[id].grav_center * mcs[id].cloud->points.size();
+		n_accum += mcs[id].cloud->points.size();
+	}
+	return cog_accum / n_accum;
+}
+
+// In this function, we call
+// MiniCluster: cluster,
+// aggregated object: object.
+void linkMiniClusters(
+		SceneAssetBundle& bundle,
+		const RoomFrame& rframe, std::vector<MiniCluster>& mcs) {
+	MCLinker(bundle, rframe, mcs).getResult();
 }
 
 
