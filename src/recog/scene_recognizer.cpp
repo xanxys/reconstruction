@@ -1128,6 +1128,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 		bundle, rframe,
 		scans_aligned, extrusion_mesh,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
+	bundle.setFloorLevel(rframe.getHRange().first);
 	for(const auto& pos : exterior.second) {
 		bundle.addPointLight(pos);
 	}
@@ -1153,7 +1154,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 		std::vector<OBB3f> collisions;
 		for(const auto& mc_id : group) {
 			// TODO: finer collision.
-			
+			/*
 			INFO("AABB:min",
 				mcs[mc_id].aabb.getMin().x(),
 				mcs[mc_id].aabb.getMin().y(),
@@ -1162,6 +1163,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 				mcs[mc_id].aabb.getMax().x(),
 				mcs[mc_id].aabb.getMax().y(),
 				mcs[mc_id].aabb.getMax().z());
+			*/
 			assert(mcs[mc_id].aabb.getVolume() > 0);
 			collisions.push_back(OBB3f(mcs[mc_id].aabb));
 		}
