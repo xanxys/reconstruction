@@ -130,7 +130,12 @@ cv::Mat getPositionMapInUV(
 		Eigen::Matrix2f ps;
 		ps.col(0) = p1 - p0;
 		ps.col(1) = p2 - p0;
-		ps = ps.inverse().eval();
+		if(std::abs(ps.determinant()) < 1e-5) {
+			// degenerate triangle -> zero matrix (= just use p0)
+			ps = Eigen::Matrix2f::Zero();
+		} else {
+			ps = ps.inverse().eval();
+		}
 
 		Eigen::Matrix3f vs;
 		vs.col(0) = mesh.vertices[tri[0]].first;
