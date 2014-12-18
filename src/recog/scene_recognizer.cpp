@@ -1,6 +1,7 @@
 #include "scene_recognizer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <vector>
 
@@ -73,24 +74,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		vmax = vmax.cwiseMax(v);
 	}
 	const float z_ceiling = rframe.getHRange().second;
-
-	/*
-	TriangleMesh<Eigen::Vector2f> quad;
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmin.x(), vmin.y(), z_ceiling),
-		Eigen::Vector2f(0, 0)));
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmax.x(), vmin.y(), z_ceiling),
-		Eigen::Vector2f(1, 0)));
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmax.x(), vmax.y(), z_ceiling),
-		Eigen::Vector2f(1, 1)));
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmin.x(), vmax.y(), z_ceiling),
-		Eigen::Vector2f(0, 1)));
-	quad.triangles.push_back({{0, 1, 2}});
-	quad.triangles.push_back({{2, 3, 0}});
-	*/
 	const Eigen::Vector3f normal_ceiling(0, 0, -1);
 
 	// Projection settings.
@@ -573,7 +556,6 @@ std::vector<MiniCluster> splitEachScan(
 		ec.extract(clusters);
 		INFO("splitEachScan: Number of clusters=", (int)clusters.size());
 
-		std::vector<TexturedMesh> tms;
 		int i_cluster = 0;
 		for(const auto& indices : clusters) {
 			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster_cloud(
@@ -601,19 +583,7 @@ std::vector<MiniCluster> splitEachScan(
 
 			// Accept cluster
 			mini_clusters.emplace_back(&ccs, cluster_cloud);
-
-			/*
-			const auto groups = extractVisualGroups(
-				bundle, ccs, cluster_cloud, pos_mean, normal_mean,
-				std::to_string(i_cluster));
-
-			tms.insert(tms.end(), groups.begin(), groups.end());
-			*/
 			i_cluster++;
-		}
-		if(bundle.isDebugEnabled() && !tms.empty()) {
-			auto tm_merged = mergeTexturedMeshes(tms);
-			bundle.addMesh("debug_all_clusters_" + ccs.raw_scan.getScanId(), tm_merged);
 		}
 
 		if(bundle.isDebugEnabled()) {
@@ -1089,31 +1059,6 @@ void recognizeScene(SceneAssetBundle& bundle,
 	auto points_outside = points_inout.second;
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
-	/*
-	INFO("Modeling boxes along wall");
-	auto cloud_interior_pre = colorPointsByDistance<pcl::PointXYZRGBNormal>(
-		points_inside, extrusion_mesh.getMesh(), true);
-	INFO("Rejecting near-ceiling points");
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	const float ceiling_range = 0.65;
-	for(const auto& pt : cloud_interior_pre->points) {
-		if(pt.z > room_hrange.second - ceiling_range) {
-			continue;
-		}
-		cloud_interior->points.push_back(pt);
-	}
-
-	bundle.addDebugPointCloud("points_interior", cloud_interior);
-
-	auto filtered = squashRegistrationError(cloud_interior);
-	bundle.addDebugPointCloud("filtered", filtered);
-
-	const auto cloud_interior_dist = colorPointsByDistance<pcl::PointXYZRGBNormal>(
-		points_inside, extrusion_mesh.getMesh(), false);
-	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
-	*/
-	// DEPRECATED: END
-
 	INFO("Linking miniclusters");
 	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
@@ -1130,51 +1075,34 @@ void recognizeScene(SceneAssetBundle& bundle,
 	for(const auto& group : groups) {
 		INFO("Processing group", i_group);
 		// Generate render proxy.
-		/*
-		std::vector<TexturedMesh> tms;
-		for(const auto& mc_id : group) {
-			const auto maybe_tm = mcs[mc_id].toMeshSoup(bundle);
-			if(!maybe_tm) {
-				continue;
-			}
-			tms.push_back(*maybe_tm);
-		}
-		if(tms.empty()) {
-			WARN("TM Soup is empty for current group, ignoring");
-			continue;
-		}
-		const auto tm = mergeTexturedMeshes(tms);
-		*/
-		/*
-		const float radius = 0.02;
-		TriangleMesh<std::nullptr_t> mesh;
-		for(const auto& mc_id : group) {
-			for(const auto& pt : mcs[mc_id].cloud->points) {
-				mesh.merge(createBox(pt.getVector3fMap(), radius));
-			}
-		}
-		*/
-		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
-			new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZRGB>);
 		Eigen::Vector3f vmin(1e10, 1e10, 1e10);
 		Eigen::Vector3f vmax = -vmin;
 		for(const auto& mc_id : group) {
 			for(const auto& pt : mcs[mc_id].cloud->points) {
-				pcl::PointXYZ pn;
+				pcl::PointXYZRGB pn;
 				pn.getVector3fMap() = pt.getVector3fMap();
+				pn.r = pt.r;
+				pn.g = pt.g;
+				pn.b = pt.b;
 				cloud->points.push_back(pn);
+				assert(std::isfinite(pn.x));
+				assert(std::isfinite(pn.y));
+				assert(std::isfinite(pn.z));
 
+				// Get AABB.
 				vmin = vmin.cwiseMin(pt.getVector3fMap());
 				vmax = vmax.cwiseMax(pt.getVector3fMap());
 			}
 		}
-		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+		pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
 		kdtree.setInputCloud(cloud);
 
 		auto field = [&kdtree](const Eigen::Vector3f& pos) {
 			const float sigma = 0.02;
 
-			pcl::PointXYZ query;
+			pcl::PointXYZRGB query;
 			query.getVector3fMap() = pos;
 
 			std::vector<int> result_ixs;
@@ -1190,33 +1118,76 @@ void recognizeScene(SceneAssetBundle& bundle,
 			return v;
 		};
 
+		auto color_field = [&kdtree, &cloud](const Eigen::Vector3f& pos) -> Eigen::Vector3f {
+			const float sigma = 0.02;
+
+			pcl::PointXYZRGB query;
+			query.getVector3fMap() = pos;
+
+			std::vector<int> result_ixs;
+			std::vector<float> result_sq_dists;
+			const int n_result = kdtree.radiusSearch(
+				query, sigma * 3,
+				result_ixs, result_sq_dists);
+
+			float weight_accum = 0;
+			Eigen::Vector3f rgb_accum = Eigen::Vector3f::Zero();
+			for(int i : boost::irange(0, n_result)) {
+				const float weight =
+					std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+				const auto& pt = cloud->points[result_ixs[i]];
+				rgb_accum += weight *
+					Eigen::Vector3f(pt.r, pt.g, pt.b);
+				weight_accum += weight;
+			}
+			if(weight_accum < 1e-3) {
+				return Eigen::Vector3f::Zero();
+			} else {
+				return rgb_accum / weight_accum;
+			}
+		};
+
+		const Eigen::Vector3f margin(0.1, 0.1, 0.1);
 		const auto mesh_w_n = extractIsosurface(
 			0.1, field,
-			std::make_pair(vmin, vmax), 0.03);
-
-		TexturedMesh tm;
-		tm.diffuse = cv::Mat(64, 64, CV_8UC3);
-		tm.diffuse = cv::Scalar(255, 255, 255);
-		tm.mesh.triangles = mesh_w_n.triangles;
-		for(const auto& v : mesh_w_n.vertices) {
-			tm.mesh.vertices.emplace_back(
-				v.first, Eigen::Vector2f(0, 0));
+			std::make_pair(vmin - margin, vmax + margin),
+			0.03);
+		for(const auto& vert : mesh_w_n.vertices) {
+			assert(std::isfinite(vert.first.x()));
+			assert(std::isfinite(vert.first.y()));
+			assert(std::isfinite(vert.first.z()));
 		}
+
+		const int tex_size = 256;
+		TexturedMesh tm;
+		tm.mesh = mapSecond(assignUV(dropAttrib(mesh_w_n)));
+
+		// Create RGB texture via XYZ texture.
+		const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);
+		const auto pos_map = getPositionMapInUV(tm.mesh, tex_size,
+			invalid_pos);
+
+		cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
+		for(const int y : boost::irange(0, tex_size)) {
+			for(const int x : boost::irange(0, tex_size)) {
+				const auto pos_raw = pos_map.at<cv::Vec3f>(y, x);
+				const auto pos = Eigen::Vector3f(pos_raw[0], pos_raw[1], pos_raw[2]);
+				if(pos == invalid_pos) {
+					// don't bother looking up, because field lookup is slow.
+					diffuse.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+				} else {
+					const auto col = color_field(pos);  // RGB
+					diffuse.at<cv::Vec3b>(y, x) =
+						cv::Vec3b(col(2), col(1), col(0));  // BGR
+				}
+			}
+		}
+		tm.diffuse = diffuse;
 
 		// Generate collisions.
 		std::vector<OBB3f> collisions;
 		for(const auto& mc_id : group) {
 			// TODO: finer collision.
-			/*
-			INFO("AABB:min",
-				mcs[mc_id].aabb.getMin().x(),
-				mcs[mc_id].aabb.getMin().y(),
-				mcs[mc_id].aabb.getMin().z());
-			INFO("AABB:max",
-				mcs[mc_id].aabb.getMax().x(),
-				mcs[mc_id].aabb.getMax().y(),
-				mcs[mc_id].aabb.getMax().z());
-			*/
 			assert(mcs[mc_id].aabb.getVolume() > 0);
 			collisions.push_back(OBB3f(mcs[mc_id].aabb));
 		}
@@ -1404,44 +1375,21 @@ TexturedMesh bakeTextureSingleExterior(
 	const auto c_scans = scans.getScansWithPose();
 	const auto& c_scan = c_scans[0];
 
+	const Eigen::Vector3f invalid_value(1000, 1000, 1000);
 	cv::Mat mapping(tex_size, tex_size, CV_32FC2);
-	for(int y : boost::irange(0, tex_size)) {
-		for(int x : boost::irange(0, tex_size)) {
-			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(0, 0);
-		}
-	}
+	mapping = cv::Scalar(0, 0);
 
 	const Eigen::Affine3f world_to_local = c_scan.local_to_world.inverse();
+	const cv::Mat pos_map = getPositionMapInUV(shape, tex_size, invalid_value);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			const auto pos_raw = pos_map.at<cv::Vec3f>(y, x);
+			const auto pos_world = Eigen::Vector3f(pos_raw[0], pos_raw[1], pos_raw[2]);
+			if(pos_world == invalid_value) {
+				continue;
+			}
 
-	const Eigen::Vector2i bnd_tex_low(0, 0);
-	const Eigen::Vector2i bnd_tex_high(tex_size, tex_size);
-	for(const auto& tri : shape.triangles) {
-		// Triangle on x-y space of texture.
-		const Eigen::Vector2f p0 = swapY(shape.vertices[tri[0]].second) * tex_size;
-		const Eigen::Vector2f p1 = swapY(shape.vertices[tri[1]].second) * tex_size;
-		const Eigen::Vector2f p2 = swapY(shape.vertices[tri[2]].second) * tex_size;
-		Eigen::Matrix2f ps;
-		ps.col(0) = p1 - p0;
-		ps.col(1) = p2 - p0;
-		ps = ps.inverse().eval();
-
-		Eigen::Matrix3f vs;
-		vs.col(0) = shape.vertices[tri[0]].first;
-		vs.col(1) = shape.vertices[tri[1]].first;
-		vs.col(2) = shape.vertices[tri[2]].first;
-
-		// Fill all pixels within AABB of the triangle.
-		const Eigen::Vector2f p_min = p0.cwiseMin(p1).cwiseMin(p2);
-		const Eigen::Vector2f p_max = p0.cwiseMax(p1).cwiseMax(p2);
-		const Eigen::Vector2i pi_min = Eigen::Vector2i(p_min(0) - 1, p_min(1) - 1).cwiseMax(bnd_tex_low);
-		const Eigen::Vector2i pi_max = Eigen::Vector2i(p_max(0) + 1, p_max(1) + 1).cwiseMin(bnd_tex_high);
-
-		for(const auto p : range2(pi_min, pi_max)) {
-			const Eigen::Vector2f ts_pre = ps * (p.cast<float>() - p0);
-			const Eigen::Vector3f ts(1 - ts_pre.sum(), ts_pre(0), ts_pre(1));
-			const Eigen::Vector3f pos_w = vs * ts;
-
-			const Eigen::Vector3f pt3d_l = world_to_local * pos_w;
+			const Eigen::Vector3f pt3d_l = world_to_local * pos_world;
 			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
 			const float theta = std::acos(pt3d_l_n.z());
@@ -1450,7 +1398,7 @@ TexturedMesh bakeTextureSingleExterior(
 
 			const float er_x = c_scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
 			const float er_y = c_scan.raw_scan.er_rgb.rows * theta / pi;
-			mapping.at<cv::Vec2f>(p(1), p(0)) = cv::Vec2f(er_x, er_y);
+			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
 		}
 	}
 	cv::Mat diffuse;
@@ -1463,8 +1411,6 @@ TexturedMesh bakeTextureSingleExterior(
 	tm.mesh = shape;
 	return tm;
 }
-
-
 
 TexturedMesh bakeTexture(
 		const AlignedScans& scans,
