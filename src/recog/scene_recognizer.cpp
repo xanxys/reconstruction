@@ -1154,27 +1154,31 @@ void recognizeScene(SceneAssetBundle& bundle,
 			}
 		}
 		*/
-		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
-			new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZRGB>);
 		Eigen::Vector3f vmin(1e10, 1e10, 1e10);
 		Eigen::Vector3f vmax = -vmin;
 		for(const auto& mc_id : group) {
 			for(const auto& pt : mcs[mc_id].cloud->points) {
-				pcl::PointXYZ pn;
+				pcl::PointXYZRGB pn;
 				pn.getVector3fMap() = pt.getVector3fMap();
+				pn.r = pt.r;
+				pn.g = pt.g;
+				pn.b = pt.b;
 				cloud->points.push_back(pn);
 
+				// Get AABB.
 				vmin = vmin.cwiseMin(pt.getVector3fMap());
 				vmax = vmax.cwiseMax(pt.getVector3fMap());
 			}
 		}
-		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+		pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
 		kdtree.setInputCloud(cloud);
 
 		auto field = [&kdtree](const Eigen::Vector3f& pos) {
 			const float sigma = 0.02;
 
-			pcl::PointXYZ query;
+			pcl::PointXYZRGB query;
 			query.getVector3fMap() = pos;
 
 			std::vector<int> result_ixs;
@@ -1190,18 +1194,66 @@ void recognizeScene(SceneAssetBundle& bundle,
 			return v;
 		};
 
+		auto color_field = [&kdtree, &cloud](const Eigen::Vector3f& pos) -> Eigen::Vector3f {
+			const float sigma = 0.02;
+
+			pcl::PointXYZRGB query;
+			query.getVector3fMap() = pos;
+
+			std::vector<int> result_ixs;
+			std::vector<float> result_sq_dists;
+			const int n_result = kdtree.radiusSearch(
+				query, sigma * 3,
+				result_ixs, result_sq_dists);
+
+			float weight_accum = 0;
+			Eigen::Vector3f rgb_accum = Eigen::Vector3f::Zero();
+			for(int i : boost::irange(0, n_result)) {
+				const float weight =
+					std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+				const auto& pt = cloud->points[result_ixs[i]];
+				rgb_accum += weight *
+					Eigen::Vector3f(pt.r, pt.g, pt.b);
+				weight_accum += weight;
+			}
+			if(weight_accum < 1e-3) {
+				return Eigen::Vector3f::Zero();
+			} else {
+				return rgb_accum / weight_accum;
+			}
+		};
+
+		const Eigen::Vector3f margin(0.1, 0.1, 0.1);
 		const auto mesh_w_n = extractIsosurface(
 			0.1, field,
-			std::make_pair(vmin, vmax), 0.03);
+			std::make_pair(vmin - margin, vmax + margin),
+			0.03);
 
+		const int tex_size = 256;
 		TexturedMesh tm;
-		tm.diffuse = cv::Mat(64, 64, CV_8UC3);
-		tm.diffuse = cv::Scalar(255, 255, 255);
-		tm.mesh.triangles = mesh_w_n.triangles;
-		for(const auto& v : mesh_w_n.vertices) {
-			tm.mesh.vertices.emplace_back(
-				v.first, Eigen::Vector2f(0, 0));
+		tm.mesh = mapSecond(assignUV(dropAttrib(mesh_w_n)));
+
+		// Create RGB texture via XYZ texture.
+		const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);
+		const auto pos_map = getPositionMapInUV(tm.mesh, tex_size,
+			invalid_pos);
+
+		cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
+		for(const int y : boost::irange(0, tex_size)) {
+			for(const int x : boost::irange(0, tex_size)) {
+				const auto pos_raw = pos_map.at<cv::Vec3f>(y, x);
+				const auto pos = Eigen::Vector3f(pos_raw[0], pos_raw[1], pos_raw[2]);
+				if(pos == invalid_pos) {
+					// don't bother looking up, because field lookup is slow.
+					diffuse.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+				} else {
+					const auto col = color_field(pos);  // RGB
+					diffuse.at<cv::Vec3b>(y, x) =
+						cv::Vec3b(col(2), col(1), col(0));  // BGR
+				}
+			}
 		}
+		tm.diffuse = diffuse;
 
 		// Generate collisions.
 		std::vector<OBB3f> collisions;
