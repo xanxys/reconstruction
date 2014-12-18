@@ -1132,6 +1132,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 	for(const auto& pos : exterior.second) {
 		bundle.addPointLight(pos);
 	}
+	int i_group = 0;
 	for(const auto& group : groups) {
 		// Generate render proxy.
 		
@@ -1168,6 +1169,19 @@ void recognizeScene(SceneAssetBundle& bundle,
 			collisions.push_back(OBB3f(mcs[mc_id].aabb));
 		}
 		bundle.addInteriorObject(InteriorObject(tm, collisions));
+
+		if(bundle.isDebugEnabled()) {
+			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
+				new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+			for(const auto& mc_id : group) {
+				for(const auto& pt : mcs[mc_id].cloud->points) {
+					cloud->points.push_back(pt);
+				}
+			}
+			bundle.addDebugPointCloud(
+				"group_" + std::to_string(i_group++),
+				cloud);
+		}
 	}
 	bundle.setInteriorBoundary(
 		InteriorBoundary(

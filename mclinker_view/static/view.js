@@ -136,7 +136,7 @@ Viewer.prototype.get_cluster_vertex_colors = function(mcid) {
 		});
 	} else {
 		return _.map(cluster.cloud, function(v) {
-			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255);
+			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255).multiplyScalar(1.5);
 		});
 	}
 };
