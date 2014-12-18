@@ -22,6 +22,14 @@
 #include <CGAL/convex_hull_3.h>
 #include <CGAL/create_offset_polygons_2.h>
 #include <CGAL/point_generators_3.h>
+
+#include <CGAL/Surface_mesh_default_triangulation_3.h>
+#include <CGAL/Complex_2_in_triangulation_3.h>
+#include <CGAL/make_surface_mesh.h>
+#include <CGAL/Implicit_surface_3.h>
+
+#include <CGAL/IO/output_surface_facets_to_polyhedron.h>
+
 // insanity ends here
 #include <Eigen/QR>
 #include <opencv2/opencv.hpp>
@@ -934,6 +942,64 @@ InteriorObject createInteriorObject(
 		}
 	};
 
+	TriangleMesh<std::nullptr_t> simple_mesh;
+	{
+		// default triangulation for Surface_mesher
+		typedef CGAL::Surface_mesh_default_triangulation_3 Tr;
+		// c2t3
+		typedef CGAL::Complex_2_in_triangulation_3<Tr> C2t3;
+		typedef Tr::Geom_traits GT;
+		typedef GT::Sphere_3 Sphere_3;
+		typedef GT::Point_3 Point_3;
+		typedef GT::FT FT;
+		using Function = std::function<FT(Point_3)>;
+		typedef CGAL::Implicit_surface_3<GT, Function> Surface_3;
+
+		// Get point narest to the AABB center to specify proper
+		// sphere bounds for CGAL.
+		pcl::PointXYZRGB query;
+		query.getVector3fMap() = (vmin + vmax) / 2;
+		std::vector<int> pointIdxNKNSearch(1);
+  		std::vector<float> pointNKNSquaredDistance(1);
+  		kdtree.nearestKSearch(query, 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+
+  		const auto center = cloud->points[pointIdxNKNSearch[0]].getVector3fMap();
+  		const float radius = (vmax - center).cwiseMax(center - vmin).norm();
+
+		const auto sh_function = [&](Point_3 pt) -> FT {
+			return 0.1 - field(Eigen::Vector3f(pt.x(), pt.y(), pt.z()));
+		};
+
+		Tr tr;
+		C2t3 c2t3(tr);
+
+		// defining the surface
+		Surface_3 surface(
+			sh_function,
+			Sphere_3(
+				Point_3(center.x(), center.y(), center.z()),
+				radius * radius * 1.1));  // 1.1 is a safety margin
+
+		// defining meshing criteria
+		CGAL::Surface_mesh_default_criteria_3<Tr> criteria(
+			30.,  // angular bound
+             0.02,  // radius bound
+             0.02); // distance bound
+
+		// meshing surface
+		CGAL::make_surface_mesh(c2t3, surface, criteria, CGAL::Manifold_with_boundary_tag());
+		INFO("CGAL meshing: #vert=", (int)tr.number_of_vertices());
+
+		CGAL::Polyhedron_3<CGAL::Epick> polyh;
+		const bool sane = CGAL::output_surface_facets_to_polyhedron(c2t3, polyh);
+		if(!sane) {
+			WARN("Non-orientable");
+		}
+		simple_mesh = surfaceToMesh(polyh);
+	}
+
+	// trying CGAL pipeline
+#if 0
 	const Eigen::Vector3f margin(0.1, 0.1, 0.1);
 	const auto mesh = dropAttrib(extractIsosurface(
 		0.1, field,
@@ -953,13 +1019,14 @@ InteriorObject createInteriorObject(
 		" #vert=", (int)clean_mesh.vertices.size());
 
 	// Simplify mesh by reducing tri count.
-	/*
+	
 	TriangleMesh<std::nullptr_t> simple_mesh = simplifyMesh(clean_mesh, 0.3);
 	INFO("After mesh simplification: #tri=",
 		(int)simple_mesh.triangles.size(),
 		" #vert=", (int)simple_mesh.vertices.size());
-	*/
-	const auto simple_mesh = clean_mesh;
+	
+	//const auto simple_mesh = clean_mesh;
+#endif
 
 	const int tex_size = 512;
 	TexturedMesh tm;
