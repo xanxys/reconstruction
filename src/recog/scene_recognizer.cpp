@@ -64,51 +64,56 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	// Calculate approximate ceiling height.
-	std::vector<float> zs;
-	for(const auto& pt : cloud->points) {
-		zs.push_back(pt.z);
+	assert(!rframe.wall_polygon.empty());
+	// Calculate 3D quad of ceiling from rframe.
+	Eigen::Vector2f vmin(1e10, 1e10);
+	Eigen::Vector2f vmax = -vmin;
+	for(const auto& v : rframe.wall_polygon) {
+		vmin = vmin.cwiseMin(v);
+		vmax = vmax.cwiseMax(v);
 	}
-	const auto zs_range = robustMinMax(zs);
-	const float z_ceiling = zs_range.second;
+	const float z_ceiling = rframe.getHRange().second;
 
-	// Project points to ceiling quad.
-	// The quad is created in a way the texture contains
-	// non-distorted ceiling image.
-	// TODO: need to discard faraway points.
-	INFO("Detecting lights at z =", z_ceiling);
-
-	// TODO: 10 here is hardcoded. remove.
+	/*
 	TriangleMesh<Eigen::Vector2f> quad;
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(-10, -10, z_ceiling),
+		Eigen::Vector3f(vmin.x(), vmin.y(), z_ceiling),
 		Eigen::Vector2f(0, 0)));
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(10, -10, z_ceiling),
+		Eigen::Vector3f(vmax.x(), vmin.y(), z_ceiling),
 		Eigen::Vector2f(1, 0)));
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(10, 10, z_ceiling),
+		Eigen::Vector3f(vmax.x(), vmax.y(), z_ceiling),
 		Eigen::Vector2f(1, 1)));
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(-10, 10, z_ceiling),
+		Eigen::Vector3f(vmin.x(), vmax.y(), z_ceiling),
 		Eigen::Vector2f(0, 1)));
 	quad.triangles.push_back({{0, 1, 2}});
 	quad.triangles.push_back({{2, 3, 0}});
+	*/
+	const Eigen::Vector3f normal_ceiling(0, 0, -1);
 
+	// Projection settings.
+	const float px_per_meter_low = 10;  // used many times for quality evaluation
+	const float px_per_meter = 100;
+
+	// Project points to the ceiling quad.
+	// TODO: need to occluding points.
+	INFO("Detecting lights at z =", z_ceiling);
+
+	// Choose best scan by quality.
 	const auto ccs = scans_aligned.getScansWithPose();
 	assert(ccs.size() > 0);
-
 	auto calc_scan_quality_for_ceiling = [&](const CorrectedSingleScan& scan) {
+		const int width = (vmax - vmin).x() * px_per_meter_low;
+		const int height = (vmax - vmin).y() * px_per_meter_low;
+
 		const Eigen::Affine3f world_to_local = scan.local_to_world.inverse();
-		const int img_size = 128;
-		const Eigen::Vector3f normal_ceiling(0, 0, -1);
-		cv::Mat quality(img_size, img_size, CV_32F);
-		for(const int y : boost::irange(0, img_size)) {
-			for(const int x : boost::irange(0, img_size)) {
-				const Eigen::Vector3f pt3d_w(
-					x / (float)img_size * 20.0 - 10.0,
-					y / (float)img_size * 20.0 - 10.0,
-					z_ceiling);
+		cv::Mat quality(height, width, CV_32F);
+		for(const int y : boost::irange(0, height)) {
+			for(const int x : boost::irange(0, width)) {
+				const auto pt2d_w = Eigen::Vector2f(x, y) / px_per_meter_low + vmin;
+				const Eigen::Vector3f pt3d_w(pt2d_w.x(), pt2d_w.y(), z_ceiling);
 				const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
 				const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
@@ -124,8 +129,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		}
 		return cv::mean(quality)[0];
 	};
-
-	// Choose best scan by quality.
 	std::vector<float> quals;
 	for(const auto& scan : ccs) {
 		quals.push_back(calc_scan_quality_for_ceiling(scan));
@@ -139,16 +142,14 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	INFO("Choosing ceiling texture base scan id=", scan.raw_scan.getScanId());
 
 	const Eigen::Affine3f world_to_local = scan.local_to_world.inverse();
-	const int img_size = 2048;
-	const Eigen::Vector3f normal_ceiling(0, 0, -1);
-	cv::Mat mapping(img_size, img_size, CV_32FC2);
-	cv::Mat quality(img_size, img_size, CV_32F);
-	for(const int y : boost::irange(0, img_size)) {
-		for(const int x : boost::irange(0, img_size)) {
-			const Eigen::Vector3f pt3d_w(
-				x / (float)img_size * 20.0 - 10.0,
-				y / (float)img_size * 20.0 - 10.0,
-				z_ceiling);
+	const int width = (vmax - vmin).x() * px_per_meter;
+	const int height = (vmax - vmin).y() * px_per_meter;
+	cv::Mat mapping(height, width, CV_32FC2);
+	cv::Mat quality(height, width, CV_32F);
+	for(const int y : boost::irange(0, height)) {
+		for(const int x : boost::irange(0, width)) {
+			const auto pt2d_w = Eigen::Vector2f(x, y) / px_per_meter + vmin;
+			const Eigen::Vector3f pt3d_w(pt2d_w.x(), pt2d_w.y(), z_ceiling);
 			const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
 			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
@@ -171,24 +172,20 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	cv::remap(scan.raw_scan.er_rgb, proj_new, mapping, cv::Mat(),
 		cv::INTER_LINEAR, cv::BORDER_REPLICATE);
 
-	// Make it grayscale and remove image noise by blurring.
-	const TexturedMesh ceiling_geom = bakePointsToMesh(cloud, quad);
+	// Make it grayscale.
 	cv::Mat ceiling_gray;
-	cv::cvtColor(ceiling_geom.diffuse, ceiling_gray, cv::COLOR_BGR2GRAY);
-	cv::GaussianBlur(ceiling_gray, ceiling_gray, cv::Size(31, 31), 10);
+	cv::cvtColor(proj_new, ceiling_gray, cv::COLOR_BGR2GRAY);
 	if(bundle.isDebugEnabled()) {
 		cv::imwrite(
 			bundle.reservePath("ceiling_quality.png"), visualize_field2(quality));
 		cv::imwrite(
-			bundle.reservePath("ceiling_new_raw.png"), proj_new);
-
+			bundle.reservePath("ceiling_gray.png"), ceiling_gray);
 		cv::imwrite(
-			bundle.reservePath("ceiling_raw.png"), ceiling_geom.diffuse);
-		cv::imwrite(
-			bundle.reservePath("ceiling_processed.png"), ceiling_gray);
+			bundle.reservePath("ceiling.png"), proj_new);
 	}
 
 	// Detect blobs (saturated lights).
+	const float light_margin = 0.05;  // we need slight margin between light and ceiling.
 	std::vector<Eigen::Vector3f> lights;
 	cv::SimpleBlobDetector detector;
 	std::vector<cv::KeyPoint> blobs;
@@ -202,11 +199,8 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		v["angle"] = blob.angle;
 		INFO("Blob detected", v);
 
-		// TODO: 10 here is hardcoded. remove.
-		Eigen::Vector3f pt3d(
-			(float)blob.pt.x / ceiling_gray.cols * 20.0 - 10.0,
-			(float)blob.pt.y / ceiling_gray.cols * 20.0 - 10.0,
-			z_ceiling);
+		const auto pt2d = Eigen::Vector2f(blob.pt.x, blob.pt.y) / px_per_meter + vmin;
+		const Eigen::Vector3f pt3d(pt2d.x(), pt2d.y(), z_ceiling - light_margin);
 		lights.push_back(pt3d);
 	}
 	return lights;
