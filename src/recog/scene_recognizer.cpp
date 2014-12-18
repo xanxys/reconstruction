@@ -1134,8 +1134,9 @@ void recognizeScene(SceneAssetBundle& bundle,
 	}
 	int i_group = 0;
 	for(const auto& group : groups) {
+		INFO("Processing group", i_group);
 		// Generate render proxy.
-		
+		/*
 		std::vector<TexturedMesh> tms;
 		for(const auto& mc_id : group) {
 			const auto maybe_tm = mcs[mc_id].toMeshSoup(bundle);
@@ -1149,7 +1150,64 @@ void recognizeScene(SceneAssetBundle& bundle,
 			continue;
 		}
 		const auto tm = mergeTexturedMeshes(tms);
-		
+		*/
+		/*
+		const float radius = 0.02;
+		TriangleMesh<std::nullptr_t> mesh;
+		for(const auto& mc_id : group) {
+			for(const auto& pt : mcs[mc_id].cloud->points) {
+				mesh.merge(createBox(pt.getVector3fMap(), radius));
+			}
+		}
+		*/
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZ>);
+		Eigen::Vector3f vmin(1e10, 1e10, 1e10);
+		Eigen::Vector3f vmax = -vmin;
+		for(const auto& mc_id : group) {
+			for(const auto& pt : mcs[mc_id].cloud->points) {
+				pcl::PointXYZ pn;
+				pn.getVector3fMap() = pt.getVector3fMap();
+				cloud->points.push_back(pn);
+
+				vmin = vmin.cwiseMin(pt.getVector3fMap());
+				vmax = vmax.cwiseMax(pt.getVector3fMap());
+			}
+		}
+		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+		kdtree.setInputCloud(cloud);
+
+		auto field = [&kdtree](const Eigen::Vector3f& pos) {
+			const float sigma = 0.02;
+
+			pcl::PointXYZ query;
+			query.getVector3fMap() = pos;
+
+			std::vector<int> result_ixs;
+			std::vector<float> result_sq_dists;
+			const int n_result = kdtree.radiusSearch(
+				query, sigma * 3,
+				result_ixs, result_sq_dists);
+
+			float v = 0;
+			for(int i : boost::irange(0, n_result)) {
+				v += std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+			}
+			return v;
+		};
+
+		const auto mesh_w_n = extractIsosurface(
+			0.1, field,
+			std::make_pair(vmin, vmax), 0.03);
+
+		TexturedMesh tm;
+		tm.diffuse = cv::Mat(64, 64, CV_8UC3);
+		tm.diffuse = cv::Scalar(255, 255, 255);
+		tm.mesh.triangles = mesh_w_n.triangles;
+		for(const auto& v : mesh_w_n.vertices) {
+			tm.mesh.vertices.emplace_back(
+				v.first, Eigen::Vector2f(0, 0));
+		}
 
 		// Generate collisions.
 		std::vector<OBB3f> collisions;
@@ -1179,9 +1237,10 @@ void recognizeScene(SceneAssetBundle& bundle,
 				}
 			}
 			bundle.addDebugPointCloud(
-				"group_" + std::to_string(i_group++),
+				"group_" + std::to_string(i_group),
 				cloud);
 		}
+		i_group++;
 	}
 	bundle.setInteriorBoundary(
 		InteriorBoundary(
