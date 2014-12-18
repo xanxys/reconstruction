@@ -1,6 +1,7 @@
 #include "scene_recognizer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <vector>
 
@@ -1166,6 +1167,9 @@ void recognizeScene(SceneAssetBundle& bundle,
 				pn.g = pt.g;
 				pn.b = pt.b;
 				cloud->points.push_back(pn);
+				assert(std::isfinite(pn.x));
+				assert(std::isfinite(pn.y));
+				assert(std::isfinite(pn.z));
 
 				// Get AABB.
 				vmin = vmin.cwiseMin(pt.getVector3fMap());
@@ -1228,6 +1232,11 @@ void recognizeScene(SceneAssetBundle& bundle,
 			0.1, field,
 			std::make_pair(vmin - margin, vmax + margin),
 			0.03);
+		for(const auto& vert : mesh_w_n.vertices) {
+			assert(std::isfinite(vert.first.x()));
+			assert(std::isfinite(vert.first.y()));
+			assert(std::isfinite(vert.first.z()));
+		}
 
 		const int tex_size = 256;
 		TexturedMesh tm;

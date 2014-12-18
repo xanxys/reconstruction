@@ -1,6 +1,7 @@
 #include "cloud_baker.h"
 
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 
@@ -146,6 +147,9 @@ cv::Mat getPositionMapInUV(
 			const Eigen::Vector2f ts_pre = ps * (p.cast<float>() - p0);
 			const Eigen::Vector3f ts(1 - ts_pre.sum(), ts_pre(0), ts_pre(1));
 			const Eigen::Vector3f pos_w = vs * ts;
+			assert(std::isfinite(pos_w.x()));
+			assert(std::isfinite(pos_w.y()));
+			assert(std::isfinite(pos_w.z()));
 			pos_map.at<cv::Vec3f>(p(1), p(0)) = cv::Vec3f(pos_w.x(), pos_w.y(), pos_w.z());
 		}
 	}

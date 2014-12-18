@@ -50,6 +50,7 @@ TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>>
 		const Eigen::Vector3f normal =
 			(mesh.vertices[tri[1]].first - mesh.vertices[tri[0]].first).cross(
 				mesh.vertices[tri[2]].first - mesh.vertices[tri[0]].first).normalized();
+		assert(std::abs(normal.norm() - 1) < 1e-3);
 		for(const int i_vert : boost::irange(0, 3)) {
 			const auto& v = mesh.vertices[tri[i_vert]];
 			result.vertices.emplace_back(
