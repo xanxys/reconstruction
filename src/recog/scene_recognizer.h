@@ -22,13 +22,13 @@
 
 namespace recon {
 
-TexturedMesh bakeTextureSingleExterior(
+TexturedMesh bakeBoundaryTexture(
 	const AlignedScans& scans,
 	const TriangleMesh<std::nullptr_t>& shape,
 	float accept_dist = 0.1);
 
-// deprecated. Use recognizeExterior.
-std::vector<Eigen::Vector3f> recognize_lights(
+// deprecated. Use recognizeBoundary.
+std::vector<Eigen::Vector3f> recognizeLights(
 	SceneAssetBundle& bundle,
 	const RoomFrame& rframe,
 	const AlignedScans& scans,
@@ -137,9 +137,9 @@ void recognizeScene(
 	SceneAssetBundle& bundle, const std::vector<SingleScan>& scans,
 	const Json::Value& hint);
 
-// Return textured exterior mesh and light location.
+// Return textured boundary mesh and light location.
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
-	recognizeExterior(
+	recognizeBoundary(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans,

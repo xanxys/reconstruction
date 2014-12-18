@@ -49,7 +49,7 @@
 
 namespace recon {
 
-std::vector<Eigen::Vector3f> recognize_lights(
+std::vector<Eigen::Vector3f> recognizeLights(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
@@ -795,7 +795,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 	bundle.addDebugPointCloud("points_merged", points_merged);
 	INFO("# of points after merge:", (int)points_merged->points.size());
 
-	INFO("Approximating exterior shape by an extruded polygon");
+	INFO("Approximating boundary shape by an extruded polygon");
 	const auto cloud_colorless = cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
 	const auto extrusion = fitExtrudedPolygon(cloud_colorless);
 	auto room_polygon = std::get<0>(extrusion);
@@ -833,12 +833,12 @@ void recognizeScene(SceneAssetBundle& bundle,
 	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
 	INFO("Creating assets");
-	const auto exterior = recognizeExterior(
+	const auto boundary = recognizeBoundary(
 		bundle, rframe,
 		scans_aligned, extrusion_mesh,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
 	bundle.setFloorLevel(rframe.getHRange().first);
-	for(const auto& pos : exterior.second) {
+	for(const auto& pos : boundary.second) {
 		bundle.addPointLight(pos);
 	}
 	int i_group = 0;
@@ -979,13 +979,13 @@ void recognizeScene(SceneAssetBundle& bundle,
 	}
 	bundle.setInteriorBoundary(
 		InteriorBoundary(
-			exterior.first,
+			boundary.first,
 			rframe.wall_polygon,
 			rframe.getHRange()));
 }
 
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
-	recognizeExterior(
+	recognizeBoundary(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
@@ -996,7 +996,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
 	// reverse lookup.
 	// Maybe overly complex??
-	auto tex_mesh = bakeTextureSingleExterior(
+	auto tex_mesh = bakeBoundaryTexture(
 		scans_aligned, ext_mesh.getMesh(), 0.4);
 
 	// TODO: Discard non-floor components on floor.
@@ -1030,11 +1030,11 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
 		tex_mesh,
-		recognize_lights(bundle, rframe, scans_aligned, cloud_inside));
+		recognizeLights(bundle, rframe, scans_aligned, cloud_inside));
 }
 
 
-TexturedMesh bakeTextureSingleExterior(
+TexturedMesh bakeBoundaryTexture(
 		const AlignedScans& scans,
 		const TriangleMesh<std::nullptr_t>& shape_wo_uv,
 		const float accept_dist) {
