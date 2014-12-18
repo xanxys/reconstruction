@@ -19,9 +19,6 @@ SceneAssetBundle::SceneAssetBundle(
 
 SceneAssetBundle::~SceneAssetBundle() {
 	serializeIntoDirectory(dir_path);
-	if(debug) {
-		serializeWholeScene();
-	}
 }
 
 bool SceneAssetBundle::isDebugEnabled() const {
@@ -238,6 +235,7 @@ Json::Value SceneAssetBundle::serializeCollisionShapeWithConversion(const std::v
 }
 
 std::string SceneAssetBundle::reservePath(const std::string& filename) {
+	INFO("Someone is trying to access", filename);
 	return (dir_path / fs::path(filename)).string();
 }
 
@@ -302,20 +300,6 @@ void SceneAssetBundle::addMesh(std::string name, const TexturedMesh& mesh) {
 void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
 	mesh.writeWavefrontObjectFlat((dir_path / fs::path(name)).string());
 }
-
-void SceneAssetBundle::serializeWholeScene() const {
-	/*
-	TriangleMesh<std::nullptr_t> whole_scene;
-	whole_scene.merge(dropAttrib(exterior_mesh.mesh));
-	for(const auto& interior_object : interior_objects) {
-		whole_scene.merge(dropAttrib(interior_object.mesh));
-	}
-
-	std::ofstream mesh_f((dir_path / fs::path("whole.ply")).string());
-	whole_scene.serializePLY(mesh_f);
-	*/
-}
-
 
 TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const {
 	TriangleMesh<Eigen::Vector3f> mesh;

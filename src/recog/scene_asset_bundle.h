@@ -99,8 +99,6 @@ private:
 	// The directory might be nested.
 	void serializeIntoDirectory(const boost::filesystem::path& dir_path);
 
-	void serializeWholeScene() const;
-
 	Json::Value serializeLocationWithConversion(const Eigen::Vector3f& loc);
 	Json::Value serializePoseWithConversion(const Eigen::Affine3f& transf);
 	Json::Value serializePose(const Eigen::Quaternionf& rot, const Eigen::Vector3f& trans);
