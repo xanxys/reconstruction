@@ -970,7 +970,8 @@ InteriorObject createInteriorObject(
 		const float radius = (vmax - center).cwiseMax(center - vmin).norm();
 
 		const auto sh_function = [&](const Point_3& pt) -> FT {
-			return 0.1 - field(Eigen::Vector3f(pt.x(), pt.y(), pt.z()));
+			const float thresh = 0.5;
+			return thresh - field(Eigen::Vector3f(pt.x(), pt.y(), pt.z()));
 		};
 
 		Tr tr;
