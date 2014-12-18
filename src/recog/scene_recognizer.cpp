@@ -74,24 +74,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		vmax = vmax.cwiseMax(v);
 	}
 	const float z_ceiling = rframe.getHRange().second;
-
-	/*
-	TriangleMesh<Eigen::Vector2f> quad;
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmin.x(), vmin.y(), z_ceiling),
-		Eigen::Vector2f(0, 0)));
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmax.x(), vmin.y(), z_ceiling),
-		Eigen::Vector2f(1, 0)));
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmax.x(), vmax.y(), z_ceiling),
-		Eigen::Vector2f(1, 1)));
-	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(vmin.x(), vmax.y(), z_ceiling),
-		Eigen::Vector2f(0, 1)));
-	quad.triangles.push_back({{0, 1, 2}});
-	quad.triangles.push_back({{2, 3, 0}});
-	*/
 	const Eigen::Vector3f normal_ceiling(0, 0, -1);
 
 	// Projection settings.
@@ -574,7 +556,6 @@ std::vector<MiniCluster> splitEachScan(
 		ec.extract(clusters);
 		INFO("splitEachScan: Number of clusters=", (int)clusters.size());
 
-		std::vector<TexturedMesh> tms;
 		int i_cluster = 0;
 		for(const auto& indices : clusters) {
 			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster_cloud(
@@ -602,19 +583,7 @@ std::vector<MiniCluster> splitEachScan(
 
 			// Accept cluster
 			mini_clusters.emplace_back(&ccs, cluster_cloud);
-
-			/*
-			const auto groups = extractVisualGroups(
-				bundle, ccs, cluster_cloud, pos_mean, normal_mean,
-				std::to_string(i_cluster));
-
-			tms.insert(tms.end(), groups.begin(), groups.end());
-			*/
 			i_cluster++;
-		}
-		if(bundle.isDebugEnabled() && !tms.empty()) {
-			auto tm_merged = mergeTexturedMeshes(tms);
-			bundle.addMesh("debug_all_clusters_" + ccs.raw_scan.getScanId(), tm_merged);
 		}
 
 		if(bundle.isDebugEnabled()) {
@@ -1090,31 +1059,6 @@ void recognizeScene(SceneAssetBundle& bundle,
 	auto points_outside = points_inout.second;
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
-	/*
-	INFO("Modeling boxes along wall");
-	auto cloud_interior_pre = colorPointsByDistance<pcl::PointXYZRGBNormal>(
-		points_inside, extrusion_mesh.getMesh(), true);
-	INFO("Rejecting near-ceiling points");
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_interior(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	const float ceiling_range = 0.65;
-	for(const auto& pt : cloud_interior_pre->points) {
-		if(pt.z > room_hrange.second - ceiling_range) {
-			continue;
-		}
-		cloud_interior->points.push_back(pt);
-	}
-
-	bundle.addDebugPointCloud("points_interior", cloud_interior);
-
-	auto filtered = squashRegistrationError(cloud_interior);
-	bundle.addDebugPointCloud("filtered", filtered);
-
-	const auto cloud_interior_dist = colorPointsByDistance<pcl::PointXYZRGBNormal>(
-		points_inside, extrusion_mesh.getMesh(), false);
-	bundle.addDebugPointCloud("points_interior_distance", cloud_interior_dist);
-	*/
-	// DEPRECATED: END
-
 	INFO("Linking miniclusters");
 	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
@@ -1131,30 +1075,6 @@ void recognizeScene(SceneAssetBundle& bundle,
 	for(const auto& group : groups) {
 		INFO("Processing group", i_group);
 		// Generate render proxy.
-		/*
-		std::vector<TexturedMesh> tms;
-		for(const auto& mc_id : group) {
-			const auto maybe_tm = mcs[mc_id].toMeshSoup(bundle);
-			if(!maybe_tm) {
-				continue;
-			}
-			tms.push_back(*maybe_tm);
-		}
-		if(tms.empty()) {
-			WARN("TM Soup is empty for current group, ignoring");
-			continue;
-		}
-		const auto tm = mergeTexturedMeshes(tms);
-		*/
-		/*
-		const float radius = 0.02;
-		TriangleMesh<std::nullptr_t> mesh;
-		for(const auto& mc_id : group) {
-			for(const auto& pt : mcs[mc_id].cloud->points) {
-				mesh.merge(createBox(pt.getVector3fMap(), radius));
-			}
-		}
-		*/
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
 			new pcl::PointCloud<pcl::PointXYZRGB>);
 		Eigen::Vector3f vmin(1e10, 1e10, 1e10);
@@ -1268,16 +1188,6 @@ void recognizeScene(SceneAssetBundle& bundle,
 		std::vector<OBB3f> collisions;
 		for(const auto& mc_id : group) {
 			// TODO: finer collision.
-			/*
-			INFO("AABB:min",
-				mcs[mc_id].aabb.getMin().x(),
-				mcs[mc_id].aabb.getMin().y(),
-				mcs[mc_id].aabb.getMin().z());
-			INFO("AABB:max",
-				mcs[mc_id].aabb.getMax().x(),
-				mcs[mc_id].aabb.getMax().y(),
-				mcs[mc_id].aabb.getMax().z());
-			*/
 			assert(mcs[mc_id].aabb.getVolume() > 0);
 			collisions.push_back(OBB3f(mcs[mc_id].aabb));
 		}
