@@ -77,6 +77,14 @@ void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent,
 	if (FMath::FRand() > 0.03) {
 		return;
 	}
+
+	const float DVel = (GetVelocity() - OtherActor->GetVelocity()).Size();
+	const float MaxVel = 100;  // 100cm/s
+	float VolumeScale = DVel / MaxVel;
+	if (VolumeScale > 1) {
+		VolumeScale = 1;
+	}
+
 	const int ix = FMath::FRandRange(0, hit_sounds.size() - 1);
-	UGameplayStatics::PlaySoundAtLocation(World, hit_sounds[ix], Hit.ImpactPoint);
+	UGameplayStatics::PlaySoundAtLocation(World, hit_sounds[ix], Hit.ImpactPoint, VolumeScale);
 }
