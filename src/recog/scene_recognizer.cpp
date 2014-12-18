@@ -9,36 +9,26 @@
 #include <boost/optional.hpp>
 #include <boost/range/irange.hpp>
 // Unfortunately, CGAL headers are sensitive to include orders.
-// these are copied from example code in the docs.
-// DO NOT TOUCH IT!
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Polygon_2.h>
-#include <CGAL/create_offset_polygons_2.h>
-// insanity continues (3d polyhedra)
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/point_generators_3.h>
-#include <CGAL/algorithm.h>
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/convex_hull_3.h>
-// insanity continues (3d tri mesh + AABB)
 #include <CGAL/Simple_cartesian.h>
-#include <CGAL/AABB_tree.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/Polyhedron_3.h>
 #include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_tree.h>
 #include <CGAL/AABB_triangle_primitive.h>
-// insanity ends here
-#include <CGAL/ch_graham_andrew.h>
+#include <CGAL/algorithm.h>
 #include <CGAL/Boolean_set_operations_2.h>
-// ins
+#include <CGAL/ch_graham_andrew.h>
+#include <CGAL/convex_hull_3.h>
+#include <CGAL/create_offset_polygons_2.h>
+#include <CGAL/point_generators_3.h>
+// insanity ends here
 #include <Eigen/QR>
 #include <opencv2/opencv.hpp>
 #include <pcl/features/normal_3d.h>
-#include <pcl/io/pcd_io.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/registration/icp.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/surface/poisson.h>
 
@@ -55,7 +45,6 @@
 #include <visual/cloud_filter.h>
 #include <visual/film.h>
 #include <visual/mapping.h>
-#include <visual/mesh_intersecter.h>
 #include <visual/texture_conversion.h>
 
 namespace recon {
@@ -188,200 +177,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	}
 	return lights;
 }
-
-std::vector<TexturedMesh> extractVisualGroups(
-		SceneAssetBundle& bundle, CorrectedSingleScan& c_scan,
-		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster,
-		const Eigen::Vector3f& center,
-		const Eigen::Vector3f& normal,
-		const std::string& cluster_name) {
-	INFO("Doing grabcut planar mesh extraction for",
-		c_scan.raw_scan.getScanId(), cluster_name);
-	// Create local plane (quad) larger than eventual groups.
-	const auto basis = createOrthogonalBasis(normal);
-	Eigen::Affine3f quad_to_world;
-	quad_to_world.linear() = basis;
-	quad_to_world.translation() = center;
-
-	float hs = 0.1;
-	for(const auto& pt : cluster->points) {
-		hs = std::max(
-			hs,
-			(quad_to_world.inverse() * pt.getVector3fMap()).head<2>().norm());
-	}
-	const float half_size = hs * 2;
-
-	// Quad coordinate transforms:
-	// uv <-> quad-local <-> world
-	//            |
-	//        quad-image
-	const float max_gap_point = 0.05;
-	Eigen::Affine2f uv_to_quad;
-	uv_to_quad.linear() = Eigen::Matrix2f::Identity() * (2 * half_size);
-	uv_to_quad.translation() = Eigen::Vector2f(-half_size, -half_size);
-
-	TriangleMesh<Eigen::Vector2f> quad;
-	const std::vector<Eigen::Vector2f> quad_uvs = {
-		{0, 0}, {1, 0}, {1, 1}, {0, 1}
-	};
-	for(const auto& quad_uv : quad_uvs) {
-		const Eigen::Vector2f quad_xy = uv_to_quad * quad_uv;
-		quad.vertices.emplace_back(
-			Eigen::Vector3f(quad_xy.x(), quad_xy.y(), 0),
-			quad_uv);
-	}
-	quad.triangles.push_back({{0, 1, 2}});
-	quad.triangles.push_back({{2, 3, 0}});
-	for(auto& vertex : quad.vertices) {
-		vertex.first = quad_to_world * vertex.first;
-	}
-	// Project to the quad, resulting in quad texture and mask.
-	const Eigen::Affine3f world_to_local = c_scan.local_to_world.inverse();
-	const int img_size = 512;
-
-	Eigen::Affine2f qimage_to_qlocal;
-	qimage_to_qlocal.linear().setConstant(0);
-	qimage_to_qlocal.linear()(0, 0) = 1.0 / img_size * 2.0 * half_size;
-	qimage_to_qlocal.linear()(1, 1) = -1.0 / img_size * 2.0 * half_size;
-	qimage_to_qlocal.translation() = Eigen::Vector2f(-half_size, +half_size);
-
-	cv::Mat mapping(img_size, img_size, CV_32FC2);
-	for(const int y : boost::irange(0, img_size)) {
-		for(const int x : boost::irange(0, img_size)) {
-			const Eigen::Vector2f pt2d_quad = qimage_to_qlocal * Eigen::Vector2f(x, y);
-			const Eigen::Vector3f pt3d_quad(pt2d_quad(0), pt2d_quad(1), 0);
-			const Eigen::Vector3f pt3d_l =
-				world_to_local * (quad_to_world * pt3d_quad);
-			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
-
-			const float theta = std::acos(pt3d_l_n.z());
-			const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
-			const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
-
-			const float er_x = c_scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
-			const float er_y = c_scan.raw_scan.er_rgb.rows * theta / pi;
-			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
-		}
-	}
-	cv::Mat mask(img_size, img_size, CV_8U);
-	mask = cv::Scalar(0);
-	const int gap_in_px = max_gap_point / (2 * half_size) * img_size;
-	for(const auto& pt : cluster->points) {
-		const Eigen::Vector3f pt_quad =
-			quad_to_world.inverse() * pt.getVector3fMap();
-		const Eigen::Vector2f pt_qimage =
-			qimage_to_qlocal.inverse() * pt_quad.head<2>();
-		cv::circle(mask,
-			cv::Point(pt_qimage.x(), pt_qimage.y()),
-			gap_in_px,
-			cv::Scalar(255),
-			-1);
-	}
-	cv::Mat proj;
-	cv::remap(c_scan.raw_scan.er_rgb, proj, mapping, cv::Mat(),
-		cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-
-	if(bundle.isDebugEnabled()) {
-		cv::imwrite(
-			bundle.reservePath(
-				"cluster_proj_" + c_scan.raw_scan.getScanId() +
-				"-" + cluster_name + ".png"),
-			proj);
-		cv::imwrite(
-			bundle.reservePath(
-				"cluster_mask_" + c_scan.raw_scan.getScanId() +
-				"-" + cluster_name + ".png"),
-			mask);
-	}
-
-	// Detect groups using grabcut and heuristics.
-	cv::Mat mask_grabcut = mask.clone();
-	for(const int y : boost::irange(0, img_size)) {
-		for(const int x : boost::irange(0, img_size)) {
-			const uint8_t flag = (mask.at<uint8_t>(y, x) > 127) ?
-				cv::GC_PR_FGD : cv::GC_BGD;
-			mask_grabcut.at<uint8_t>(y, x) = flag;
-		}
-	}
-	{
-		cv::Mat tmp_background;
-		cv::Mat tmp_foregroud;
-		cv::grabCut(
-			proj, mask_grabcut, cv::Rect(), tmp_background, tmp_foregroud,
-			5, cv::GC_INIT_WITH_MASK);
-	}
-	cv::Mat final_mask(img_size, img_size, CV_8U);
-	for(const int y : boost::irange(0, img_size)) {
-		for(const int x : boost::irange(0, img_size)) {
-			const auto flag = mask_grabcut.at<uint8_t>(y, x);
-			final_mask.at<uint8_t>(y, x) =
-				(flag == cv::GC_FGD || flag == cv::GC_PR_FGD) ? 255 : 0;
-		}
-	}
-	if(bundle.isDebugEnabled()) {
-		cv::imwrite(
-			bundle.reservePath(
-				"grabcut_gen-" + c_scan.raw_scan.getScanId() + "-" + cluster_name + ".png"),
-			final_mask);
-	}
-
-	std::vector<std::vector<cv::Point>> contours;
-	std::vector<cv::Vec4i> hierarchy;
-	cv::findContours(final_mask, contours, hierarchy,
-		CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1);
-	DEBUG("#detected grabcut blobs", (int)contours.size());
-	// Remove unstable (e.g. multiple) groups and degenerate groups.
-	if(contours.size() != 1 || contours[0].size() < 3) {
-		DEBUG("Rejecting groups due to unstability");
-		return std::vector<TexturedMesh>();
-	}
-
-	std::vector<cv::Point> contour_simple;
-	cv::approxPolyDP(contours[0], contour_simple, gap_in_px / 3, true);
-	if(contour_simple.size() < 3) {
-		DEBUG("Rejecting simple group due to degeneracy");
-		return std::vector<TexturedMesh>();
-	}
-
-	// Now we have sane simple contour, we represent it as 3D mesh.
-	// contour (quad local coord) -> world coord + UV
-	std::vector<Eigen::Vector2f> contour_simple_eig;
-	for(const auto& pt : contour_simple) {
-		contour_simple_eig.emplace_back(pt.x, pt.y);
-	}
-	DEBUG("Generating group w/ #vert", (int)contour_simple_eig.size());
-	const auto tris = triangulatePolygon(contour_simple_eig);
-
-	TriangleMesh<Eigen::Vector2f> mesh_poly;
-	mesh_poly.triangles = tris;
-	for(const auto& v2 : contour_simple_eig) {
-		const Eigen::Vector2f quad2 = qimage_to_qlocal * v2;
-		const Eigen::Vector3f quad3(quad2(0), quad2(1), 0);
-		mesh_poly.vertices.emplace_back(
-			quad_to_world * quad3,
-			uv_to_quad.inverse() * quad2);
-	}
-
-	// sanity check tris
-	// WARNING: HACK
-	// TODO: FIX THIS BUG!!!
-	for(const auto& tri : mesh_poly.triangles) {
-		for(const int iv : tri) {
-			if(iv < 0 || iv >= mesh_poly.vertices.size()) {
-				WARN("Triangle index corruption found! Discarding");
-				return std::vector<TexturedMesh>();
-			}
-		}
-	}
-
-	TexturedMesh tm;
-	tm.mesh = mesh_poly;
-	tm.diffuse = proj;
-
-	std::vector<TexturedMesh> results = {tm};
-	return results;
-}
-
 
 std::vector<MiniCluster> splitEachScan(
 		SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe) {
@@ -675,31 +470,6 @@ AABB3f MiniCluster::calculateAABB(
 	return AABB3f(vmin, vmax);
 }
 
-
-boost::optional<TexturedMesh> MiniCluster::toMeshSoup(SceneAssetBundle& bundle) const {
-	Eigen::Vector3f pos_accum = Eigen::Vector3f::Zero();
-	Eigen::Vector3f normal_accum = Eigen::Vector3f::Zero();
-	int n_accum = 0;
-	for(const auto& pt : cloud->points) {
-		pos_accum += pt.getVector3fMap();
-		normal_accum += pt.getNormalVector3fMap();
-		n_accum++;
-	}
-	assert(n_accum > 0);
-	const Eigen::Vector3f pos_mean = pos_accum / n_accum;
-	const Eigen::Vector3f normal_mean = normal_accum.normalized();
-
-	const auto groups = extractVisualGroups(
-		bundle, *c_scan, cloud, pos_mean, normal_mean,
-		"unknown");
-
-	assert(groups.size() < 2);
-	if(groups.empty()) {
-		return boost::none;
-	} else {
-		return groups[0];
-	}
-}
 
 MCLinker::MCLinker(
 		SceneAssetBundle& bundle,
@@ -1277,8 +1047,7 @@ TexturedMesh bakeTextureSingleExterior(
 	FilmRGB8U film(tex_size, tex_size, 1.0);
 	INFO("Choosing texture size v. real area", tex_size, area);
 
-	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
-	MeshIntersecter intersecter(shape_wo_uv);
+	const TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
 
 	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
 	const auto c_scans = scans.getScansWithPose();
@@ -1317,86 +1086,6 @@ TexturedMesh bakeTextureSingleExterior(
 	// pack everything.
 	TexturedMesh tm;
 	tm.diffuse = diffuse;
-	tm.mesh = shape;
-	return tm;
-}
-
-TexturedMesh bakeTexture(
-		const AlignedScans& scans,
-		const TriangleMesh<std::nullptr_t>& shape_wo_uv,
-		const float accept_dist) {
-	// Calculate good texture size.
-	// * must be pow of 2 (not mandatory, but for efficiency)
-	// * texture pixel area \propto actual area
-	const float area = shape_wo_uv.area();
-	const int px_raw = std::sqrt(area) * 300;
-	const int tex_size = ceilToPowerOf2(px_raw);
-	FilmRGB8U film(tex_size, tex_size, 1.0);
-	INFO("Choosing texture size v. real area", tex_size, area);
-
-	TriangleMesh<Eigen::Vector2f> shape = mapSecond(assignUV(shape_wo_uv));
-	MeshIntersecter intersecter(shape_wo_uv);
-	INFO("Baking texture to mesh with #tri=", (int)shape.triangles.size());
-	int n_hits = 0;
-	int n_all = 0;
-	for(const auto& corrected_scan : scans.getScansWithPose()) {
-		const auto scan = corrected_scan.raw_scan;
-		const auto l_to_w = corrected_scan.local_to_world;
-		for(int y : boost::irange(0, scan.er_rgb.rows)) {
-			for(int x : boost::irange(0, scan.er_rgb.cols)) {
-				// Ignore N/A samples.
-				// TODO: 0,0,0 rarely occurs naturaly, but when it does,
-				// consider migration to RGBA image.
-				const cv::Vec3b raw_color = scan.er_rgb(y, x);
-				if(raw_color == cv::Vec3b(0, 0, 0)) {
-					continue;
-				}
-				cv::Vec3f color = raw_color;  // BGR
-				color[0] *= corrected_scan.color_multiplier(2);
-				color[1] *= corrected_scan.color_multiplier(1);
-				color[2] *= corrected_scan.color_multiplier(0);
-				n_all++;
-
-				const float theta = (float)y / scan.er_rgb.rows * pi;
-				const float phi = -(float)x / scan.er_rgb.cols * 2 * pi;
-
-				const auto org_local = Eigen::Vector3f::Zero();
-				const auto dir_local = Eigen::Vector3f(
-					std::sin(theta) * std::cos(phi),
-					std::sin(theta) * std::sin(phi),
-					std::cos(theta));
-				Ray ray(
-					l_to_w * org_local,
-					l_to_w.rotation() * dir_local);
-
-				const auto isect = intersecter.intersect(ray);
-				if(isect) {
-					const float t = std::get<2>(*isect);
-					if(std::abs(t - scan.er_depth(y, x)) >= accept_dist) {
-						continue;
-					}
-					const auto tri = shape.triangles[std::get<0>(*isect)];
-					const auto uv0 = shape.vertices[std::get<0>(tri)].second;
-					const auto uv1 = shape.vertices[std::get<1>(tri)].second;
-					const auto uv2 = shape.vertices[std::get<2>(tri)].second;
-					const auto uv = std::get<1>(*isect)(0) * (uv1 - uv0) + std::get<1>(*isect)(1) * (uv2 - uv0) + uv0;
-
-					film.record(swapY(uv) * tex_size, color);
-					n_hits++;
-				}
-			}
-		}
-		// Exit with only one scan, since currently multiple-scan fusion
-		// results in
-		// 1. ghosting due to misalignment (or calibration error)
-		// 2. color artifact (exposure / color balance difference)
-		// break;
-	}
-	INFO("Baking Hits/All", n_hits, n_all);
-
-	// pack everything.
-	TexturedMesh tm;
-	tm.diffuse = film.extract();
 	tm.mesh = shape;
 	return tm;
 }

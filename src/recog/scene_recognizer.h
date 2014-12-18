@@ -22,12 +22,6 @@
 
 namespace recon {
 
-TexturedMesh bakeTexture(
-	const AlignedScans& scans,
-	const TriangleMesh<std::nullptr_t>& shape,
-	float accept_dist = 0.1);
-
-
 TexturedMesh bakeTextureSingleExterior(
 	const AlignedScans& scans,
 	const TriangleMesh<std::nullptr_t>& shape,
@@ -51,30 +45,11 @@ std::pair<
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr points_merged,
 		const std::vector<Eigen::Vector2f>& room_polygon);
 
-// Return visually coherent planar objects from given
-// mostly planar point cloud. This code uses grabcut.
-//
-// center, normal: avg. normal and avg. pos of cluster for local planar projection
-// cluster_name: cluster name for debugging purpose
-//
-// WARNING: currently, extractVisualGroups returns only 0 or 1 group.
-std::vector<TexturedMesh> extractVisualGroups(
-	SceneAssetBundle& bundle, CorrectedSingleScan& c_scan,
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cluster,
-	const Eigen::Vector3f& center,
-	const Eigen::Vector3f& normal,
-	const std::string& cluster_name);
-
 class MiniCluster {
 public:
 	MiniCluster(
 		CorrectedSingleScan* c_scan,
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
-
-	// Extract textured mesh soup (might be empty)
-	// by using extractVisualGroups. (slow)
-	boost::optional<TexturedMesh> toMeshSoup(SceneAssetBundle& bundle) const;
-
 
 	static AABB3f calculateAABB(
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
