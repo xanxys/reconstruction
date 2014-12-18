@@ -22,14 +22,17 @@
 #include <CGAL/convex_hull_3.h>
 #include <CGAL/create_offset_polygons_2.h>
 #include <CGAL/point_generators_3.h>
-
 #include <CGAL/Surface_mesh_default_triangulation_3.h>
 #include <CGAL/Complex_2_in_triangulation_3.h>
 #include <CGAL/make_surface_mesh.h>
 #include <CGAL/Implicit_surface_3.h>
-
 #include <CGAL/IO/output_surface_facets_to_polyhedron.h>
-
+#include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
+#include <CGAL/Surface_mesh_simplification/HalfedgeGraph_Polyhedron_3.h>
+#include <CGAL/Surface_mesh_simplification/edge_collapse.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_ratio_stop_predicate.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_cost.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Midpoint_placement.h>
 // insanity ends here
 #include <Eigen/QR>
 #include <opencv2/opencv.hpp>
@@ -995,6 +998,19 @@ InteriorObject createInteriorObject(
 		if(!sane) {
 			WARN("Non-orientable");
 		}
+
+		// Simplify
+		const double compression_ratio = 0.3;
+		CGAL::Surface_mesh_simplification::Count_ratio_stop_predicate<
+			CGAL::Polyhedron_3<CGAL::Epick>> stop(compression_ratio);
+
+		//CGAL::Polyhedron_3<CGAL::Simple_cartesian<double>> polyh2 = polyh;
+
+		CGAL::Surface_mesh_simplification::edge_collapse(polyh,
+			stop,
+			CGAL::vertex_index_map( boost::get(CGAL::vertex_external_index, polyh))
+				.edge_index_map( boost::get(CGAL::edge_external_index, polyh  )));
+
 		simple_mesh = surfaceToMesh(polyh);
 	}
 
