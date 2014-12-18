@@ -126,13 +126,17 @@ Viewer.prototype.get_cluster_vertex_colors = function(mcid) {
 		} else {
 			color = color.clone();
 		}
-		//color.r = cluster.stable ? 0 : 1;
+		if(cluster.stable) {
+			color = color.lerp(new THREE.Color(0, 0, 0), 0.1);
+		} else {
+			color = color.lerp(new THREE.Color(1, 1, 1), 0.8);
+		}
 		return _.map(cluster.cloud, function(v) {
 			return color;
 		});
 	} else {
 		return _.map(cluster.cloud, function(v) {
-			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255);
+			return new THREE.Color().setRGB(v.r / 255, v.g / 255, v.b / 255).multiplyScalar(1.5);
 		});
 	}
 };

@@ -19,9 +19,6 @@ SceneAssetBundle::SceneAssetBundle(
 
 SceneAssetBundle::~SceneAssetBundle() {
 	serializeIntoDirectory(dir_path);
-	if(debug) {
-		serializeWholeScene();
-	}
 }
 
 bool SceneAssetBundle::isDebugEnabled() const {
@@ -79,12 +76,10 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	Json::Value metadata;
 	metadata["unit_per_meter"] = world_scale;
 	// Add json-only objects.
+	metadata["lights"] = Json::arrayValue;
 	for(const auto& pos_w : point_lights) {
-		const Eigen::Vector3f pos_uw = pos_w * world_scale;
 		Json::Value light;
-		light["pos"]["x"] = pos_uw(0);
-		light["pos"]["y"] = pos_uw(1);
-		light["pos"]["z"] = pos_uw(2);
+		light["pos"] = serializeLocationWithConversion(pos_w);
 		metadata["lights"].append(light);
 	}
 	metadata["collisions"] = Json::arrayValue;
@@ -138,12 +133,13 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		return meta_object;
 	};
 
+	metadata["interior_objects"] = Json::arrayValue;
 	for(const auto& interior : interiors) {
 		auto meta_object = serializeMesh(interior.getMesh());
 		meta_object["pose"] =
-			serializePoseWithScaling(interior.getPose());
+			serializePoseWithConversion(interior.getPose());
 		meta_object["collision_boxes"] =
-			serializeCollisionShapeWithScaling(interior.getCollision());
+			serializeCollisionShapeWithConversion(interior.getCollision());
 		metadata["interior_objects"].append(meta_object);
 	}
 	// serialize boundary.
@@ -155,9 +151,9 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 		}
 		auto meta_bnd = serializeMesh(boundary->getMesh());
 		meta_bnd["pose"] =
-			serializePoseWithScaling(boundary->getPose());
+			serializePoseWithConversion(boundary->getPose());
 		meta_bnd["collision_boxes"] =
-			serializeCollisionShapeWithScaling(
+			serializeCollisionShapeWithConversion(
 				boundary->getCollision(col_thickness_w));
 		metadata["boundary"] = meta_bnd;
 	}
@@ -169,11 +165,19 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	}
 }
 
-Json::Value SceneAssetBundle::serializePoseWithScaling(
+Json::Value SceneAssetBundle::serializePoseWithConversion(
 		const Eigen::Affine3f& transf) {
 	const auto trans = transf.translation() * world_scale;
 	const auto quat = Eigen::Quaternionf(transf.linear());
-	return serializePose(quat, trans);
+	// I think we can leave quaternion (or any other rotation)
+	// as is? Because same representation corresponds to
+	// inverted rotation in LHS vs. RHS coordinates,
+	// and that's ok.
+	return serializePose(quat,
+		Eigen::Vector3f(
+			trans.x(),
+			-trans.y(),
+			trans.z()));
 }
 
 Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, const Eigen::Vector3f& trans) {
@@ -188,8 +192,16 @@ Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, cons
 	return pose;
 }
 
+Json::Value SceneAssetBundle::serializeLocationWithConversion(const Eigen::Vector3f& loc) {
+	Json::Value p;
+	p["x"] = loc.x() * world_scale;
+	p["y"] = -loc.y() * world_scale;
+	p["z"] = loc.z() * world_scale;
+	return p;
+}
+
 // Make it FKBoxElem (in UE4)-friendly.
-Json::Value SceneAssetBundle::serializeCollisionShapeWithScaling(const std::vector<OBB3f>& obbs) {
+Json::Value SceneAssetBundle::serializeCollisionShapeWithConversion(const std::vector<OBB3f>& obbs) {
 	assert(!obbs.empty());
 	Json::Value col_shape;
 	for(const auto& obb : obbs) {
@@ -206,12 +218,14 @@ Json::Value SceneAssetBundle::serializeCollisionShapeWithScaling(const std::vect
 		// axis should be rotational now.
 		assert(std::abs(axis.determinant() - 1) < 1e-3);
 
-		const Eigen::Vector3f trans = ca.first * world_scale;
-		const Eigen::Quaternionf q(axis);
-		geom["pose"] = serializePose(q, trans);
+		Eigen::Affine3f trans;
+		trans.linear() = axis;
+		trans.translation() = ca.first;
+		geom["pose"] = serializePoseWithConversion(trans);
 
 		const Eigen::Vector3f size_uw = size * world_scale;
 		geom["size"]["x"] = size_uw.x();
+		// this is not a vector, don't flip it! (it won't matter anyway because it's cnetered OBB)
 		geom["size"]["y"] = size_uw.y();
 		geom["size"]["z"] = size_uw.z();
 
@@ -221,6 +235,7 @@ Json::Value SceneAssetBundle::serializeCollisionShapeWithScaling(const std::vect
 }
 
 std::string SceneAssetBundle::reservePath(const std::string& filename) {
+	INFO("Someone is trying to access", filename);
 	return (dir_path / fs::path(filename)).string();
 }
 
@@ -285,20 +300,6 @@ void SceneAssetBundle::addMesh(std::string name, const TexturedMesh& mesh) {
 void SceneAssetBundle::addMeshFlat(std::string name, const TexturedMesh& mesh) {
 	mesh.writeWavefrontObjectFlat((dir_path / fs::path(name)).string());
 }
-
-void SceneAssetBundle::serializeWholeScene() const {
-	/*
-	TriangleMesh<std::nullptr_t> whole_scene;
-	whole_scene.merge(dropAttrib(exterior_mesh.mesh));
-	for(const auto& interior_object : interior_objects) {
-		whole_scene.merge(dropAttrib(interior_object.mesh));
-	}
-
-	std::ofstream mesh_f((dir_path / fs::path("whole.ply")).string());
-	whole_scene.serializePLY(mesh_f);
-	*/
-}
-
 
 TriangleMesh<Eigen::Vector3f> SceneAssetBundle::serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const {
 	TriangleMesh<Eigen::Vector3f> mesh;

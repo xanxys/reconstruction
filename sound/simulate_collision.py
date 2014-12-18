@@ -165,13 +165,13 @@ def split_collisions(sound, freq=44100, window_duration=0.01):
     logger.info("%d regions found", len(regions_merged))
 
     # visualize regions
-    reg_v = sound.copy() * 0
-    for (i0, i1) in regions_merged:
-        reg_v[i0:i1] = 0.5
-    import matplotlib.pyplot as plt
-    plt.plot(sound)
-    plt.plot(reg_v)
-    plt.show()
+    # reg_v = sound.copy() * 0
+    # for (i0, i1) in regions_merged:
+    #     reg_v[i0:i1] = 0.5
+    # import matplotlib.pyplot as plt
+    # plt.plot(sound)
+    # plt.plot(reg_v)
+    # plt.show()
 
     # clip and normalize each region
     collisions = []

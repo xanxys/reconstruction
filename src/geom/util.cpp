@@ -69,6 +69,13 @@ OBB3f::OBB3f(const AABB3f& aabb, const Eigen::Affine3f& pose) {
 
 OBB3f::OBB3f(const Eigen::Vector3f& center, const Eigen::Matrix3f& axis) :
 		center(center), axis(axis) {
+	Eigen::Matrix3f naxis = axis;
+	const Eigen::Vector3f size(
+		axis.col(0).norm(), axis.col(1).norm(), axis.col(2).norm());
+	naxis.col(0) /= size(0);
+	naxis.col(1) /= size(1);
+	naxis.col(2) /= size(2);
+	assert(std::abs(naxis.determinant() - 1) < 1e-3);
 }
 
 AABB3f OBB3f::toAABB() const {

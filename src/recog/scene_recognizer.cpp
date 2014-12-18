@@ -1,5 +1,6 @@
 #include "scene_recognizer.h"
 
+#include <algorithm>
 #include <fstream>
 #include <vector>
 
@@ -63,51 +64,56 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-	// Calculate approximate ceiling height.
-	std::vector<float> zs;
-	for(const auto& pt : cloud->points) {
-		zs.push_back(pt.z);
+	assert(!rframe.wall_polygon.empty());
+	// Calculate 3D quad of ceiling from rframe.
+	Eigen::Vector2f vmin(1e10, 1e10);
+	Eigen::Vector2f vmax = -vmin;
+	for(const auto& v : rframe.wall_polygon) {
+		vmin = vmin.cwiseMin(v);
+		vmax = vmax.cwiseMax(v);
 	}
-	const auto zs_range = robustMinMax(zs);
-	const float z_ceiling = zs_range.second;
+	const float z_ceiling = rframe.getHRange().second;
 
-	// Project points to ceiling quad.
-	// The quad is created in a way the texture contains
-	// non-distorted ceiling image.
-	// TODO: need to discard faraway points.
-	INFO("Detecting lights at z =", z_ceiling);
-
-	// TODO: 10 here is hardcoded. remove.
+	/*
 	TriangleMesh<Eigen::Vector2f> quad;
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(-10, -10, z_ceiling),
+		Eigen::Vector3f(vmin.x(), vmin.y(), z_ceiling),
 		Eigen::Vector2f(0, 0)));
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(10, -10, z_ceiling),
+		Eigen::Vector3f(vmax.x(), vmin.y(), z_ceiling),
 		Eigen::Vector2f(1, 0)));
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(10, 10, z_ceiling),
+		Eigen::Vector3f(vmax.x(), vmax.y(), z_ceiling),
 		Eigen::Vector2f(1, 1)));
 	quad.vertices.push_back(std::make_pair(
-		Eigen::Vector3f(-10, 10, z_ceiling),
+		Eigen::Vector3f(vmin.x(), vmax.y(), z_ceiling),
 		Eigen::Vector2f(0, 1)));
 	quad.triangles.push_back({{0, 1, 2}});
 	quad.triangles.push_back({{2, 3, 0}});
+	*/
+	const Eigen::Vector3f normal_ceiling(0, 0, -1);
 
+	// Projection settings.
+	const float px_per_meter_low = 10;  // used many times for quality evaluation
+	const float px_per_meter = 100;
+
+	// Project points to the ceiling quad.
+	// TODO: need to occluding points.
+	INFO("Detecting lights at z =", z_ceiling);
+
+	// Choose best scan by quality.
 	const auto ccs = scans_aligned.getScansWithPose();
 	assert(ccs.size() > 0);
-
 	auto calc_scan_quality_for_ceiling = [&](const CorrectedSingleScan& scan) {
+		const int width = (vmax - vmin).x() * px_per_meter_low;
+		const int height = (vmax - vmin).y() * px_per_meter_low;
+
 		const Eigen::Affine3f world_to_local = scan.local_to_world.inverse();
-		const int img_size = 128;
-		const Eigen::Vector3f normal_ceiling(0, 0, -1);
-		cv::Mat quality(img_size, img_size, CV_32F);
-		for(const int y : boost::irange(0, img_size)) {
-			for(const int x : boost::irange(0, img_size)) {
-				const Eigen::Vector3f pt3d_w(
-					x / (float)img_size * 20.0 - 10.0,
-					y / (float)img_size * 20.0 - 10.0,
-					z_ceiling);
+		cv::Mat quality(height, width, CV_32F);
+		for(const int y : boost::irange(0, height)) {
+			for(const int x : boost::irange(0, width)) {
+				const auto pt2d_w = Eigen::Vector2f(x, y) / px_per_meter_low + vmin;
+				const Eigen::Vector3f pt3d_w(pt2d_w.x(), pt2d_w.y(), z_ceiling);
 				const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
 				const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
@@ -123,8 +129,6 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		}
 		return cv::mean(quality)[0];
 	};
-
-	// Choose best scan by quality.
 	std::vector<float> quals;
 	for(const auto& scan : ccs) {
 		quals.push_back(calc_scan_quality_for_ceiling(scan));
@@ -138,16 +142,14 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	INFO("Choosing ceiling texture base scan id=", scan.raw_scan.getScanId());
 
 	const Eigen::Affine3f world_to_local = scan.local_to_world.inverse();
-	const int img_size = 2048;
-	const Eigen::Vector3f normal_ceiling(0, 0, -1);
-	cv::Mat mapping(img_size, img_size, CV_32FC2);
-	cv::Mat quality(img_size, img_size, CV_32F);
-	for(const int y : boost::irange(0, img_size)) {
-		for(const int x : boost::irange(0, img_size)) {
-			const Eigen::Vector3f pt3d_w(
-				x / (float)img_size * 20.0 - 10.0,
-				y / (float)img_size * 20.0 - 10.0,
-				z_ceiling);
+	const int width = (vmax - vmin).x() * px_per_meter;
+	const int height = (vmax - vmin).y() * px_per_meter;
+	cv::Mat mapping(height, width, CV_32FC2);
+	cv::Mat quality(height, width, CV_32F);
+	for(const int y : boost::irange(0, height)) {
+		for(const int x : boost::irange(0, width)) {
+			const auto pt2d_w = Eigen::Vector2f(x, y) / px_per_meter + vmin;
+			const Eigen::Vector3f pt3d_w(pt2d_w.x(), pt2d_w.y(), z_ceiling);
 			const Eigen::Vector3f pt3d_l = world_to_local * pt3d_w;
 			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
@@ -170,24 +172,20 @@ std::vector<Eigen::Vector3f> recognize_lights(
 	cv::remap(scan.raw_scan.er_rgb, proj_new, mapping, cv::Mat(),
 		cv::INTER_LINEAR, cv::BORDER_REPLICATE);
 
-	// Make it grayscale and remove image noise by blurring.
-	const TexturedMesh ceiling_geom = bakePointsToMesh(cloud, quad);
+	// Make it grayscale.
 	cv::Mat ceiling_gray;
-	cv::cvtColor(ceiling_geom.diffuse, ceiling_gray, cv::COLOR_BGR2GRAY);
-	cv::GaussianBlur(ceiling_gray, ceiling_gray, cv::Size(31, 31), 10);
+	cv::cvtColor(proj_new, ceiling_gray, cv::COLOR_BGR2GRAY);
 	if(bundle.isDebugEnabled()) {
 		cv::imwrite(
 			bundle.reservePath("ceiling_quality.png"), visualize_field2(quality));
 		cv::imwrite(
-			bundle.reservePath("ceiling_new_raw.png"), proj_new);
-
+			bundle.reservePath("ceiling_gray.png"), ceiling_gray);
 		cv::imwrite(
-			bundle.reservePath("ceiling_raw.png"), ceiling_geom.diffuse);
-		cv::imwrite(
-			bundle.reservePath("ceiling_processed.png"), ceiling_gray);
+			bundle.reservePath("ceiling.png"), proj_new);
 	}
 
 	// Detect blobs (saturated lights).
+	const float light_margin = 0.05;  // we need slight margin between light and ceiling.
 	std::vector<Eigen::Vector3f> lights;
 	cv::SimpleBlobDetector detector;
 	std::vector<cv::KeyPoint> blobs;
@@ -201,11 +199,8 @@ std::vector<Eigen::Vector3f> recognize_lights(
 		v["angle"] = blob.angle;
 		INFO("Blob detected", v);
 
-		// TODO: 10 here is hardcoded. remove.
-		Eigen::Vector3f pt3d(
-			(float)blob.pt.x / ceiling_gray.cols * 20.0 - 10.0,
-			(float)blob.pt.y / ceiling_gray.cols * 20.0 - 10.0,
-			z_ceiling);
+		const auto pt2d = Eigen::Vector2f(blob.pt.x, blob.pt.y) / px_per_meter + vmin;
+		const Eigen::Vector3f pt3d(pt2d.x(), pt2d.y(), z_ceiling - light_margin);
 		lights.push_back(pt3d);
 	}
 	return lights;
@@ -605,10 +600,7 @@ std::vector<MiniCluster> splitEachScan(
 			}
 
 			// Accept cluster
-			MiniCluster mc;
-			mc.c_scan = &ccs;
-			mc.cloud = cluster_cloud;
-			mini_clusters.push_back(mc);
+			mini_clusters.emplace_back(&ccs, cluster_cloud);
 
 			/*
 			const auto groups = extractVisualGroups(
@@ -682,49 +674,74 @@ std::pair<
 	return std::make_pair(points_inside, points_outside);
 }
 
-// TODO: AABB shouldn't be initialized by itself.
-MiniCluster::MiniCluster() :
-	aabb(Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero()),
-	is_supported(false), stable(false) {
+
+MiniCluster::MiniCluster(
+		CorrectedSingleScan* c_scan,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) :
+		c_scan(c_scan), cloud(cloud),
+		aabb(calculateAABB(cloud)),
+		is_supported(false), stable(false) {
+	assert(c_scan);
+	assert(cloud);
+	assert(!cloud->points.empty());
+
+	// Approx center of gravity.
+	Eigen::Vector3f accum = Eigen::Vector3f::Zero();
+	for(const auto& pt : cloud->points) {
+		accum += pt.getVector3fMap();
+	}
+	grav_center = accum / cloud->points.size();
 }
 
-// In this function, we call
-// MiniCluster: cluster,
-// aggregated object: object.
-void linkMiniClusters(
-		SceneAssetBundle& bundle,
-		const RoomFrame& rframe, std::vector<MiniCluster>& mcs) {
-	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
-	using Point_2 = K::Point_2;
-	using MCId = int;
-	const MCId floor_id = -1;
-
-	// Pre-calculate independent properties.
-	INFO("Calculating MiniCluster independent props");
-	for(auto& mc : mcs) {
-		// AABB.
-		Eigen::Vector3f vmin(1e3, 1e3, 1e3);
-		Eigen::Vector3f vmax = -vmin;
-		for(const auto& pt : mc.cloud->points) {
-			vmin = vmin.cwiseMin(pt.getVector3fMap());
-			vmax = vmax.cwiseMax(pt.getVector3fMap());
-		}
-		mc.aabb = AABB3f(vmin, vmax);
-
-		// Approx center of gravity.
-		Eigen::Vector3f accum = Eigen::Vector3f::Zero();
-		for(const auto& pt : mc.cloud->points) {
-			accum += pt.getVector3fMap();
-		}
-		mc.grav_center = accum / mc.cloud->points.size();
+AABB3f MiniCluster::calculateAABB(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) {
+	assert(cloud);
+	Eigen::Vector3f vmin(1e3, 1e3, 1e3);
+	Eigen::Vector3f vmax = -vmin;
+	for(const auto& pt : cloud->points) {
+		vmin = vmin.cwiseMin(pt.getVector3fMap());
+		vmax = vmax.cwiseMax(pt.getVector3fMap());
 	}
+	return AABB3f(vmin, vmax);
+}
+
+
+boost::optional<TexturedMesh> MiniCluster::toMeshSoup(SceneAssetBundle& bundle) const {
+	Eigen::Vector3f pos_accum = Eigen::Vector3f::Zero();
+	Eigen::Vector3f normal_accum = Eigen::Vector3f::Zero();
+	int n_accum = 0;
+	for(const auto& pt : cloud->points) {
+		pos_accum += pt.getVector3fMap();
+		normal_accum += pt.getNormalVector3fMap();
+		n_accum++;
+	}
+	assert(n_accum > 0);
+	const Eigen::Vector3f pos_mean = pos_accum / n_accum;
+	const Eigen::Vector3f normal_mean = normal_accum.normalized();
+
+	const auto groups = extractVisualGroups(
+		bundle, *c_scan, cloud, pos_mean, normal_mean,
+		"unknown");
+
+	assert(groups.size() < 2);
+	if(groups.empty()) {
+		return boost::none;
+	} else {
+		return groups[0];
+	}
+}
+
+MCLinker::MCLinker(
+		SceneAssetBundle& bundle,
+		const RoomFrame& rframe,
+		const std::vector<MiniCluster>& raw_mcs) :
+		mcs(raw_mcs), rframe(rframe), bundle(bundle) {
+	INFO("Linking MiniCulsters N=", (int)mcs.size());
 
 	// Pre-calculate pairwise properties.
 	INFO("Calculating MiniCluster pairwise props.");
 	const float dist_cutoff = 0.3;  // above this thresh, two MiniClusters MUST NOT CONNECT
 	Eigen::MatrixXf pc_min_dist(mcs.size(), mcs.size());
-
 	for(const MCId i : boost::irange(0, (int)mcs.size())) {
 		const auto enl_aabb = mcs[i].aabb.enlarged(dist_cutoff);
 		for(const MCId j : boost::irange(0, (int)mcs.size())) {
@@ -750,6 +767,7 @@ void linkMiniClusters(
 			}
 		}
 	}
+	cluster_dist = pc_min_dist;
 	if(bundle.isDebugEnabled()) {
 		Json::Value root;
 		for(const MCId i : boost::irange(0, (int)mcs.size())) {
@@ -762,163 +780,93 @@ void linkMiniClusters(
 		std::ofstream of(bundle.reservePath("mc_dist.json"));
 		of << Json::FastWriter().write(root);
 	}
-	// cluster vs. group distance accessor.
-	auto dist_between_cg = [&pc_min_dist](const MCId cl0, const std::set<MCId>& cls1) {
-		assert(!cls1.empty());
-		float md = 1e10;
-		for(const auto& cl1 : cls1) {
-			md = std::min(md, pc_min_dist(cl0, cl1));
-		}
-		return md;
-	};
-	auto dist_between_gg = [&pc_min_dist](
-			const std::set<MCId>& cls0,
-			const std::set<MCId>& cls1) {
-		assert(!cls0.empty());
-		assert(!cls1.empty());
-		float md = 1e10;
-		for(const auto& cl0 : cls0) {
-			for(const auto& cl1 : cls1) {
-				md = std::min(md, pc_min_dist(cl0, cl1));
+}
+
+std::vector<std::set<int>> MCLinker::getResult() {
+	const MCId floor_id = -1;
+
+	// Cluster by distance.
+	const float cluster_thresh = 0.05;
+	std::set<MCId> ids;
+	for(const MCId id : boost::irange(0, (int)mcs.size())) {
+		ids.insert(id);
+	}
+	std::map<MCId, std::set<MCId>> adj;
+	for(const MCId i : ids) {
+		for(const MCId j : ids) {
+			if(cluster_dist(i, j) < cluster_thresh) {
+				adj[i].insert(j);
 			}
 		}
-		return md;
-	};
+	}
+	std::vector<std::set<MCId>> ccs = getCC(ids, adj);
+	INFO("#CCs: ", (int)ccs.size());
 
-
-
-	// We assume tree structure.
-	// For N clusters, there are only N - 1 edges.
-	// But we include floor, there are N edges.
-	std::set<MCId> floating;
-	floating.insert(
-		boost::irange(0, static_cast<int>(mcs.size())).begin(),
-		boost::irange(0, static_cast<int>(mcs.size())).end());
-
-	std::map<MCId, MCId> parent;  // child -> parent
-	std::multimap<MCId, MCId> merging;
-
-	// Identitify clusters touching floor.
-	INFO("Linking near-floor");
-	const MCId id_support = floor_id;
-	const float z_floor = rframe.getHRange().first;
-	const float z_thresh = 0.2;
-	const float bond_radius = 0.02;
-	for(const MCId id : floating) {
-		auto& mc = mcs[id];
-
-		// Bottom point not touching the supporting surface
-		// -> must be floating
-		if(std::abs(mc.aabb.getMin().z() - z_floor) > z_thresh) {
-			continue;
-		}
-
-		// Calculate support polygon.
-		std::vector<Point_2> support_points;
-		for(const auto& pt : mcs[id].cloud->points) {
-			if(std::abs(pt.z - mc.aabb.getMin().z()) < bond_radius) {
-				support_points.emplace_back(pt.x, pt.y);
+	// unstable variations:
+	// supported (unstable due to CoG offset) ->
+	// * search nearby conn
+	// non-supported ->
+	// * floor extension (add mesh)
+	// * nearby conn
+	while(true) {
+		// Partition CCs by stability.
+		std::vector<std::set<MCId>> stable_ccs;
+		std::vector<std::set<MCId>> unstable_ccs;
+		for(const auto& cc : ccs) {
+			if(isStable(cc, 0.05)) {
+				for(const auto& id : cc) {
+					mcs[id].stable = true;
+				}
+				stable_ccs.push_back(cc);
+			} else {
+				unstable_ccs.push_back(cc);
 			}
 		}
-		if(support_points.size() < 3) {
-			WARN("Too few support points", (int)support_points.size());
-			continue;
+		assert(stable_ccs.size() + unstable_ccs.size() == ccs.size());
+		INFO("#Stable CC:", (int)stable_ccs.size(), "#All CC", (int)ccs.size());
+		if(unstable_ccs.size() == 0) {
+			break;
 		}
 
-		std::vector<Point_2> support_vertices;
-		CGAL::ch_graham_andrew(
-			support_points.cbegin(), support_points.cend(),
-			std::back_inserter(support_vertices));
+		// Try to connect most natural unconnected CC.
+		// <improve ccs>
+		float action_cost = 1e10;
+		std::pair<std::set<int>, std::set<int>> action;  // unstable, stable
+		for(const auto& cc : unstable_ccs) {
+			float min_dist_to_stable = 1e10;
+			std::set<MCId> min_stable;
+			for(const auto cc_stable : stable_ccs) {
+				const float dist = distanceBetween(cc, cc_stable);
+				if(dist >= min_dist_to_stable) {
+					continue;
+				}
+				min_dist_to_stable = dist;
+				min_stable = cc_stable;
+			}
+			assert(!min_stable.empty());  // something must be closest.
 
-		mc.is_supported = true;
-		mc.support_z = mc.aabb.getMin().z();
-		mc.support_polygon.clear();
-		for(const auto& p : support_vertices) {
-			mc.support_polygon.emplace_back(p.x(), p.y());
-		}
-
-		// Check if cluster is stable.
-		// stable == CoG falls within polygon
-		const CGAL::Polygon_2<K> poly_support(support_vertices.begin(), support_vertices.end());
-		const std::vector<Eigen::Vector2f> noises = {
-			{0, 0},
-			{0.05, 0},
-			{-0.05, 0},
-			{0, 0.05},
-			{0, -0.05}
-		};
-		bool stable = true;
-		for(const auto& noise : noises) {
-			const Eigen::Vector2f cog_w_n = mc.grav_center.head<2>() + noise;
-			const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
-			stable &= (poly_support.bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
-		}
-		mc.stable = stable;
-	}
-
-	auto toCGALPoly = [](const std::vector<Eigen::Vector2f>& vs) {
-		CGAL::Polygon_2<Kex> poly;
-		for(const auto& v : vs) {
-			poly.push_back(Kex::Point_2(v.x(), v.y()));
-		}
-		return poly;
-	};
-
-	// Group supported mcs by overlap of supports.
-	std::set<MCId> supported_ids;
-	for(const MCId id : floating) {
-		if(mcs[id].is_supported) {
-			supported_ids.insert(id);
-		}
-	}
-	std::map<int, std::set<int>> merge_adj;
-	for(const auto& id0 : supported_ids) {
-		const auto poly0 = toCGALPoly(mcs[id0].support_polygon);
-		for(const auto& id1 : supported_ids) {
-			if(id1 == id0) {
+			// Does linking the two make them stable?
+			const std::set<MCId> merge_hypothesis = join(cc, min_stable);
+			if(!isStable(merge_hypothesis, 0.05)) {
 				continue;
 			}
-			const auto poly1 = toCGALPoly(mcs[id1].support_polygon);
-			if(CGAL::do_intersect(poly0, poly1)) {
-				merging.emplace(id0, id1);
-				merge_adj[id0].insert(id1);
+			// Register new action.
+			if(min_dist_to_stable < action_cost) {
+				action_cost = min_dist_to_stable;
+				action = std::make_pair(cc, min_stable);
 			}
 		}
-	}
-
-	// divide supported_ids into CCs.
-	// and check group stability.
-	const auto ccs_support = getCC(supported_ids, merge_adj);
-	INFO("Supporte Ids: ", (int)supported_ids.size());
-	INFO("Merged CCs: ", (int)ccs_support.size());
-
-	// Further merge overlapping clusters
-	// using 3d distance.
-	// Fixed group vs. (another fixed group | cluster)
-	const float ovr_thresh = 0.05;
-	int count_gg_overlap = 0;
-	for(const auto& group0 : ccs_support) {
-		for(const auto& group1 : ccs_support) {
-			if(group0 == group1) {
-				continue;
-			}
-
-			if(dist_between_gg(group0, group1) < ovr_thresh) {
-				merge_adj[*group0.begin()].insert(*group1.begin());
-				count_gg_overlap++;
-			}
+		if(action_cost > 1000) {
+			INFO("Action exhausted");
+			break;
 		}
+		INFO("Taking join action w/ cost=", action_cost);
+		ccs.erase(std::find(ccs.begin(), ccs.end(), action.first));
+		ccs.erase(std::find(ccs.begin(), ccs.end(), action.second));
+		ccs.push_back(join(action.first, action.second));
 	}
-	INFO("G-G overlap * 2: ", count_gg_overlap);
 
-
-	std::set<MCId> merged_ids = supported_ids;
-
-	const auto ccs_overlapping = getCC(merged_ids, merge_adj);
-	INFO("Merged Ids: ", (int)merged_ids.size());
-	INFO("Merged CCs: ", (int)ccs_overlapping.size());
-	const auto groups = ccs_overlapping;
-
+	const auto groups = ccs;
 
 	if(bundle.isDebugEnabled()) {
 		Json::Value root;
@@ -959,6 +907,7 @@ void linkMiniClusters(
 			root["clusters"].append(mc_entry);
 		}
 		// edges
+		/*
 		for(const auto& edge : parent) {
 			Json::Value e;
 			e.append(edge.first);
@@ -971,6 +920,7 @@ void linkMiniClusters(
 			e.append(edge.second);
 			root["merging"].append(e);
 		}
+		*/
 		// groups
 		for(const auto& group : groups) {
 			Json::Value e;
@@ -986,8 +936,113 @@ void linkMiniClusters(
 		std::ofstream of(bundle.reservePath("link_mc.json"));
 		of << Json::FastWriter().write(root);
 	}
+
+	// Filter stable CCS.
+	std::vector<std::set<MCId>> stable_ccs;
+	for(const auto& cc : ccs) {
+		if(isStable(cc, 0.05)) {
+			stable_ccs.push_back(cc);
+		}
+	}
+	return stable_ccs;
 }
 
+auto MCLinker::join(
+		const std::set<MCId>& a, const std::set<MCId>& b) -> std::set<MCId> {
+	std::set<MCId> result = a;
+	result.insert(b.begin(), b.end());
+	return result;
+}
+
+bool MCLinker::isStable(const std::set<MCId>& cls,
+		float disturbance) const {
+	assert(disturbance >= 0);
+
+	const auto support = getSupportPolygon(cls);
+	if(!support) {
+		return false;
+	}
+
+	// Check if cluster is stable.
+	// stable == CG falls within polygon
+	const std::vector<Eigen::Vector2f> noises = {
+		{0, 0},
+		{1, 0},
+		{-1, 0},
+		{0, 1},
+		{0, -1}
+	};
+	const Eigen::Vector3f cog = getCG(cls);
+	bool stable = true;
+	for(const auto& noise : noises) {
+		const Eigen::Vector2f cog_w_n = cog.head<2>() + noise * disturbance;
+		const Point_2 cog_w_n_cgal(cog_w_n.x(), cog_w_n.y());
+		stable &= (support->bounded_side(cog_w_n_cgal) == CGAL::ON_BOUNDED_SIDE);
+	}
+	return stable;
+}
+
+boost::optional<MCLinker::Polygon_2> MCLinker::getSupportPolygon(
+		const std::set<MCId>& cl) const {
+	const float z_floor = rframe.getHRange().first;
+	const float z_thresh = 0.2;
+	const float bond_radius = 0.02;
+
+	// Get all points near floor.
+	std::vector<Point_2> support_points;
+	for(const auto& id : cl) {
+		auto& mc = mcs[id];
+		// Cull completely floating cluster.
+		if(std::abs(mc.aabb.getMin().z() - z_floor) > z_thresh) {
+			continue;
+		}
+		for(const auto& pt : mc.cloud->points) {
+			if(std::abs(pt.z - mc.aabb.getMin().z()) < bond_radius) {
+				support_points.emplace_back(pt.x, pt.y);
+			}
+		}
+	}
+	// Too few support points: no support polygon.
+	if(support_points.size() < 3) {
+		return boost::none;
+	}
+	std::vector<Point_2> support_vertices;
+	CGAL::ch_graham_andrew(
+		support_points.cbegin(), support_points.cend(),
+		std::back_inserter(support_vertices));
+
+	return MCLinker::Polygon_2(
+		support_vertices.begin(), support_vertices.end());
+}
+
+float MCLinker::distanceBetween(MCId cl0, MCId cl1) const {
+	return cluster_dist(cl0, cl1);
+}
+
+float MCLinker::distanceBetween(
+		const std::set<MCId>& cls0,
+		const std::set<MCId>& cls1) const {
+	assert(!cls0.empty());
+	assert(!cls1.empty());
+	float dist = 1e10;
+	for(const auto& cl0 : cls0) {
+		for(const auto& cl1 : cls1) {
+			dist = std::min(dist, cluster_dist(cl0, cl1));
+		}
+	}
+	return dist;
+}
+
+Eigen::Vector3f MCLinker::getCG(const std::set<MCId>& cl) const {
+	assert(!cl.empty());
+	Eigen::Vector3f cog_accum = Eigen::Vector3f::Zero();
+	float n_accum = 0;
+	for(const auto& id : cl) {
+		cog_accum += mcs[id].grav_center * mcs[id].cloud->points.size();
+		n_accum += mcs[id].cloud->points.size();
+	}
+	return cog_accum / n_accum;
+}
 
 void recognizeScene(SceneAssetBundle& bundle,
 		const std::vector<SingleScan>& scans,
@@ -1017,7 +1072,8 @@ void recognizeScene(SceneAssetBundle& bundle,
 	rframe.wall_polygon = contour_points;
 
 	std::vector<MiniCluster> mcs;
-	for(auto& ccs :  scans_aligned.getScansWithPose()) {
+	auto scans_with_pose = scans_aligned.getScansWithPose();  // required for lending scan pointer to MiniCluster
+	for(auto& ccs : scans_with_pose) {
 		const auto mcs_per_scan = splitEachScan(bundle, ccs, rframe);
 		mcs.insert(mcs.end(), mcs_per_scan.begin(), mcs_per_scan.end());
 	}
@@ -1059,15 +1115,126 @@ void recognizeScene(SceneAssetBundle& bundle,
 	// DEPRECATED: END
 
 	INFO("Linking miniclusters");
-	linkMiniClusters(bundle, rframe, mcs);
+	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
 	INFO("Creating assets");
 	const auto exterior = recognizeExterior(
 		bundle, rframe,
 		scans_aligned, extrusion_mesh,
 		cast<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>(points_inside));
+	bundle.setFloorLevel(rframe.getHRange().first);
 	for(const auto& pos : exterior.second) {
 		bundle.addPointLight(pos);
+	}
+	int i_group = 0;
+	for(const auto& group : groups) {
+		INFO("Processing group", i_group);
+		// Generate render proxy.
+		/*
+		std::vector<TexturedMesh> tms;
+		for(const auto& mc_id : group) {
+			const auto maybe_tm = mcs[mc_id].toMeshSoup(bundle);
+			if(!maybe_tm) {
+				continue;
+			}
+			tms.push_back(*maybe_tm);
+		}
+		if(tms.empty()) {
+			WARN("TM Soup is empty for current group, ignoring");
+			continue;
+		}
+		const auto tm = mergeTexturedMeshes(tms);
+		*/
+		/*
+		const float radius = 0.02;
+		TriangleMesh<std::nullptr_t> mesh;
+		for(const auto& mc_id : group) {
+			for(const auto& pt : mcs[mc_id].cloud->points) {
+				mesh.merge(createBox(pt.getVector3fMap(), radius));
+			}
+		}
+		*/
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZ>);
+		Eigen::Vector3f vmin(1e10, 1e10, 1e10);
+		Eigen::Vector3f vmax = -vmin;
+		for(const auto& mc_id : group) {
+			for(const auto& pt : mcs[mc_id].cloud->points) {
+				pcl::PointXYZ pn;
+				pn.getVector3fMap() = pt.getVector3fMap();
+				cloud->points.push_back(pn);
+
+				vmin = vmin.cwiseMin(pt.getVector3fMap());
+				vmax = vmax.cwiseMax(pt.getVector3fMap());
+			}
+		}
+		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+		kdtree.setInputCloud(cloud);
+
+		auto field = [&kdtree](const Eigen::Vector3f& pos) {
+			const float sigma = 0.02;
+
+			pcl::PointXYZ query;
+			query.getVector3fMap() = pos;
+
+			std::vector<int> result_ixs;
+			std::vector<float> result_sq_dists;
+			const int n_result = kdtree.radiusSearch(
+				query, sigma * 3,
+				result_ixs, result_sq_dists);
+
+			float v = 0;
+			for(int i : boost::irange(0, n_result)) {
+				v += std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+			}
+			return v;
+		};
+
+		const auto mesh_w_n = extractIsosurface(
+			0.1, field,
+			std::make_pair(vmin, vmax), 0.03);
+
+		TexturedMesh tm;
+		tm.diffuse = cv::Mat(64, 64, CV_8UC3);
+		tm.diffuse = cv::Scalar(255, 255, 255);
+		tm.mesh.triangles = mesh_w_n.triangles;
+		for(const auto& v : mesh_w_n.vertices) {
+			tm.mesh.vertices.emplace_back(
+				v.first, Eigen::Vector2f(0, 0));
+		}
+
+		// Generate collisions.
+		std::vector<OBB3f> collisions;
+		for(const auto& mc_id : group) {
+			// TODO: finer collision.
+			/*
+			INFO("AABB:min",
+				mcs[mc_id].aabb.getMin().x(),
+				mcs[mc_id].aabb.getMin().y(),
+				mcs[mc_id].aabb.getMin().z());
+			INFO("AABB:max",
+				mcs[mc_id].aabb.getMax().x(),
+				mcs[mc_id].aabb.getMax().y(),
+				mcs[mc_id].aabb.getMax().z());
+			*/
+			assert(mcs[mc_id].aabb.getVolume() > 0);
+			collisions.push_back(OBB3f(mcs[mc_id].aabb));
+		}
+		bundle.addInteriorObject(InteriorObject(tm, collisions));
+
+		if(bundle.isDebugEnabled()) {
+			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
+				new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+			for(const auto& mc_id : group) {
+				for(const auto& pt : mcs[mc_id].cloud->points) {
+					cloud->points.push_back(pt);
+				}
+			}
+			bundle.addDebugPointCloud(
+				"group_" + std::to_string(i_group),
+				cloud);
+		}
+		i_group++;
 	}
 	bundle.setInteriorBoundary(
 		InteriorBoundary(
@@ -1099,22 +1266,24 @@ void populateToyScene(SceneAssetBundle& bundle) {
 
 	// Set InteriorBoundary.
 	{
-		// Create 6x4x3 meter room, spanning
-		// [-3, -2, 0], [3, 2, 3]
+		// Create 6x5x3 meter room, spanning
+		// Notice Y-asymmetry, to test Y-flip phenomenon that
+		// once ocurred.
+		// [-3, -2, 0], [3, 3, 3]
 		TexturedMesh tm;
 		tm.mesh = mapSecond(assignUV(
 			flipTriangles(
-			createBox(Eigen::Vector3f(0, 0, 1.5),
+			createBox(Eigen::Vector3f(0, 0.5, 1.5),
 				Eigen::Vector3f(3, 0, 0),
-				Eigen::Vector3f(0, 2, 0),
+				Eigen::Vector3f(0, 2.5, 0),
 				Eigen::Vector3f(0, 0, 1.5)))));
 		tm.diffuse = gen_grid_tex(cv::Vec3b(255, 255, 255));
 
 		std::vector<Eigen::Vector2f> polygon = {
 			{-3, -2},
 			{3, -2},
-			{3, 2},
-			{-3, 2}
+			{3, 3},
+			{-3, 3}
 		};
 		std::pair<float, float> z_range = {0, 3};
 		bundle.setInteriorBoundary(

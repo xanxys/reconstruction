@@ -23,4 +23,4 @@ def api_data():
     }
     return flask.jsonify(**result)
 
-app.run()
+app.run(debug=True)

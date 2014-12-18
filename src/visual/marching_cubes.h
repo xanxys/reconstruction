@@ -18,7 +18,7 @@ private:
 };
 
 
-using ScalarField3 = std::function<float(Eigen::Vector3f)>;
+using ScalarField3 = std::function<float(const Eigen::Vector3f&)>;
 using BoundingBox = std::pair<Eigen::Vector3f, Eigen::Vector3f>;
 
 

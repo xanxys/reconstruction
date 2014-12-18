@@ -27,6 +27,16 @@ namespace recon {
 
 // A complete information to be loaded by EqExperiment/LoaderPlugin.
 // Also contains bunch of data for debugging purpose.
+//
+// WARNING: very subtle bugs ahead
+// UE4 static mesh importer seems to flip Y-axis automatically
+// (UE4 uses LHS, while we use RHS).
+//
+// However, for things we create in code, we need to export
+// in Y-flipped LHS coordinates.
+// 1. Collision boxes
+// 2. Poses
+// quaternions are hard to do correctly!
 class SceneAssetBundle {
 public:
 	// Initialize empty data with output directory.
@@ -89,12 +99,11 @@ private:
 	// The directory might be nested.
 	void serializeIntoDirectory(const boost::filesystem::path& dir_path);
 
-	void serializeWholeScene() const;
-
-	Json::Value serializePoseWithScaling(const Eigen::Affine3f& transf);
+	Json::Value serializeLocationWithConversion(const Eigen::Vector3f& loc);
+	Json::Value serializePoseWithConversion(const Eigen::Affine3f& transf);
 	Json::Value serializePose(const Eigen::Quaternionf& rot, const Eigen::Vector3f& trans);
 
-	Json::Value serializeCollisionShapeWithScaling(const std::vector<OBB3f>& obbs);
+	Json::Value serializeCollisionShapeWithConversion(const std::vector<OBB3f>& obbs);
 
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;

@@ -4,6 +4,9 @@
 #include <vector>
 
 #include <boost/optional.hpp>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Polygon_2.h>
 #include <Eigen/Dense>
 #include <jsoncpp/json/json.h>
 #include <pcl/point_cloud.h>
@@ -64,7 +67,17 @@ std::vector<TexturedMesh> extractVisualGroups(
 
 class MiniCluster {
 public:
-	MiniCluster();
+	MiniCluster(
+		CorrectedSingleScan* c_scan,
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
+
+	// Extract textured mesh soup (might be empty)
+	// by using extractVisualGroups. (slow)
+	boost::optional<TexturedMesh> toMeshSoup(SceneAssetBundle& bundle) const;
+
+
+	static AABB3f calculateAABB(
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud);
 public:
 	// original info
 	CorrectedSingleScan* c_scan;  // borrowed
@@ -84,12 +97,6 @@ public:  // linking info
 };
 
 
-// Label each point as part of room boundary, inside, or outside.
-// Small error between RoomFrame and aligned coordinate will be
-// compensated, but CorrectedSingleScan must not have ghosting.
-std::vector<MiniCluster> splitEachScan(
-	SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe);
-
 // We want to have:
 // physically-stable, maximally separated objects.
 // = minimize #links while making objects stable.
@@ -100,9 +107,54 @@ std::vector<MiniCluster> splitEachScan(
 //
 // Process basically starts from floor-touching MiniClusters,
 // and we go up connecting.
-void linkMiniClusters(
-	SceneAssetBundle& bundle,
-	const RoomFrame& rframe, std::vector<MiniCluster>& mcs);
+class MCLinker {
+public:
+	MCLinker(
+		SceneAssetBundle& bundle,
+		const RoomFrame& rframe,
+		const std::vector<MiniCluster>& mcs);
+
+	std::vector<std::set<int>> getResult();
+private:
+	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
+	using Point_2 = K::Point_2;
+	using Polygon_2 = CGAL::Polygon_2<K>;
+	using MCId = int;
+
+	float distanceBetween(MCId cl0, MCId cl1) const;
+	float distanceBetween(
+		const std::set<MCId>& cl0,
+		const std::set<MCId>& cl1) const;
+
+	// Group level queries.
+	Eigen::Vector3f getCG(const std::set<MCId>& cl) const;
+	boost::optional<Polygon_2> getSupportPolygon(
+		const std::set<MCId>& cl) const;
+
+	bool isStable(const std::set<MCId>& cls,
+		float disturbance_radius) const;
+
+	// Simple util.
+	static std::set<MCId> join(
+		const std::set<MCId>& a, const std::set<MCId>& b);
+private:
+	const RoomFrame& rframe;
+	SceneAssetBundle& bundle;
+
+	std::vector<MiniCluster> mcs;
+
+	// Minimum point-point distance between clusters.
+	Eigen::MatrixXf cluster_dist;
+};
+
+
+// Label each point as part of room boundary, inside, or outside.
+// Small error between RoomFrame and aligned coordinate will be
+// compensated, but CorrectedSingleScan must not have ghosting.
+std::vector<MiniCluster> splitEachScan(
+	SceneAssetBundle& bundle, CorrectedSingleScan& ccs, RoomFrame& rframe);
+
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
