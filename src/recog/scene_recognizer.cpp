@@ -33,6 +33,7 @@
 #include <pcl/surface/poisson.h>
 
 #include <extpy.h>
+#include <geom/simplification.h>
 #include <geom/triangulation.h>
 #include <graph/util.h>
 #include <math_util.h>
@@ -844,137 +845,8 @@ void recognizeScene(SceneAssetBundle& bundle,
 	int i_group = 0;
 	for(const auto& group : groups) {
 		INFO("Processing group", i_group);
-		// Generate render proxy.
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
-			new pcl::PointCloud<pcl::PointXYZRGB>);
-		Eigen::Vector3f vmin(1e10, 1e10, 1e10);
-		Eigen::Vector3f vmax = -vmin;
-		for(const auto& mc_id : group) {
-			for(const auto& pt : mcs[mc_id].cloud->points) {
-				pcl::PointXYZRGB pn;
-				pn.getVector3fMap() = pt.getVector3fMap();
-				pn.r = pt.r;
-				pn.g = pt.g;
-				pn.b = pt.b;
-				cloud->points.push_back(pn);
-				assert(std::isfinite(pn.x));
-				assert(std::isfinite(pn.y));
-				assert(std::isfinite(pn.z));
-
-				// Get AABB.
-				vmin = vmin.cwiseMin(pt.getVector3fMap());
-				vmax = vmax.cwiseMax(pt.getVector3fMap());
-			}
-		}
-		pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
-		kdtree.setInputCloud(cloud);
-
-		auto field = [&kdtree](const Eigen::Vector3f& pos) {
-			const float sigma = 0.02;
-
-			pcl::PointXYZRGB query;
-			query.getVector3fMap() = pos;
-
-			std::vector<int> result_ixs;
-			std::vector<float> result_sq_dists;
-			const int n_result = kdtree.radiusSearch(
-				query, sigma * 3,
-				result_ixs, result_sq_dists);
-
-			float v = 0;
-			for(int i : boost::irange(0, n_result)) {
-				v += std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
-			}
-			return v;
-		};
-
-		auto color_field = [&kdtree, &cloud](const Eigen::Vector3f& pos) -> Eigen::Vector3f {
-			const float sigma = 0.02;
-
-			pcl::PointXYZRGB query;
-			query.getVector3fMap() = pos;
-
-			std::vector<int> result_ixs;
-			std::vector<float> result_sq_dists;
-			const int n_result = kdtree.radiusSearch(
-				query, sigma * 3,
-				result_ixs, result_sq_dists);
-
-			float weight_accum = 0;
-			Eigen::Vector3f rgb_accum = Eigen::Vector3f::Zero();
-			for(int i : boost::irange(0, n_result)) {
-				const float weight =
-					std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
-				const auto& pt = cloud->points[result_ixs[i]];
-				rgb_accum += weight *
-					Eigen::Vector3f(pt.r, pt.g, pt.b);
-				weight_accum += weight;
-			}
-			if(weight_accum < 1e-3) {
-				return Eigen::Vector3f::Zero();
-			} else {
-				return rgb_accum / weight_accum;
-			}
-		};
-
-		const Eigen::Vector3f margin(0.1, 0.1, 0.1);
-		const auto mesh_w_n = extractIsosurface(
-			0.1, field,
-			std::make_pair(vmin - margin, vmax + margin),
-			0.03);
-		for(const auto& vert : mesh_w_n.vertices) {
-			assert(std::isfinite(vert.first.x()));
-			assert(std::isfinite(vert.first.y()));
-			assert(std::isfinite(vert.first.z()));
-		}
-
-		const int tex_size = 256;
-		TexturedMesh tm;
-		tm.mesh = mapSecond(assignUV(dropAttrib(mesh_w_n)));
-
-		// Create RGB texture via XYZ texture.
-		const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);
-		const auto pos_map = getPositionMapInUV(tm.mesh, tex_size,
-			invalid_pos);
-
-		cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
-		for(const int y : boost::irange(0, tex_size)) {
-			for(const int x : boost::irange(0, tex_size)) {
-				const auto pos_raw = pos_map.at<cv::Vec3f>(y, x);
-				const auto pos = Eigen::Vector3f(pos_raw[0], pos_raw[1], pos_raw[2]);
-				if(pos == invalid_pos) {
-					// don't bother looking up, because field lookup is slow.
-					diffuse.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
-				} else {
-					const auto col = color_field(pos);  // RGB
-					diffuse.at<cv::Vec3b>(y, x) =
-						cv::Vec3b(col(2), col(1), col(0));  // BGR
-				}
-			}
-		}
-		tm.diffuse = diffuse;
-
-		// Generate collisions.
-		std::vector<OBB3f> collisions;
-		for(const auto& mc_id : group) {
-			// TODO: finer collision.
-			assert(mcs[mc_id].aabb.getVolume() > 0);
-			collisions.push_back(OBB3f(mcs[mc_id].aabb));
-		}
-		bundle.addInteriorObject(InteriorObject(tm, collisions));
-
-		if(bundle.isDebugEnabled()) {
-			pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
-				new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-			for(const auto& mc_id : group) {
-				for(const auto& pt : mcs[mc_id].cloud->points) {
-					cloud->points.push_back(pt);
-				}
-			}
-			bundle.addDebugPointCloud(
-				"group_" + std::to_string(i_group),
-				cloud);
-		}
+		bundle.addInteriorObject(createInteriorObject(
+			bundle, mcs, group, std::to_string(i_group)));
 		i_group++;
 	}
 	bundle.setInteriorBoundary(
@@ -984,6 +856,157 @@ void recognizeScene(SceneAssetBundle& bundle,
 			rframe.getHRange()));
 }
 
+InteriorObject createInteriorObject(
+		SceneAssetBundle& bundle,
+		const std::vector<MiniCluster>& mcs,
+		const std::set<int>& group,
+		const std::string& debug_id) {
+	// Generate render proxy.
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
+		new pcl::PointCloud<pcl::PointXYZRGB>);
+	Eigen::Vector3f vmin(1e10, 1e10, 1e10);
+	Eigen::Vector3f vmax = -vmin;
+	for(const auto& mc_id : group) {
+		for(const auto& pt : mcs[mc_id].cloud->points) {
+			pcl::PointXYZRGB pn;
+			pn.getVector3fMap() = pt.getVector3fMap();
+			pn.r = pt.r;
+			pn.g = pt.g;
+			pn.b = pt.b;
+			cloud->points.push_back(pn);
+			assert(std::isfinite(pn.x));
+			assert(std::isfinite(pn.y));
+			assert(std::isfinite(pn.z));
+
+			// Get AABB.
+			vmin = vmin.cwiseMin(pt.getVector3fMap());
+			vmax = vmax.cwiseMax(pt.getVector3fMap());
+		}
+	}
+	pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+	kdtree.setInputCloud(cloud);
+
+	auto field = [&kdtree](const Eigen::Vector3f& pos) {
+		const float sigma = 0.02;
+
+		pcl::PointXYZRGB query;
+		query.getVector3fMap() = pos;
+
+		std::vector<int> result_ixs;
+		std::vector<float> result_sq_dists;
+		const int n_result = kdtree.radiusSearch(
+			query, sigma * 3,
+			result_ixs, result_sq_dists);
+
+		float v = 0;
+		for(int i : boost::irange(0, n_result)) {
+			v += std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+		}
+		return v;
+	};
+
+	auto color_field = [&kdtree, &cloud](const Eigen::Vector3f& pos) -> Eigen::Vector3f {
+		const float sigma = 0.02;
+
+		pcl::PointXYZRGB query;
+		query.getVector3fMap() = pos;
+
+		std::vector<int> result_ixs;
+		std::vector<float> result_sq_dists;
+		const int n_result = kdtree.radiusSearch(
+			query, sigma * 3,
+			result_ixs, result_sq_dists);
+
+		float weight_accum = 0;
+		Eigen::Vector3f rgb_accum = Eigen::Vector3f::Zero();
+		for(int i : boost::irange(0, n_result)) {
+			const float weight =
+				std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+			const auto& pt = cloud->points[result_ixs[i]];
+			rgb_accum += weight *
+				Eigen::Vector3f(pt.r, pt.g, pt.b);
+			weight_accum += weight;
+		}
+		if(weight_accum < 1e-3) {
+			return Eigen::Vector3f::Zero();
+		} else {
+			return rgb_accum / weight_accum;
+		}
+	};
+
+	const Eigen::Vector3f margin(0.1, 0.1, 0.1);
+	const auto mesh = dropAttrib(extractIsosurface(
+		0.1, field,
+		std::make_pair(vmin - margin, vmax + margin),
+		0.03));
+	for(const auto& vert : mesh.vertices) {
+		assert(std::isfinite(vert.first.x()));
+		assert(std::isfinite(vert.first.y()));
+		assert(std::isfinite(vert.first.z()));
+	}
+	// Clean mesh by merging close (actually same) vertices.
+	// Next simplification process won't work without wrong topology.
+	INFO("Vertex merge(before): #tri=", (int)mesh.triangles.size(),
+		" #vert=", (int)mesh.vertices.size());
+	const auto clean_mesh = mergeCloseVertices(mesh, 1e-4);
+	INFO("Vertex merge(after): #tri=", (int)clean_mesh.triangles.size(),
+		" #vert=", (int)clean_mesh.vertices.size());
+
+	// Simplify mesh by reducing tri count.
+	/*
+	TriangleMesh<std::nullptr_t> simple_mesh = simplifyMesh(clean_mesh, 0.3);
+	INFO("After mesh simplification: #tri=",
+		(int)simple_mesh.triangles.size(),
+		" #vert=", (int)simple_mesh.vertices.size());
+	*/
+	const auto simple_mesh = clean_mesh;
+
+	const int tex_size = 512;
+	TexturedMesh tm;
+	tm.mesh = mapSecond(assignUV(simple_mesh));
+
+	// Create RGB texture via XYZ texture.
+	const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);
+	const auto pos_map = getPositionMapInUV(tm.mesh, tex_size,
+		invalid_pos);
+
+	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			const auto pos_raw = pos_map.at<cv::Vec3f>(y, x);
+			const auto pos = Eigen::Vector3f(pos_raw[0], pos_raw[1], pos_raw[2]);
+			if(pos == invalid_pos) {
+				// don't bother looking up, because field lookup is slow.
+				diffuse.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+			} else {
+				const auto col = color_field(pos);  // RGB
+				diffuse.at<cv::Vec3b>(y, x) =
+					cv::Vec3b(col(2), col(1), col(0));  // BGR
+			}
+		}
+	}
+	tm.diffuse = diffuse;
+
+	// Generate collisions.
+	std::vector<OBB3f> collisions;
+	for(const auto& mc_id : group) {
+		// TODO: finer collision.
+		assert(mcs[mc_id].aabb.getVolume() > 0);
+		collisions.push_back(OBB3f(mcs[mc_id].aabb));
+	}
+	if(bundle.isDebugEnabled()) {
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+		for(const auto& mc_id : group) {
+			for(const auto& pt : mcs[mc_id].cloud->points) {
+				cloud->points.push_back(pt);
+			}
+		}
+		bundle.addDebugPointCloud("group_" + debug_id, cloud);
+	}
+	return InteriorObject(tm, collisions);
+}
+
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeBoundary(
 		SceneAssetBundle& bundle,
@@ -991,43 +1014,138 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		const AlignedScans& scans_aligned,
 		const ExtrudedPolygonMesh& ext_mesh,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside) {
-
-	// TODO: desirable pipeline if similar process' needs arise elsewhere.
-	// partial polygons -> texture region 2D mask + XYZ mapping + normals etc.
-	// reverse lookup.
-	// Maybe overly complex??
+	// Create boundary mesh (textured).
 	auto tex_mesh = bakeBoundaryTexture(
 		scans_aligned, ext_mesh.getMesh(), 0.4);
 
-	// TODO: Discard non-floor components on floor.
-	//tex_mesh.
-	/*
-	if(bundle.isDebugEnabled()) {
-		cv::Mat img = tex_mesh.diffuse.clone();
-
-		// WARNING: encapsulation breach!
-		// This assumes:
-		// 1. XYZ floor maps to continuous region in UV
-		//
-		std::vector<cv::Point> points;
-		for(const auto& ix_vert : ext_mesh.getFloorPolygonVertices()) {
-			const auto uv = ext_mesh.getMesh().vertices[ix_vert].second;
-
-			points.emplace_back(
-				img.cols * uv(0),
-				img.rows * (1 - uv(1)));
+#if 0
+	////
+	// Cleanup floor mess.
+	////
+	// Create floor mask in UV via XYZ map.
+	assert(tex_mesh.diffuse.rows == tex_mesh.diffuse.cols);
+	const int tex_size = tex_mesh.diffuse.cols;
+	const auto pos_map = getPositionMapInUV(tex_mesh.mesh, tex_size, Eigen::Vector3f(0, 0, 1e10));
+	cv::Mat floor_mask(tex_size, tex_size, CV_8U);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			const bool is_floor =
+				(std::abs(pos_map.at<cv::Vec3f>(y, x)[2] - rframe.getHRange().first) < 1e-3);
+			floor_mask.at<uint8_t>(y, x) = is_floor ? 255 : 0;
 		}
-		// Draw poly.
-		{
-			std::vector<std::vector<cv::Point>> contours = {points};
-			cv::drawContours(img, contours, -1, cv::Scalar(0, 0, 255));
-		}
-
-		cv::imwrite(bundle.reservePath("floor_inpaint.png"), img);
 	}
-	*/
+	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath("debug_floor.png"),
+			tex_mesh.diffuse);
+		cv::imwrite(
+			bundle.reservePath("debug_floor_region.png"),
+			floor_mask);
+	}
+	// Create XY-of-World -> image-XY-of-UV lookup image.
+	// WARNING won't work outside [-10,10]^2 region.
+	const int lookup_size = 512;
+	const Eigen::Vector2f lookup_vmin(-10, -10);
+	const float lookup_px_per_meter = lookup_size / 20;
+	cv::Mat lookup(lookup_size, lookup_size, CV_32FC2);
+	lookup = cv::Scalar(-1, -1);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			const auto pos = pos_map.at<cv::Vec3f>(y, x);
+			const Eigen::Vector2i pi_lookup =
+				((Eigen::Vector2f(pos[0], pos[1]) - lookup_vmin) * lookup_px_per_meter).cast<int>();
+			if(pi_lookup.x() < 0 || pi_lookup.y() < 0) {
+				continue;
+			}
+			if(pi_lookup.x() >= lookup_size || pi_lookup.y() >= lookup_size) {
+				continue;
+			}
+			lookup.at<cv::Vec2f>(pi_lookup.y(), pi_lookup.x()) = cv::Vec2f(x, y);
+		}
+	}
+	// Create probably bad region from (near-floor, but not floor itself) points.
+	// All other pixels are "probably good".
+	const float z_non_floor_z0 = 0.3 + rframe.getHRange().first;
+	const float z_non_floor_z1 = 0.4 + rframe.getHRange().first;
+	const float radius_px = 2;
+	assert(z_non_floor_z1 > z_non_floor_z0);
+	cv::Mat pr_bad_mask(tex_size, tex_size, CV_8U);
+	pr_bad_mask = cv::Scalar(0, 0, 0);
+	const auto merged_cloud = scans_aligned.getMergedPoints();
+	for(const auto& pt : merged_cloud->points) {
+		if(pt.z < z_non_floor_z0 || z_non_floor_z1 < pt.z) {
+			continue;
+		}
+		const Eigen::Vector2i ix =
+			((Eigen::Vector2f(pt.x, pt.y) - lookup_vmin) * lookup_px_per_meter).cast<int>();
+		// We're assuming that XYs of all points will fit within
+		// [-10, 10]^2
+		assert(0 <= ix.x() && 0 <= ix.y() && ix.x() < lookup_size && ix.y() < lookup_size);
+		const auto maybe_tex_xy = lookup.at<cv::Vec2f>(ix.y(), ix.x());
+		if(maybe_tex_xy[0] < 0) {
+			// invalid UV -> that part was not floor.
+			continue;
+		}
+		// Paint white(=true) dot on pr_bad
+		cv::circle(
+			pr_bad_mask,
+			cv::Point(maybe_tex_xy[0], maybe_tex_xy[1]),
+			radius_px,
+			cv::Scalar(255, 255, 255),
+			-1);
+	}
+	// Guess true good region by grabcut.
+	const cv::Vec3b color_non_floor(0, 0, 0);  // BG
+	const cv::Vec3b color_bad_floor(0, 0, 255);  // prob BG
+	const cv::Vec3b color_floor(0, 255, 0); // prob FG
+	cv::Mat visualize(tex_size, tex_size, CV_8UC3);
+	cv::Mat grabcut_mask(tex_size, tex_size, CV_8U);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			// For debug visualization & grabcut mask. Allow this in non-debug
+			// to keep logic clean.
+			auto& vis_px = visualize.at<cv::Vec3b>(y, x);
+			auto& gb_px = grabcut_mask.at<uint8_t>(y, x);
+			if(!floor_mask.at<uint8_t>(y, x)) {
+				vis_px = color_non_floor;
+				gb_px = cv::GC_BGD;
+			} else if(pr_bad_mask.at<uint8_t>(y,x)) {
+				vis_px = color_bad_floor;
+				gb_px = cv::GC_PR_BGD;
+			} else {
+				vis_px = color_floor;
+				gb_px = cv::GC_PR_FGD;
+			}
+		}
+	}
+	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath("debug_floor_mask_pre.png"),
+			visualize);
+	}
+	cv::Mat tmp_background;
+	cv::Mat tmp_foregroud;
+	cv::grabCut(tex_mesh.diffuse, grabcut_mask, cv::Rect(),
+		tmp_background, tmp_foregroud, 5, cv::GC_INIT_WITH_MASK);
+	if(bundle.isDebugEnabled()) {
+		for(const int y : boost::irange(0, tex_size)) {
+			for(const int x : boost::irange(0, tex_size)) {
+				const auto gb_px = grabcut_mask.at<uint8_t>(y, x);
+				auto& vis_px = visualize.at<cv::Vec3b>(y, x);
+				if(gb_px == cv::GC_PR_BGD) {
+					vis_px = color_bad_floor;
+				} else if(gb_px == cv::GC_PR_FGD) {
+					vis_px = color_floor;
+				}
+				// other part shouldn't change by grabcut
+			}
+		}
+		cv::imwrite(
+			bundle.reservePath("debug_floor_mask_post.png"),
+			visualize);
+	}
+#endif
 
-	// TODO: proper ceiling texture extraction.
 	return std::make_pair(
 		tex_mesh,
 		recognizeLights(bundle, rframe, scans_aligned, cloud_inside));

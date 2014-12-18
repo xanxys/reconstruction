@@ -137,6 +137,15 @@ void recognizeScene(
 	SceneAssetBundle& bundle, const std::vector<SingleScan>& scans,
 	const Json::Value& hint);
 
+// Create an InteriorObject complete with visual proxy
+// and collisions from given subset of MiniClusters.
+// Created object will NOT be added to bundle.
+InteriorObject createInteriorObject(
+	SceneAssetBundle& bundle,
+	const std::vector<MiniCluster>& mcs,
+	const std::set<int>& mc_ixs,
+	const std::string& debug_id);
+
 // Return textured boundary mesh and light location.
 std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	recognizeBoundary(

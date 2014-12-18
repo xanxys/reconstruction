@@ -277,4 +277,7 @@ TriangleMesh<std::nullptr_t> createBox(
 TriangleMesh<std::nullptr_t> createBox(
 	Eigen::Vector3f center, float half_size);
 
+TriangleMesh<std::nullptr_t> mergeCloseVertices(
+	const TriangleMesh<std::nullptr_t>& mesh, float distance);
+
 }  // namespace

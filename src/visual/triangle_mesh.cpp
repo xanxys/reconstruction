@@ -1,6 +1,8 @@
 #include "triangle_mesh.h"
 
 #include <boost/range/irange.hpp>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/point_cloud.h>
 
 namespace recon {
 
@@ -73,6 +75,59 @@ TriangleMesh<std::nullptr_t> createBox(
 		Eigen::Vector3f::UnitX() * half_size,
 		Eigen::Vector3f::UnitY() * half_size,
 		Eigen::Vector3f::UnitZ() * half_size);
+}
+
+TriangleMesh<std::nullptr_t> mergeCloseVertices(
+		const TriangleMesh<std::nullptr_t>& mesh, float distance) {
+	assert(distance >= 0);
+	// Create vertex collapse mapping.
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+		new pcl::PointCloud<pcl::PointXYZ>);
+	for(const auto& vert : mesh.vertices) {
+		pcl::PointXYZ pt;
+		pt.getVector3fMap() = vert.first;
+		cloud->points.push_back(pt);
+	}
+	pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+	kdtree.setInputCloud(cloud);
+
+	std::map<int, int> ix_mapping;  // old ix -> new ix
+	std::vector<std::pair<Eigen::Vector3f, std::nullptr_t>> new_vertices;
+	for(const int vix : boost::irange(0, (int)mesh.vertices.size())) {
+		// vix is a neighbor of a previously vertex.
+		if(ix_mapping.find(vix) != ix_mapping.end()) {
+			continue;
+		}
+		std::vector<int> result_ixs;
+		std::vector<float> result_sq_dists;
+		const int n_result = kdtree.radiusSearch(
+			cloud->points[vix], distance,
+			result_ixs, result_sq_dists);
+		assert(n_result >= 1);  // query itself must be present
+		const int new_vertex = new_vertices.size();
+		new_vertices.push_back(mesh.vertices[vix]);
+		for(const int result_ix : result_ixs) {
+			ix_mapping[result_ix] = new_vertex;
+		}
+	}
+	// all vertices must have mapping.
+	assert(ix_mapping.size() == mesh.vertices.size());
+	assert(new_vertices.size() <= mesh.vertices.size());
+
+	TriangleMesh<std::nullptr_t> result;
+	result.vertices = new_vertices;
+	for(const auto& tri : mesh.triangles) {
+		// only keep triangle if mapped vertices are unique.
+		const int i0 = ix_mapping[tri[0]];
+		const int i1 = ix_mapping[tri[1]];
+		const int i2 = ix_mapping[tri[2]];
+		if(i0 == i1 || i1 == i2 || i2 == i0) {
+			continue;
+		}
+		result.triangles.push_back({{i0, i1, i2}});
+	}
+	assert(result.triangles.size() <= mesh.triangles.size());
+	return result;
 }
 
 }  // namespace
