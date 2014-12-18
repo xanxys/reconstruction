@@ -1404,44 +1404,21 @@ TexturedMesh bakeTextureSingleExterior(
 	const auto c_scans = scans.getScansWithPose();
 	const auto& c_scan = c_scans[0];
 
+	const Eigen::Vector3f invalid_value(1000, 1000, 1000);
 	cv::Mat mapping(tex_size, tex_size, CV_32FC2);
-	for(int y : boost::irange(0, tex_size)) {
-		for(int x : boost::irange(0, tex_size)) {
-			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(0, 0);
-		}
-	}
+	mapping = cv::Scalar(0, 0);
 
 	const Eigen::Affine3f world_to_local = c_scan.local_to_world.inverse();
+	const cv::Mat pos_map = getPositionMapInUV(shape, tex_size, invalid_value);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			const auto pos_raw = pos_map.at<cv::Vec3f>(y, x);
+			const auto pos_world = Eigen::Vector3f(pos_raw[0], pos_raw[1], pos_raw[2]);
+			if(pos_world == invalid_value) {
+				continue;
+			}
 
-	const Eigen::Vector2i bnd_tex_low(0, 0);
-	const Eigen::Vector2i bnd_tex_high(tex_size, tex_size);
-	for(const auto& tri : shape.triangles) {
-		// Triangle on x-y space of texture.
-		const Eigen::Vector2f p0 = swapY(shape.vertices[tri[0]].second) * tex_size;
-		const Eigen::Vector2f p1 = swapY(shape.vertices[tri[1]].second) * tex_size;
-		const Eigen::Vector2f p2 = swapY(shape.vertices[tri[2]].second) * tex_size;
-		Eigen::Matrix2f ps;
-		ps.col(0) = p1 - p0;
-		ps.col(1) = p2 - p0;
-		ps = ps.inverse().eval();
-
-		Eigen::Matrix3f vs;
-		vs.col(0) = shape.vertices[tri[0]].first;
-		vs.col(1) = shape.vertices[tri[1]].first;
-		vs.col(2) = shape.vertices[tri[2]].first;
-
-		// Fill all pixels within AABB of the triangle.
-		const Eigen::Vector2f p_min = p0.cwiseMin(p1).cwiseMin(p2);
-		const Eigen::Vector2f p_max = p0.cwiseMax(p1).cwiseMax(p2);
-		const Eigen::Vector2i pi_min = Eigen::Vector2i(p_min(0) - 1, p_min(1) - 1).cwiseMax(bnd_tex_low);
-		const Eigen::Vector2i pi_max = Eigen::Vector2i(p_max(0) + 1, p_max(1) + 1).cwiseMin(bnd_tex_high);
-
-		for(const auto p : range2(pi_min, pi_max)) {
-			const Eigen::Vector2f ts_pre = ps * (p.cast<float>() - p0);
-			const Eigen::Vector3f ts(1 - ts_pre.sum(), ts_pre(0), ts_pre(1));
-			const Eigen::Vector3f pos_w = vs * ts;
-
-			const Eigen::Vector3f pt3d_l = world_to_local * pos_w;
+			const Eigen::Vector3f pt3d_l = world_to_local * pos_world;
 			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
 
 			const float theta = std::acos(pt3d_l_n.z());
@@ -1450,7 +1427,7 @@ TexturedMesh bakeTextureSingleExterior(
 
 			const float er_x = c_scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
 			const float er_y = c_scan.raw_scan.er_rgb.rows * theta / pi;
-			mapping.at<cv::Vec2f>(p(1), p(0)) = cv::Vec2f(er_x, er_y);
+			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
 		}
 	}
 	cv::Mat diffuse;
@@ -1463,8 +1440,6 @@ TexturedMesh bakeTextureSingleExterior(
 	tm.mesh = shape;
 	return tm;
 }
-
-
 
 TexturedMesh bakeTexture(
 		const AlignedScans& scans,

@@ -112,4 +112,44 @@ void writeObjMaterial(
 	output << "map_Kd " << texture_path << std::endl;
 }
 
+cv::Mat getPositionMapInUV(
+		const TriangleMesh<Eigen::Vector2f>& mesh, int tex_size,
+		const Eigen::Vector3f& default_value) {
+	assert(tex_size > 0);
+	cv::Mat pos_map(tex_size, tex_size, CV_32FC3);
+	pos_map = cv::Scalar(default_value.x(), default_value.y(), default_value.z());
+
+	const Eigen::Vector2i bnd_tex_low(0, 0);
+	const Eigen::Vector2i bnd_tex_high(tex_size, tex_size);
+	for(const auto& tri : mesh.triangles) {
+		// Triangle on x-y space of texture.
+		const Eigen::Vector2f p0 = swapY(mesh.vertices[tri[0]].second) * tex_size;
+		const Eigen::Vector2f p1 = swapY(mesh.vertices[tri[1]].second) * tex_size;
+		const Eigen::Vector2f p2 = swapY(mesh.vertices[tri[2]].second) * tex_size;
+		Eigen::Matrix2f ps;
+		ps.col(0) = p1 - p0;
+		ps.col(1) = p2 - p0;
+		ps = ps.inverse().eval();
+
+		Eigen::Matrix3f vs;
+		vs.col(0) = mesh.vertices[tri[0]].first;
+		vs.col(1) = mesh.vertices[tri[1]].first;
+		vs.col(2) = mesh.vertices[tri[2]].first;
+
+		// Fill all pixels within AABB of the triangle.
+		const Eigen::Vector2f p_min = p0.cwiseMin(p1).cwiseMin(p2);
+		const Eigen::Vector2f p_max = p0.cwiseMax(p1).cwiseMax(p2);
+		const Eigen::Vector2i pi_min = Eigen::Vector2i(p_min(0) - 1, p_min(1) - 1).cwiseMax(bnd_tex_low);
+		const Eigen::Vector2i pi_max = Eigen::Vector2i(p_max(0) + 1, p_max(1) + 1).cwiseMin(bnd_tex_high);
+
+		for(const auto p : range2(pi_min, pi_max)) {
+			const Eigen::Vector2f ts_pre = ps * (p.cast<float>() - p0);
+			const Eigen::Vector3f ts(1 - ts_pre.sum(), ts_pre(0), ts_pre(1));
+			const Eigen::Vector3f pos_w = vs * ts;
+			pos_map.at<cv::Vec3f>(p(1), p(0)) = cv::Vec3f(pos_w.x(), pos_w.y(), pos_w.z());
+		}
+	}
+	return pos_map;
+}
+
 }  // namespace

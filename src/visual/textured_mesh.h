@@ -37,4 +37,12 @@ void writeObjMaterial(std::ostream& output,
 	const std::string& texture_path,
 	const std::string& material_name);
 
+// Dump 3D world positions of each pixel of UV-mapped mesh
+// as a texture.
+// return: CV_32FC3 of size (tex_size, tex_size)
+// each pixel is (x, y, z)
+cv::Mat getPositionMapInUV(
+	const TriangleMesh<Eigen::Vector2f>& mesh, int tex_size,
+	const Eigen::Vector3f& default_value);
+
 }  // namespace
