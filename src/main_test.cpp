@@ -8,6 +8,7 @@
 
 #include <logging.h>
 #include <recog/scene_recognizer.h>
+#include <recog/toy_scene.h>
 #include <visual/cloud_baker.h>
 #include <visual/cloud_conversion.h>
 #include <visual/mapping.h>

@@ -7,6 +7,7 @@
 #include <logging.h>
 #include <recog/scene_asset_bundle.h>
 #include <recog/scene_recognizer.h>
+#include <recog/toy_scene.h>
 
 int main(int argc, char** argv) {
 	using boost::program_options::notify;
