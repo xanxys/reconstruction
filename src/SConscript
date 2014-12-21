@@ -41,6 +41,7 @@ LIBS = [
     'libopencv_features2d',
     'libopencv_highgui',
     'libopencv_imgproc',
+    'libopencv_photo',
     'libOpenNI',
     'libpcl_common',
     'libpcl_features',

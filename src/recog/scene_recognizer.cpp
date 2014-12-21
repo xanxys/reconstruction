@@ -824,13 +824,11 @@ void recognizeScene(SceneAssetBundle& bundle,
 	rframe.wall_polygon = contour_points;
 
 	std::vector<MiniCluster> mcs;
-	/*
 	auto scans_with_pose = scans_aligned.getScansWithPose();  // required for lending scan pointer to MiniCluster
 	for(auto& ccs : scans_with_pose) {
 		const auto mcs_per_scan = splitEachScan(bundle, ccs, rframe);
 		mcs.insert(mcs.end(), mcs_per_scan.begin(), mcs_per_scan.end());
 	}
-	*/
 	INFO("#MiniCluster", (int)mcs.size());
 
 	const auto extrusion_mesh = ExtrudedPolygonMesh(
@@ -844,7 +842,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Linking miniclusters");
-	//const auto groups = MCLinker(bundle, rframe, mcs).getResult();
+	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
 	INFO("Creating assets");
 	const auto boundary = recognizeBoundary(
@@ -856,14 +854,12 @@ void recognizeScene(SceneAssetBundle& bundle,
 		bundle.addPointLight(pos);
 	}
 	int i_group = 0;
-	/*
 	for(const auto& group : groups) {
 		INFO("Processing group", i_group);
 		bundle.addInteriorObject(createInteriorObject(
 			bundle, mcs, group, std::to_string(i_group)));
 		i_group++;
 	}
-	*/
 	bundle.setInteriorBoundary(
 		InteriorBoundary(
 			boundary.first,
@@ -1078,7 +1074,6 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	auto tex_mesh = boundary_tex.first;
 	const auto tex_xyz = boundary_tex.second;
 
-#if 1
 	////
 	// Cleanup floor mess.
 	////
@@ -1176,7 +1171,23 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 			bundle.reservePath("debug_floor_mask_post.png"),
 			visualize);
 	}
-#endif
+
+	// Inpaint bad region.
+	cv::Mat inpaint_mask(tex_size, tex_size, CV_8U);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			const bool is_bad =
+				grabcut_mask.at<uint8_t>(y, x) != cv::GC_PR_FGD;
+			const bool is_floor = floor_mask.at<uint8_t>(y, x);
+			inpaint_mask.at<uint8_t>(y, x) =
+				(is_bad & is_floor) ? 255 : 0;
+		}
+	}
+	const float inpaint_radius = 5;
+	cv::Mat tex_rgb_filled;
+	cv::inpaint(tex_mesh.diffuse, inpaint_mask, tex_rgb_filled,
+		inpaint_radius, cv::INPAINT_TELEA);
+	tex_mesh.diffuse = tex_rgb_filled;
 
 	return std::make_pair(
 		tex_mesh,
