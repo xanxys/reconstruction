@@ -734,6 +734,15 @@ bool MCLinker::isStable(const std::set<MCId>& cls,
 	return stable;
 }
 
+boost::optional<float> MCLinker::getSupportLevel(int cl) const {
+	std::set<MCId> ids = {cl};
+	if(getSupportPolygon(ids)) {
+		return boost::optional<float>(rframe.getHRange().first);
+	} else {
+		return boost::none;
+	}
+}
+
 boost::optional<MCLinker::Polygon_2> MCLinker::getSupportPolygon(
 		const std::set<MCId>& cl) const {
 	const float z_floor = rframe.getHRange().first;
@@ -765,6 +774,10 @@ boost::optional<MCLinker::Polygon_2> MCLinker::getSupportPolygon(
 
 	return MCLinker::Polygon_2(
 		support_vertices.begin(), support_vertices.end());
+}
+
+const std::vector<MiniCluster>& MCLinker::getMiniClusters() const {
+	return mcs;
 }
 
 float MCLinker::distanceBetween(MCId cl0, MCId cl1) const {
@@ -842,7 +855,8 @@ void recognizeScene(SceneAssetBundle& bundle,
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Linking miniclusters");
-	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
+	auto linker = MCLinker(bundle, rframe, mcs);
+	const auto groups = linker.getResult();
 
 	INFO("Creating assets");
 	const auto boundary = recognizeBoundary(
@@ -857,7 +871,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 	for(const auto& group : groups) {
 		INFO("Processing group", i_group);
 		bundle.addInteriorObject(createInteriorObject(
-			bundle, mcs, group, std::to_string(i_group)));
+			bundle, linker, group, std::to_string(i_group)));
 		i_group++;
 	}
 	bundle.setInteriorBoundary(
@@ -869,9 +883,11 @@ void recognizeScene(SceneAssetBundle& bundle,
 
 InteriorObject createInteriorObject(
 		SceneAssetBundle& bundle,
-		const std::vector<MiniCluster>& mcs,
+		const MCLinker& linker,
 		const std::set<int>& group,
 		const std::string& debug_id) {
+	const auto& mcs = linker.getMiniClusters();
+
 	// Generate render proxy.
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
 		new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -949,7 +965,6 @@ InteriorObject createInteriorObject(
 	{
 		// default triangulation for Surface_mesher
 		using Tr = CGAL::Surface_mesh_default_triangulation_3;
-		// c2t3
 		using C2t3 = CGAL::Complex_2_in_triangulation_3<Tr>;
 		using GT = Tr::Geom_traits;
 		using Sphere_3 = GT::Sphere_3;
@@ -1005,8 +1020,6 @@ InteriorObject createInteriorObject(
 		CGAL::Surface_mesh_simplification::Count_ratio_stop_predicate<
 			CGAL::Polyhedron_3<CGAL::Epick>> stop(compression_ratio);
 
-		//CGAL::Polyhedron_3<CGAL::Simple_cartesian<double>> polyh2 = polyh;
-
 		CGAL::Surface_mesh_simplification::edge_collapse(polyh,
 			stop,
 			CGAL::vertex_index_map( boost::get(CGAL::vertex_external_index, polyh))
@@ -1046,7 +1059,17 @@ InteriorObject createInteriorObject(
 	for(const auto& mc_id : group) {
 		// TODO: finer collision.
 		assert(mcs[mc_id].aabb.getVolume() > 0);
-		collisions.push_back(OBB3f(mcs[mc_id].aabb));
+		AABB3f aabb = mcs[mc_id].aabb;
+		const auto support_level = linker.getSupportLevel(mc_id);
+		if(support_level) {
+			// Extend supported AABB to exactly touch the supporting
+			// surface.
+			auto vmin = aabb.getMin();
+			assert(vmin.z() >= support_level);
+			vmin.z() = *support_level;
+			aabb = AABB3f(vmin, aabb.getMax());
+		}
+		collisions.push_back(OBB3f(aabb));
 	}
 	if(bundle.isDebugEnabled()) {
 		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(

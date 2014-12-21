@@ -72,6 +72,11 @@ public:  // linking info
 };
 
 
+// MCLinker receives (and then owns) MiniClusters,
+// and link them into groups.
+// After that, you can access grouping results
+// with some useful analysis functionality.
+//
 // We want to have:
 // physically-stable, maximally separated objects.
 // = minimize #links while making objects stable.
@@ -90,6 +95,11 @@ public:
 		const std::vector<MiniCluster>& mcs);
 
 	std::vector<std::set<int>> getResult();
+	const std::vector<MiniCluster>& getMiniClusters() const;
+
+	// Return z value of supporting surface if there's any,
+	// none otherwise.
+	boost::optional<float> getSupportLevel(int cl) const;
 private:
 	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 	using Kex = CGAL::Exact_predicates_exact_constructions_kernel;
@@ -142,7 +152,7 @@ void recognizeScene(
 // Created object will NOT be added to bundle.
 InteriorObject createInteriorObject(
 	SceneAssetBundle& bundle,
-	const std::vector<MiniCluster>& mcs,
+	const MCLinker& linker,
 	const std::set<int>& mc_ixs,
 	const std::string& debug_id);
 
