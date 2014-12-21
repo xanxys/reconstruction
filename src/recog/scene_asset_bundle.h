@@ -99,11 +99,16 @@ private:
 	// The directory might be nested.
 	void serializeIntoDirectory(const boost::filesystem::path& dir_path);
 
-	Json::Value serializeLocationWithConversion(const Eigen::Vector3f& loc);
-	Json::Value serializePoseWithConversion(const Eigen::Affine3f& transf);
-	Json::Value serializePose(const Eigen::Quaternionf& rot, const Eigen::Vector3f& trans);
+	// This writes some files and return metadata json.
+	// As noted in class description, Mesh doesn't need Y flipping,
+	// so this method will only do scaling.
+	Json::Value serializeMeshWithConversion(const TexturedMesh& tm, int& count);
 
-	Json::Value serializeCollisionShapeWithConversion(const std::vector<OBB3f>& obbs);
+	Json::Value serializeLocationWithConversion(const Eigen::Vector3f& loc) const;
+	Json::Value serializePoseWithConversion(const Eigen::Affine3f& transf) const;
+	Json::Value serializePose(const Eigen::Quaternionf& rot, const Eigen::Vector3f& trans) const;
+
+	Json::Value serializeCollisionShapeWithConversion(const std::vector<OBB3f>& obbs) const;
 
 	TriangleMesh<Eigen::Vector3f> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) const;
 	TriangleMesh<std::tuple<Eigen::Vector3f, Eigen::Vector3f>> serializeDebugPoints(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud) const;

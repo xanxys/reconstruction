@@ -20,6 +20,9 @@ namespace recon {
 
 using Tuple3i = std::tuple<int, int, int>;
 
+TexturedMesh::TexturedMesh() : has_normal(false) {
+}
+
 void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
 	const boost::filesystem::path dir_path(dir_name);
 	boost::filesystem::create_directory(dir_path);

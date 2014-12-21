@@ -92,50 +92,11 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	}
 
 	// Add json+file data.
-	const float ws = world_scale;
 	int count = 0;
-	auto serializeMesh = [&count, &dir_path, ws](
-			const TexturedMesh& tm) {
-		// Issue id and path.
-		const std::string id = std::to_string(count++);
-		const std::string mesh_path = "sm_" + id + ".obj";
-		const std::string tex_path = "diffuse_" + id + ".png";
-		const std::string mtl_path = "mat_" + id + ".mtl";
-		// Predicted assets name when using
-		// IAssetTools::ImportAssets. LoaderPlugin
-		// need to make sure asset auto naming convention
-		// is kept same.
-		const std::string mesh_asset = "sm_" + id;
-		const std::string tex_asset = "diffuse_" + id;
-		const std::string mtl_asset = "mat_" + id;
-		// Write to paths.
-		TriangleMesh<Eigen::Vector2f> mesh_scaled = tm.mesh;
-		for(auto& vert : mesh_scaled.vertices) {
-			vert.first *= ws;
-		}
-		{
-			std::ofstream of((dir_path / fs::path(mesh_path)).string());
-			assignNormal(mesh_scaled).serializeObjWithUvNormal(of,
-				mtl_path, mtl_asset);
-		}
-		cv::imwrite((dir_path / fs::path(tex_path)).string(), tm.diffuse);
-		{
-			std::ofstream of((dir_path / fs::path(mtl_path)).string());
-			writeObjMaterial(of, tex_path, mtl_asset);
-		}
-
-		Json::Value meta_object;
-		meta_object["static_mesh"] = mesh_path;
-		meta_object["material"]["diffuse"] = tex_path;
-		meta_object["static_mesh:asset"] = mesh_asset;
-		meta_object["material:asset"] = mtl_asset;
-		meta_object["material"]["diffuse:asset"] = tex_asset;
-		return meta_object;
-	};
-
 	metadata["interior_objects"] = Json::arrayValue;
 	for(const auto& interior : interiors) {
-		auto meta_object = serializeMesh(interior.getMesh());
+		auto meta_object = serializeMeshWithConversion(
+			interior.getMesh(), count);
 		meta_object["pose"] =
 			serializePoseWithConversion(interior.getPose());
 		meta_object["collision_boxes"] =
@@ -149,7 +110,8 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 			throw std::runtime_error(
 				"You must call setInteriorBoundary before trying to serialize!");
 		}
-		auto meta_bnd = serializeMesh(boundary->getMesh());
+		auto meta_bnd = serializeMeshWithConversion(
+			boundary->getMesh(), count);
 		meta_bnd["pose"] =
 			serializePoseWithConversion(boundary->getPose());
 		meta_bnd["collision_boxes"] =
@@ -165,8 +127,66 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	}
 }
 
+Json::Value SceneAssetBundle::serializeMeshWithConversion(
+		const TexturedMesh& tm, int& count) {
+	// Issue id and path.
+	const std::string id = std::to_string(count++);
+	const std::string mesh_path = "sm_" + id + ".obj";
+	const std::string tex_path = "diffuse_" + id + ".png";
+	const std::string mtl_path = "mat_" + id + ".mtl";
+	// Predicted assets name when using
+	// IAssetTools::ImportAssets. LoaderPlugin
+	// need to make sure asset auto naming convention
+	// is kept same.
+	const std::string mesh_asset = "sm_" + id;
+	const std::string tex_asset = "diffuse_" + id;
+	const std::string mtl_asset = "mat_" + id;
+	// Write to paths.
+	{
+		std::ofstream of((dir_path / fs::path(mesh_path)).string());
+		if(tm.has_normal) {
+			assert(!tm.mesh_w_normal.triangles.empty());
+			assert(!tm.mesh_w_normal.vertices.empty());
+
+			// also need to flip first & second.
+			TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>> mesh_scaled;
+			mesh_scaled.triangles = tm.mesh_w_normal.triangles;
+			for(const auto& vert :  tm.mesh_w_normal.vertices) {
+				mesh_scaled.vertices.emplace_back(
+					vert.first * world_scale,
+					std::make_pair(vert.second.second, vert.second.first));
+			}
+			mesh_scaled.serializeObjWithUvNormal(of,
+				mtl_path, mtl_asset);
+		} else {
+			assert(!tm.mesh.triangles.empty());
+			assert(!tm.mesh.vertices.empty());
+
+			TriangleMesh<Eigen::Vector2f> mesh_scaled = tm.mesh;
+			for(auto& vert : mesh_scaled.vertices) {
+				vert.first *= world_scale;
+			}
+			assignNormal(mesh_scaled).serializeObjWithUvNormal(of,
+				mtl_path, mtl_asset);
+		}
+	}
+	cv::imwrite((dir_path / fs::path(tex_path)).string(), tm.diffuse);
+	{
+		std::ofstream of((dir_path / fs::path(mtl_path)).string());
+		writeObjMaterial(of, tex_path, mtl_asset);
+	}
+
+	Json::Value meta_object;
+	meta_object["static_mesh"] = mesh_path;
+	meta_object["material"]["diffuse"] = tex_path;
+	meta_object["static_mesh:asset"] = mesh_asset;
+	meta_object["material:asset"] = mtl_asset;
+	meta_object["material"]["diffuse:asset"] = tex_asset;
+	return meta_object;
+}
+
 Json::Value SceneAssetBundle::serializePoseWithConversion(
-		const Eigen::Affine3f& transf) {
+		const Eigen::Affine3f& transf) const {
 	const auto trans = transf.translation() * world_scale;
 	const auto quat = Eigen::Quaternionf(transf.linear());
 	// I think we can leave quaternion (or any other rotation)
@@ -180,7 +200,8 @@ Json::Value SceneAssetBundle::serializePoseWithConversion(
 			trans.z()));
 }
 
-Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, const Eigen::Vector3f& trans) {
+Json::Value SceneAssetBundle::serializePose(
+		const Eigen::Quaternionf& quat, const Eigen::Vector3f& trans) const {
 	Json::Value pose;
 	pose["pos"]["x"] = trans.x();
 	pose["pos"]["y"] = trans.y();
@@ -192,7 +213,8 @@ Json::Value SceneAssetBundle::serializePose(const Eigen::Quaternionf& quat, cons
 	return pose;
 }
 
-Json::Value SceneAssetBundle::serializeLocationWithConversion(const Eigen::Vector3f& loc) {
+Json::Value SceneAssetBundle::serializeLocationWithConversion(
+		const Eigen::Vector3f& loc) const {
 	Json::Value p;
 	p["x"] = loc.x() * world_scale;
 	p["y"] = -loc.y() * world_scale;
@@ -201,7 +223,8 @@ Json::Value SceneAssetBundle::serializeLocationWithConversion(const Eigen::Vecto
 }
 
 // Make it FKBoxElem (in UE4)-friendly.
-Json::Value SceneAssetBundle::serializeCollisionShapeWithConversion(const std::vector<OBB3f>& obbs) {
+Json::Value SceneAssetBundle::serializeCollisionShapeWithConversion(
+		const std::vector<OBB3f>& obbs) const {
 	assert(!obbs.empty());
 	Json::Value col_shape;
 	for(const auto& obb : obbs) {

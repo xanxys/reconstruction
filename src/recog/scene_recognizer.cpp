@@ -931,7 +931,7 @@ InteriorObject createInteriorObject(
 	pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
 	kdtree.setInputCloud(cloud);
 
-	auto field = [&kdtree](const Eigen::Vector3f& pos) {
+	auto field_base = [&kdtree](const Eigen::Vector3f& pos) {
 		const float sigma = 0.02;
 
 		pcl::PointXYZRGB query;
@@ -943,34 +943,45 @@ InteriorObject createInteriorObject(
 			query, sigma * 3,
 			result_ixs, result_sq_dists);
 
-		float v = 0;
+		std::vector<std::pair<int, float>> result;
 		for(int i : boost::irange(0, n_result)) {
-			v += std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
+			result.emplace_back(
+				result_ixs[i],
+				std::exp(-result_sq_dists[i] / std::pow(sigma, 2)));
+		}
+		return result;
+	};
+
+	auto field = [&field_base, &kdtree](const Eigen::Vector3f& pos) {
+		float v = 0;
+		for(const auto& elem : field_base(pos)) {
+			v += elem.second;
 		}
 		return v;
 	};
 
-	auto color_field = [&kdtree, &cloud](const Eigen::Vector3f& pos) -> Eigen::Vector3f {
-		const float sigma = 0.02;
+	// Calculate normal from gradient.
+	// several times slower than field. Don't call too many times.
+	auto normal_field = [&field](const Eigen::Vector3f& pos) {
+		const float epsilon = 1e-3;
+		const float v0 = field(pos);
+		const float vx = field(pos + Eigen::Vector3f::UnitX() * epsilon);
+		const float vy = field(pos + Eigen::Vector3f::UnitY() * epsilon);
+		const float vz = field(pos + Eigen::Vector3f::UnitZ() * epsilon);
 
-		pcl::PointXYZRGB query;
-		query.getVector3fMap() = pos;
+		Eigen::Vector3f n = -Eigen::Vector3f(vx - v0, vy - v0, vz - v0);
+		assert(n.norm() > 1e-5);  // why do you need a normal of non-surface position?
+		return n.normalized();
+	};
 
-		std::vector<int> result_ixs;
-		std::vector<float> result_sq_dists;
-		const int n_result = kdtree.radiusSearch(
-			query, sigma * 3,
-			result_ixs, result_sq_dists);
-
+	auto color_field = [&field_base, &cloud](const Eigen::Vector3f& pos) -> Eigen::Vector3f {
 		float weight_accum = 0;
 		Eigen::Vector3f rgb_accum = Eigen::Vector3f::Zero();
-		for(int i : boost::irange(0, n_result)) {
-			const float weight =
-				std::exp(-result_sq_dists[i] / std::pow(sigma, 2));
-			const auto& pt = cloud->points[result_ixs[i]];
-			rgb_accum += weight *
+		for(const auto& elem : field_base(pos)) {
+			const auto& pt = cloud->points[elem.first];
+			rgb_accum += elem.second *
 				Eigen::Vector3f(pt.r, pt.g, pt.b);
-			weight_accum += weight;
+			weight_accum += elem.second;
 		}
 		if(weight_accum < 1e-3) {
 			return Eigen::Vector3f::Zero();
@@ -1048,7 +1059,15 @@ InteriorObject createInteriorObject(
 
 	const int tex_size = 512;
 	TexturedMesh tm;
-	tm.mesh = mapSecond(assignUV(simple_mesh));
+	tm.has_normal = true;
+	TriangleMesh<Eigen::Vector3f> mesh_w_n;
+	mesh_w_n.triangles = simple_mesh.triangles;
+	for(const auto& vert : simple_mesh.vertices) {
+		mesh_w_n.vertices.emplace_back(
+			vert.first,
+			normal_field(vert.first));
+	}
+	tm.mesh_w_normal = assignUV(mesh_w_n);
 
 	// Create RGB texture via XYZ texture.
 	const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);

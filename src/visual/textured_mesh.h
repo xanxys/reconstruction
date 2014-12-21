@@ -13,6 +13,8 @@ namespace recon {
 // A triangle mesh with single diffuse texture.
 class TexturedMesh {
 public:
+	TexturedMesh();
+
 	// Write texture, material, geometry into specified directory.
 	void writeWavefrontObject(std::string dir_name) const;
 
@@ -23,7 +25,12 @@ public:
 	// * test/a_diffuse.png
 	void writeWavefrontObjectFlat(std::string prefix) const;
 public:
+	// TODO: encapsulation breach!
+	// has_normal and mesh_w_normal creates implicit coupling with InteriorObject
+	// and SceneAssetBundle. Do something about it.
+	bool has_normal;  // super hackish way to allow InteriorObject to have pre-calculated normals.
 	TriangleMesh<Eigen::Vector2f> mesh;
+	TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>> mesh_w_normal;
 	cv::Mat diffuse;
 };
 
