@@ -169,7 +169,7 @@ std::vector<Eigen::Vector3f> recognizeLights(
 	}
 
 	// Detect blobs (saturated lights).
-	const float light_margin = 0.05;  // we need slight margin between light and ceiling.
+	const float light_margin = 0.25;  // we need slight margin between light and ceiling.
 	std::vector<Eigen::Vector3f> lights;
 	cv::SimpleBlobDetector detector;
 	std::vector<cv::KeyPoint> blobs;
