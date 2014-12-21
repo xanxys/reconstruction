@@ -27,7 +27,7 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
-	std::vector<USoundBase*> hit_sounds;
+	std::vector<USoundBase*> HitSounds;
 
 	void UpdateStaticMeshCollision();
 };
