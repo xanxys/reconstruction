@@ -42,7 +42,6 @@ LIBS = [
     'libopencv_highgui',
     'libopencv_imgproc',
     'libopencv_photo',
-    'libOpenNI',
     'libpcl_common',
     'libpcl_features',
     'libpcl_filters',
@@ -54,21 +53,18 @@ LIBS = [
     'libpthread',
 ]
 
-def exclude(f):
-    return str(f).startswith('mist/') or str(f).startswith('SLIC-Superpixels')
-
 env.Program(
     'recon',
     source =
         [env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*/*.c") + env.Glob('*.cc')
-            if not f.name.endswith('_test.cpp') and not exclude(f)],
+            if not f.name.endswith('_test.cpp')],
     LIBS = LIBS)
 
 program_test = env.Program(
     'recon_test',
     source =
         [env.Object(f) for f in env.Glob('*.cpp') + env.Glob('*/*.cpp') + env.Glob("*/*.c") + env.Glob('*.cc')
-            if f.name != 'main.cpp' and not exclude(f)],
+            if f.name != 'main.cpp'],
     LIBS = LIBS + ['libgtest', 'libgtest_main'])
 
 env.Command('test', None, './' + program_test[0].path)
