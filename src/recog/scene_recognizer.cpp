@@ -1134,6 +1134,21 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	auto tex_mesh = boundary_tex.first;
 	const auto tex_xyz = boundary_tex.second;
 
+	// Assumed indoor scene must have illumination.
+	// So normalize max point to 255.
+	{
+		cv::Mat tex_gray;
+		cv::cvtColor(tex_mesh.diffuse, tex_gray, CV_BGR2GRAY);
+		double max_value;
+		cv::minMaxLoc(tex_gray, nullptr, &max_value);
+		assert(max_value > 128);  // If the brightest spot is too dark... something is wrong!
+
+		const float scale = 255 / max_value;
+		INFO("Normalizing boundary tex brightness by x", scale);
+
+		tex_mesh.diffuse *= scale;
+	}
+
 	////
 	// Cleanup floor mess.
 	////
