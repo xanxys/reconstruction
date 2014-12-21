@@ -87,6 +87,24 @@ std::string SingleScan::getScanId() const {
 	return scan_id;
 }
 
+std::tuple<float, float, float> SingleScan::toThetaPhiR(
+		const Eigen::Vector3f& pos) {
+	const float r = pos.norm();
+	const Eigen::Vector3f dir = pos / r;
+
+	const float theta = std::acos(dir.z());
+	const float phi = -std::atan2(dir.y(), dir.x());
+	const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
+	return std::make_tuple(theta, phi_pos, r);
+}
+
+Eigen::Vector3f SingleScan::fromThetaPhiR(float theta, float phi, float r) {
+	const float r_xy = std::sin(theta);
+	return Eigen::Vector3f(
+		r_xy * std::cos(-phi),
+		r_xy * std::sin(-phi),
+		std::cos(theta)) * r;
+}
 
 CorrectedSingleScan::CorrectedSingleScan(
 		const SingleScan& raw_scan,
@@ -94,6 +112,20 @@ CorrectedSingleScan::CorrectedSingleScan(
 		const Eigen::Vector3f& color_multiplier) :
 		raw_scan(raw_scan), local_to_world(local_to_world),
 		color_multiplier(color_multiplier) {
+}
+
+cv::Mat CorrectedSingleScan::getXYZMap() const {
+	cv::Mat xyz(raw_scan.er_depth.rows, raw_scan.er_depth.cols, CV_32FC3);
+	for(const int y : boost::irange(0, raw_scan.er_depth.rows)) {
+		for(const int x : boost::irange(0, raw_scan.er_depth.cols)) {
+			const float dist = raw_scan.er_depth.at<float>(y, x);
+			const float theta = static_cast<float>(y) / raw_scan.er_depth.rows * pi;
+			const float phi = static_cast<float>(x) / raw_scan.er_depth.cols * 2 * pi;
+			const auto pos_w = local_to_world * SingleScan::fromThetaPhiR(theta, phi, dist);
+			xyz.at<cv::Vec3f>(y, x) = cv::Vec3f(pos_w.x(), pos_w.y(), pos_w.z());
+		}
+	}
+	return xyz;
 }
 
 pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr CorrectedSingleScan::getCloudInWorld() const {

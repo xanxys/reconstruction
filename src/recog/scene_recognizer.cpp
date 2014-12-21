@@ -824,11 +824,13 @@ void recognizeScene(SceneAssetBundle& bundle,
 	rframe.wall_polygon = contour_points;
 
 	std::vector<MiniCluster> mcs;
+	/*
 	auto scans_with_pose = scans_aligned.getScansWithPose();  // required for lending scan pointer to MiniCluster
 	for(auto& ccs : scans_with_pose) {
 		const auto mcs_per_scan = splitEachScan(bundle, ccs, rframe);
 		mcs.insert(mcs.end(), mcs_per_scan.begin(), mcs_per_scan.end());
 	}
+	*/
 	INFO("#MiniCluster", (int)mcs.size());
 
 	const auto extrusion_mesh = ExtrudedPolygonMesh(
@@ -842,7 +844,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 	bundle.addDebugPointCloud("points_outside", points_outside);
 
 	INFO("Linking miniclusters");
-	const auto groups = MCLinker(bundle, rframe, mcs).getResult();
+	//const auto groups = MCLinker(bundle, rframe, mcs).getResult();
 
 	INFO("Creating assets");
 	const auto boundary = recognizeBoundary(
@@ -854,12 +856,14 @@ void recognizeScene(SceneAssetBundle& bundle,
 		bundle.addPointLight(pos);
 	}
 	int i_group = 0;
+	/*
 	for(const auto& group : groups) {
 		INFO("Processing group", i_group);
 		bundle.addInteriorObject(createInteriorObject(
 			bundle, mcs, group, std::to_string(i_group)));
 		i_group++;
 	}
+	*/
 	bundle.setInteriorBoundary(
 		InteriorBoundary(
 			boundary.first,
@@ -1069,10 +1073,12 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		const ExtrudedPolygonMesh& ext_mesh,
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_inside) {
 	// Create boundary mesh (textured).
-	auto tex_mesh = bakeBoundaryTexture(
+	auto boundary_tex = bakeBoundaryTexture(
 		scans_aligned, ext_mesh.getMesh(), 0.4);
+	auto tex_mesh = boundary_tex.first;
+	const auto tex_xyz = boundary_tex.second;
 
-#if 0
+#if 1
 	////
 	// Cleanup floor mess.
 	////
@@ -1093,61 +1099,31 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 			bundle.reservePath("debug_floor.png"),
 			tex_mesh.diffuse);
 		cv::imwrite(
+			bundle.reservePath("debug_floor_xyz_scan.png"),
+			tex_xyz * 10 + 127);
+		cv::imwrite(
+			bundle.reservePath("debug_floor_xyz_model.png"),
+			pos_map * 10 + 127);
+		cv::imwrite(
 			bundle.reservePath("debug_floor_region.png"),
 			floor_mask);
 	}
-	// Create XY-of-World -> image-XY-of-UV lookup image.
-	// WARNING won't work outside [-10,10]^2 region.
-	const int lookup_size = 512;
-	const Eigen::Vector2f lookup_vmin(-10, -10);
-	const float lookup_px_per_meter = lookup_size / 20;
-	cv::Mat lookup(lookup_size, lookup_size, CV_32FC2);
-	lookup = cv::Scalar(-1, -1);
+	// Create error mask.
+	cv::Mat dist_error(tex_size, tex_size, CV_32F);
 	for(const int y : boost::irange(0, tex_size)) {
 		for(const int x : boost::irange(0, tex_size)) {
-			const auto pos = pos_map.at<cv::Vec3f>(y, x);
-			const Eigen::Vector2i pi_lookup =
-				((Eigen::Vector2f(pos[0], pos[1]) - lookup_vmin) * lookup_px_per_meter).cast<int>();
-			if(pi_lookup.x() < 0 || pi_lookup.y() < 0) {
-				continue;
-			}
-			if(pi_lookup.x() >= lookup_size || pi_lookup.y() >= lookup_size) {
-				continue;
-			}
-			lookup.at<cv::Vec2f>(pi_lookup.y(), pi_lookup.x()) = cv::Vec2f(x, y);
+			dist_error.at<float>(y, x) =
+				cv::norm(pos_map.at<cv::Vec3f>(y, x) - tex_xyz.at<cv::Vec3f>(y, x));
 		}
 	}
-	// Create probably bad region from (near-floor, but not floor itself) points.
-	// All other pixels are "probably good".
-	const float z_non_floor_z0 = 0.3 + rframe.getHRange().first;
-	const float z_non_floor_z1 = 0.4 + rframe.getHRange().first;
-	const float radius_px = 2;
-	assert(z_non_floor_z1 > z_non_floor_z0);
-	cv::Mat pr_bad_mask(tex_size, tex_size, CV_8U);
-	pr_bad_mask = cv::Scalar(0, 0, 0);
-	const auto merged_cloud = scans_aligned.getMergedPoints();
-	for(const auto& pt : merged_cloud->points) {
-		if(pt.z < z_non_floor_z0 || z_non_floor_z1 < pt.z) {
-			continue;
-		}
-		const Eigen::Vector2i ix =
-			((Eigen::Vector2f(pt.x, pt.y) - lookup_vmin) * lookup_px_per_meter).cast<int>();
-		// We're assuming that XYs of all points will fit within
-		// [-10, 10]^2
-		assert(0 <= ix.x() && 0 <= ix.y() && ix.x() < lookup_size && ix.y() < lookup_size);
-		const auto maybe_tex_xy = lookup.at<cv::Vec2f>(ix.y(), ix.x());
-		if(maybe_tex_xy[0] < 0) {
-			// invalid UV -> that part was not floor.
-			continue;
-		}
-		// Paint white(=true) dot on pr_bad
-		cv::circle(
-			pr_bad_mask,
-			cv::Point(maybe_tex_xy[0], maybe_tex_xy[1]),
-			radius_px,
-			cv::Scalar(255, 255, 255),
-			-1);
+	if(bundle.isDebugEnabled()) {
+		cv::imwrite(
+			bundle.reservePath("debug_floor_dist_error.png"),
+			dist_error * 100);
 	}
+
+	const float error_thresh = 0.3;
+
 	// Guess true good region by grabcut.
 	const cv::Vec3b color_non_floor(0, 0, 0);  // BG
 	const cv::Vec3b color_bad_floor(0, 0, 255);  // prob BG
@@ -1156,6 +1132,8 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 	cv::Mat grabcut_mask(tex_size, tex_size, CV_8U);
 	for(const int y : boost::irange(0, tex_size)) {
 		for(const int x : boost::irange(0, tex_size)) {
+			const bool pr_bad = dist_error.at<float>(y, x) > error_thresh;
+
 			// For debug visualization & grabcut mask. Allow this in non-debug
 			// to keep logic clean.
 			auto& vis_px = visualize.at<cv::Vec3b>(y, x);
@@ -1163,9 +1141,9 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 			if(!floor_mask.at<uint8_t>(y, x)) {
 				vis_px = color_non_floor;
 				gb_px = cv::GC_BGD;
-			} else if(pr_bad_mask.at<uint8_t>(y,x)) {
+			} else if(pr_bad) {
 				vis_px = color_bad_floor;
-				gb_px = cv::GC_PR_BGD;
+				gb_px = cv::GC_BGD;
 			} else {
 				vis_px = color_floor;
 				gb_px = cv::GC_PR_FGD;
@@ -1206,7 +1184,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 }
 
 
-TexturedMesh bakeBoundaryTexture(
+std::pair<TexturedMesh, cv::Mat> bakeBoundaryTexture(
 		const AlignedScans& scans,
 		const TriangleMesh<std::nullptr_t>& shape_wo_uv,
 		const float accept_dist) {
@@ -1238,28 +1216,24 @@ TexturedMesh bakeBoundaryTexture(
 			if(pos_world == invalid_value) {
 				continue;
 			}
-
-			const Eigen::Vector3f pt3d_l = world_to_local * pos_world;
-			const Eigen::Vector3f pt3d_l_n = pt3d_l / pt3d_l.norm();
-
-			const float theta = std::acos(pt3d_l_n.z());
-			const float phi = -std::atan2(pt3d_l_n.y(), pt3d_l_n.x());
-			const float phi_pos = (phi > 0) ? phi : (phi + 2 * pi);
-
-			const float er_x = c_scan.raw_scan.er_rgb.cols * phi_pos / (2 * pi);
-			const float er_y = c_scan.raw_scan.er_rgb.rows * theta / pi;
+			const auto tpr = c_scan.raw_scan.toThetaPhiR(
+				world_to_local * pos_world);
+			const float er_x = c_scan.raw_scan.er_rgb.cols * std::get<1>(tpr) / (2 * pi);
+			const float er_y = c_scan.raw_scan.er_rgb.rows * std::get<0>(tpr) / pi;
 			mapping.at<cv::Vec2f>(y, x) = cv::Vec2f(er_x, er_y);
 		}
 	}
 	cv::Mat diffuse;
 	cv::remap(c_scan.raw_scan.er_rgb, diffuse, mapping, cv::Mat(),
 		cv::INTER_LINEAR);
+	cv::Mat xyz;
+	cv::remap(c_scan.getXYZMap(), xyz, mapping, cv::Mat(), cv::INTER_LINEAR);
 
 	// pack everything.
 	TexturedMesh tm;
 	tm.diffuse = diffuse;
 	tm.mesh = shape;
-	return tm;
+	return std::make_pair(tm, xyz);
 }
 
 }  // namespace

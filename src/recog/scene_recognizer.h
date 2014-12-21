@@ -22,7 +22,7 @@
 
 namespace recon {
 
-TexturedMesh bakeBoundaryTexture(
+std::pair<TexturedMesh, cv::Mat> bakeBoundaryTexture(
 	const AlignedScans& scans,
 	const TriangleMesh<std::nullptr_t>& shape,
 	float accept_dist = 0.1);

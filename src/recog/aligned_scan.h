@@ -23,6 +23,11 @@ public:
 	SingleScan(const std::string& path);
 
 	std::string getScanId() const;
+
+	// Convert local world coordinates to spherical coordinates.
+	// theta: [0, pi], phi: [0, 2pi], radius: [0,inf)
+	static std::tuple<float, float, float> toThetaPhiR(const Eigen::Vector3f& pos);
+	static Eigen::Vector3f fromThetaPhiR(float theta, float phi, float r);
 public:
 	// TODO: make this immutable.
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud;
@@ -45,6 +50,9 @@ public:
 		const Eigen::Vector3f& color_multiplier);
 
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr getCloudInWorld() const;
+
+	// Get XYZ map as CV_32FC3 in world coordinates.
+	cv::Mat getXYZMap() const;
 public:
 	SingleScan raw_scan;
 	Eigen::Affine3f local_to_world;
