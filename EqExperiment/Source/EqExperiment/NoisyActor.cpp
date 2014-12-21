@@ -39,7 +39,7 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 		if (!Sound.Object) {
 			continue;
 		}
-		hit_sounds.push_back(Sound.Object);
+		HitSounds.push_back(Sound.Object);
 	}
 
 	RootComponent = StaticMeshComponent;
@@ -70,11 +70,15 @@ void ANoisyActor::BeginPlay() {
 void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit) {
 	// GEngine->AddOnScreenDebugMessage(-1, 0.5, FColor::White, TEXT("Hit!"));
 	UWorld* World = GetWorld();
-	if (!World || hit_sounds.empty()) {
+	if (!World || HitSounds.empty()) {
 		return;
 	}
 
 	if (FMath::FRand() > 0.03) {
+		return;
+	}
+
+	if (!OtherActor) {
 		return;
 	}
 
@@ -85,6 +89,11 @@ void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent,
 		VolumeScale = 1;
 	}
 
-	const int ix = FMath::FRandRange(0, hit_sounds.size() - 1);
-	UGameplayStatics::PlaySoundAtLocation(World, hit_sounds[ix], Hit.ImpactPoint, VolumeScale);
+	const int Index = FMath::FRandRange(0, HitSounds.size() - 1);
+	const float Pitch = FMath::FRandRange(0.8, 1.0);
+	USoundBase* Sound = HitSounds[Index];
+	if (!Sound) {
+		return;
+	}
+	UGameplayStatics::PlaySoundAtLocation(World, Sound, Hit.ImpactPoint, VolumeScale, Pitch);
 }
