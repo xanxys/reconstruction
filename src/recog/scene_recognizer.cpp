@@ -893,7 +893,13 @@ InteriorObject createInteriorObject(
 		new pcl::PointCloud<pcl::PointXYZRGB>);
 	Eigen::Vector3f vmin(1e10, 1e10, 1e10);
 	Eigen::Vector3f vmax = -vmin;
+	int count_ext = 0;
 	for(const auto& mc_id : group) {
+		const float extension_step = 0.05;  // miminum allowed gap
+		const auto support_level = linker.getSupportLevel(mc_id);
+		const bool needs_extension =
+			support_level && (mcs[mc_id].aabb.getMin().z() > *support_level + extension_step);
+		const float max_accept_z = mcs[mc_id].aabb.getMin().z() + extension_step;
 		for(const auto& pt : mcs[mc_id].cloud->points) {
 			pcl::PointXYZRGB pn;
 			pn.getVector3fMap() = pt.getVector3fMap();
@@ -905,11 +911,23 @@ InteriorObject createInteriorObject(
 			assert(std::isfinite(pn.y));
 			assert(std::isfinite(pn.z));
 
+			if(needs_extension && (pt.z < max_accept_z)) {
+				// replicate this point at fixed interval
+				// until hitting the support level.
+				pn.z -= extension_step;
+				while(pn.z > *support_level) {
+					cloud->points.push_back(pn);
+					count_ext++;
+					pn.z -= extension_step;
+				}
+			}
+
 			// Get AABB.
 			vmin = vmin.cwiseMin(pt.getVector3fMap());
 			vmax = vmax.cwiseMax(pt.getVector3fMap());
 		}
 	}
+	INFO("#Extension points:", count_ext);
 	pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
 	kdtree.setInputCloud(cloud);
 
