@@ -19,11 +19,16 @@ InteriorObject::InteriorObject(
 	local_to_world.translation() = local_origin_in_world;
 
 	// Transform mesh to local coordinates.
-	assert(mesh.has_normal);
 	const Eigen::Affine3f world_to_local = local_to_world.inverse();
 	this->mesh = mesh;
-	for(auto& vert : this->mesh.mesh_w_normal.vertices) {
-		vert.first = world_to_local * vert.first;
+	if(this->mesh.has_normal) {
+		for(auto& vert : this->mesh.mesh_w_normal.vertices) {
+			vert.first = world_to_local * vert.first;
+		}
+	} else {
+		for(auto& vert : this->mesh.mesh.vertices) {
+			vert.first = world_to_local * vert.first;
+		}
 	}
 	for(const auto& coll_obb : collision) {
 		this->collision.push_back(
