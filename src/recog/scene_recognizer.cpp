@@ -1071,7 +1071,9 @@ InteriorObject createInteriorObject(
 
 	// Create RGB texture via XYZ texture.
 	const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);
-	const auto pos_map = getPositionMapInUV(tm.mesh, tex_size,
+	const auto pos_map = getPositionMapInUV(
+		mapSecond(tm.mesh_w_normal),
+		tex_size,
 		invalid_pos);
 
 	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
