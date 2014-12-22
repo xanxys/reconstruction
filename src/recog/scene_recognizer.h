@@ -27,12 +27,12 @@ std::pair<TexturedMesh, cv::Mat> bakeBoundaryTexture(
 	const TriangleMesh<std::nullptr_t>& shape,
 	float accept_dist = 0.1);
 
-// deprecated. Use recognizeBoundary.
 std::vector<Eigen::Vector3f> recognizeLights(
 	SceneAssetBundle& bundle,
 	const RoomFrame& rframe,
 	const AlignedScans& scans,
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+	float brightness_scale);
 
 // points
 // |-inside

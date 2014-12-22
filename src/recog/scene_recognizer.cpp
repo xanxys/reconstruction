@@ -65,7 +65,8 @@ std::vector<Eigen::Vector3f> recognizeLights(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+		float brightness_scale) {
 	assert(!rframe.wall_polygon.empty());
 	// Calculate 3D quad of ceiling from rframe.
 	Eigen::Vector2f vmin(1e10, 1e10);
@@ -159,6 +160,13 @@ std::vector<Eigen::Vector3f> recognizeLights(
 	// Make it grayscale.
 	cv::Mat ceiling_gray;
 	cv::cvtColor(proj_new, ceiling_gray, cv::COLOR_BGR2GRAY);
+	cv::Mat cg;
+	ceiling_gray.convertTo(cg, CV_32F);
+	cg *= brightness_scale;
+	cv::blur(cg, cg, cv::Size(3, 3));
+	cg = cv::min(cg, 255);
+	cg.convertTo(ceiling_gray, CV_8U);
+	cv::threshold(ceiling_gray, ceiling_gray, 255 * 0.6, 255, cv::THRESH_BINARY);
 	if(bundle.isDebugEnabled()) {
 		cv::imwrite(
 			bundle.reservePath("ceiling_quality.png"), visualize_field2(quality));
@@ -171,7 +179,13 @@ std::vector<Eigen::Vector3f> recognizeLights(
 	// Detect blobs (saturated lights).
 	const float light_margin = 0.25;  // we need slight margin between light and ceiling.
 	std::vector<Eigen::Vector3f> lights;
-	cv::SimpleBlobDetector detector;
+	cv::SimpleBlobDetector::Params param;
+	param.filterByColor = false;
+	param.filterByArea = false;
+	param.filterByInertia = false;
+	param.filterByCircularity = false;
+	param.filterByConvexity = false;
+	cv::SimpleBlobDetector detector(param);
 	std::vector<cv::KeyPoint> blobs;
 	detector.detect(ceiling_gray, blobs);
 	INFO("Blobs for ceiling image, #=", (int)blobs.size());
@@ -1138,6 +1152,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 
 	// Assumed indoor scene must have illumination.
 	// So normalize max point to 255.
+	float br_scale;
 	{
 		cv::Mat tex_gray;
 		cv::cvtColor(tex_mesh.diffuse, tex_gray, CV_BGR2GRAY);
@@ -1149,6 +1164,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		INFO("Normalizing boundary tex brightness by x", scale);
 
 		tex_mesh.diffuse *= scale;
+		br_scale = scale;
 	}
 
 	////
@@ -1268,7 +1284,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 
 	return std::make_pair(
 		tex_mesh,
-		recognizeLights(bundle, rframe, scans_aligned, cloud_inside));
+		recognizeLights(bundle, rframe, scans_aligned, cloud_inside, br_scale));
 }
 
 
