@@ -930,6 +930,10 @@ InteriorObject createInteriorObject(
 				// until hitting the support level.
 				pn.z -= extension_step;
 				while(pn.z > *support_level) {
+					// Update AABB.
+					vmin = vmin.cwiseMin(pn.getVector3fMap());
+					vmax = vmax.cwiseMax(pn.getVector3fMap());
+
 					cloud->points.push_back(pn);
 					count_ext++;
 					pn.z -= extension_step;
@@ -1040,7 +1044,7 @@ InteriorObject createInteriorObject(
 			sh_function,
 			Sphere_3(
 				Point_3(center.x(), center.y(), center.z()),
-				radius * radius * 1.1));  // 1.1 is a safety margin
+				radius * radius * 1.5));  // 1.5 is a safety margin
 
 		// defining meshing criteria
 		CGAL::Surface_mesh_default_criteria_3<Tr> criteria(
@@ -1075,11 +1079,34 @@ InteriorObject createInteriorObject(
 	TexturedMesh tm;
 	tm.has_normal = true;
 	TriangleMesh<Eigen::Vector3f> mesh_w_n;
-	mesh_w_n.triangles = simple_mesh.triangles;
 	for(const auto& vert : simple_mesh.vertices) {
 		mesh_w_n.vertices.emplace_back(
 			vert.first,
 			normal_field(vert.first));
+	}
+	// TODO: Eliminate the cause.
+	int count_flip = 0;
+	for(const auto& tri : simple_mesh.triangles) {
+		// I dunno why, but CGAL sometimes generate flipped triangles.
+		// so flip it to meet vertex normal.
+		Eigen::Vector3f accum_n = Eigen::Vector3f::Zero();
+		for(const int vi : tri) {
+			accum_n += mesh_w_n.vertices[vi].second;
+		}
+		const Eigen::Vector3f f_normal =
+			(mesh_w_n.vertices[tri[1]].first - mesh_w_n.vertices[tri[0]].first).cross(
+				mesh_w_n.vertices[tri[2]].first - mesh_w_n.vertices[tri[0]].first);
+		if(accum_n.dot(f_normal) > 0) {
+			// normal case
+			mesh_w_n.triangles.push_back(tri);
+		} else {
+			// flip needed
+			mesh_w_n.triangles.push_back({{tri[2], tri[1], tri[0]}});
+			count_flip++;
+		}
+	}
+	if(count_flip > 0) {
+		WARN("Triangle flip executed #", count_flip);
 	}
 	tm.mesh_w_normal = assignUV(mesh_w_n);
 
