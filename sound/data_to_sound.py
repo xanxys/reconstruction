@@ -75,7 +75,10 @@ def convert_acc_to_sound(acc3d, s_freq, path):
     wav.setframerate(to_frequency)
 
     # normalize
-    accum_sound = accum_sound / np.abs(accum_sound).max()
+    scale_fixed = 43
+    scale = 1 / np.abs(accum_sound).max()
+    logger.info("Normalization factor: (fixed)%f (var)%f", scale_fixed, scale)
+    accum_sound *= scale
 
     wav.writeframes(
         (accum_sound * ((2**15) - 1)).astype(np.int16).tostring())
