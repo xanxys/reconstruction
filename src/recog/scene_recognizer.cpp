@@ -65,7 +65,8 @@ std::vector<Eigen::Vector3f> recognizeLights(
 		SceneAssetBundle& bundle,
 		const RoomFrame& rframe,
 		const AlignedScans& scans_aligned,
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+		float brightness_scale) {
 	assert(!rframe.wall_polygon.empty());
 	// Calculate 3D quad of ceiling from rframe.
 	Eigen::Vector2f vmin(1e10, 1e10);
@@ -159,6 +160,13 @@ std::vector<Eigen::Vector3f> recognizeLights(
 	// Make it grayscale.
 	cv::Mat ceiling_gray;
 	cv::cvtColor(proj_new, ceiling_gray, cv::COLOR_BGR2GRAY);
+	cv::Mat cg;
+	ceiling_gray.convertTo(cg, CV_32F);
+	cg *= brightness_scale;
+	cv::blur(cg, cg, cv::Size(3, 3));
+	cg = cv::min(cg, 255);
+	cg.convertTo(ceiling_gray, CV_8U);
+	cv::threshold(ceiling_gray, ceiling_gray, 255 * 0.6, 255, cv::THRESH_BINARY);
 	if(bundle.isDebugEnabled()) {
 		cv::imwrite(
 			bundle.reservePath("ceiling_quality.png"), visualize_field2(quality));
@@ -171,7 +179,13 @@ std::vector<Eigen::Vector3f> recognizeLights(
 	// Detect blobs (saturated lights).
 	const float light_margin = 0.25;  // we need slight margin between light and ceiling.
 	std::vector<Eigen::Vector3f> lights;
-	cv::SimpleBlobDetector detector;
+	cv::SimpleBlobDetector::Params param;
+	param.filterByColor = false;
+	param.filterByArea = false;
+	param.filterByInertia = false;
+	param.filterByCircularity = false;
+	param.filterByConvexity = false;
+	cv::SimpleBlobDetector detector(param);
 	std::vector<cv::KeyPoint> blobs;
 	detector.detect(ceiling_gray, blobs);
 	INFO("Blobs for ceiling image, #=", (int)blobs.size());
@@ -916,6 +930,10 @@ InteriorObject createInteriorObject(
 				// until hitting the support level.
 				pn.z -= extension_step;
 				while(pn.z > *support_level) {
+					// Update AABB.
+					vmin = vmin.cwiseMin(pn.getVector3fMap());
+					vmax = vmax.cwiseMax(pn.getVector3fMap());
+
 					cloud->points.push_back(pn);
 					count_ext++;
 					pn.z -= extension_step;
@@ -1026,7 +1044,7 @@ InteriorObject createInteriorObject(
 			sh_function,
 			Sphere_3(
 				Point_3(center.x(), center.y(), center.z()),
-				radius * radius * 1.1));  // 1.1 is a safety margin
+				radius * radius * 1.5));  // 1.5 is a safety margin
 
 		// defining meshing criteria
 		CGAL::Surface_mesh_default_criteria_3<Tr> criteria(
@@ -1061,11 +1079,34 @@ InteriorObject createInteriorObject(
 	TexturedMesh tm;
 	tm.has_normal = true;
 	TriangleMesh<Eigen::Vector3f> mesh_w_n;
-	mesh_w_n.triangles = simple_mesh.triangles;
 	for(const auto& vert : simple_mesh.vertices) {
 		mesh_w_n.vertices.emplace_back(
 			vert.first,
 			normal_field(vert.first));
+	}
+	// TODO: Eliminate the cause.
+	int count_flip = 0;
+	for(const auto& tri : simple_mesh.triangles) {
+		// I dunno why, but CGAL sometimes generate flipped triangles.
+		// so flip it to meet vertex normal.
+		Eigen::Vector3f accum_n = Eigen::Vector3f::Zero();
+		for(const int vi : tri) {
+			accum_n += mesh_w_n.vertices[vi].second;
+		}
+		const Eigen::Vector3f f_normal =
+			(mesh_w_n.vertices[tri[1]].first - mesh_w_n.vertices[tri[0]].first).cross(
+				mesh_w_n.vertices[tri[2]].first - mesh_w_n.vertices[tri[0]].first);
+		if(accum_n.dot(f_normal) > 0) {
+			// normal case
+			mesh_w_n.triangles.push_back(tri);
+		} else {
+			// flip needed
+			mesh_w_n.triangles.push_back({{tri[2], tri[1], tri[0]}});
+			count_flip++;
+		}
+	}
+	if(count_flip > 0) {
+		WARN("Triangle flip executed #", count_flip);
 	}
 	tm.mesh_w_normal = assignUV(mesh_w_n);
 
@@ -1138,6 +1179,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 
 	// Assumed indoor scene must have illumination.
 	// So normalize max point to 255.
+	float br_scale;
 	{
 		cv::Mat tex_gray;
 		cv::cvtColor(tex_mesh.diffuse, tex_gray, CV_BGR2GRAY);
@@ -1149,6 +1191,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 		INFO("Normalizing boundary tex brightness by x", scale);
 
 		tex_mesh.diffuse *= scale;
+		br_scale = scale;
 	}
 
 	////
@@ -1268,7 +1311,7 @@ std::pair<TexturedMesh, std::vector<Eigen::Vector3f>>
 
 	return std::make_pair(
 		tex_mesh,
-		recognizeLights(bundle, rframe, scans_aligned, cloud_inside));
+		recognizeLights(bundle, rframe, scans_aligned, cloud_inside, br_scale));
 }
 
 
