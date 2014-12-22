@@ -84,6 +84,10 @@ void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent,
 
 	const float DVel = (GetVelocity() - OtherActor->GetVelocity()).Size();
 	const float MaxVel = 100;  // 100cm/s
+	const float MinVel = 1;  // 1cm/s
+	if (DVel < MinVel) {
+		return;  // ignore too small velocity
+	}
 	float VolumeScale = DVel / MaxVel;
 	if (VolumeScale > 1) {
 		VolumeScale = 1;
