@@ -6,3 +6,5 @@ archive/
 *.sublime-project
 log
 *.pyc
+EqExperiment/Binaries/
+EqExperiment/Packaged/
