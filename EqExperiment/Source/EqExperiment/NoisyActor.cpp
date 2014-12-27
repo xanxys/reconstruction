@@ -83,18 +83,18 @@ void ANoisyActor::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent,
 	}
 
 	const float DVel = (GetVelocity() - OtherActor->GetVelocity()).Size();
-	const float MaxVel = 100;  // 100cm/s
-	const float MinVel = 1;  // 1cm/s
+	const float MaxVel = 200;  // cm/s
+	const float MinVel = 10;  // cm/s
 	if (DVel < MinVel) {
 		return;  // ignore too small velocity
 	}
 	float VolumeScale = DVel / MaxVel;
-	if (VolumeScale > 1) {
-		VolumeScale = 1;
+	if (VolumeScale > 0.5) {
+		VolumeScale = 0.5;
 	}
 
 	const int Index = FMath::FRandRange(0, HitSounds.size() - 1);
-	const float Pitch = FMath::FRandRange(0.8, 1.0);
+	const float Pitch = FMath::FRandRange(0.1, 0.4);
 	USoundBase* Sound = HitSounds[Index];
 	if (!Sound) {
 		return;
