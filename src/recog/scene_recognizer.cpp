@@ -1117,6 +1117,7 @@ InteriorObject createInteriorObject(
 		tex_size,
 		invalid_pos);
 
+	const float color_scale = 1.3;
 	cv::Mat diffuse(tex_size, tex_size, CV_8UC3);
 	for(const int y : boost::irange(0, tex_size)) {
 		for(const int x : boost::irange(0, tex_size)) {
@@ -1126,9 +1127,12 @@ InteriorObject createInteriorObject(
 				// don't bother looking up, because field lookup is slow.
 				diffuse.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
 			} else {
-				const auto col = color_field(pos);  // RGB
+				const auto col = color_field(pos) * color_scale;  // RGB
 				diffuse.at<cv::Vec3b>(y, x) =
-					cv::Vec3b(col(2), col(1), col(0));  // BGR
+					cv::Vec3b(
+						std::min(255.0f, col(2)),
+						std::min(255.0f, col(1)),
+						std::min(255.0f, col(0)));  // BGR
 			}
 		}
 	}
