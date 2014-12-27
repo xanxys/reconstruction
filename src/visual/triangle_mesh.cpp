@@ -7,8 +7,10 @@
 namespace recon {
 
 TriangleMesh<std::nullptr_t> createBox(
-		Eigen::Vector3f center,Eigen::Vector3f half_dx,
-		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz) {
+		const Eigen::Vector3f& center,
+		const Eigen::Vector3f& half_dx,
+		const Eigen::Vector3f& half_dy,
+		const Eigen::Vector3f& half_dz) {
 	TriangleMesh<std::nullptr_t> box;
 	for(int i : boost::irange(0, 8)) {
 		const Eigen::Vector3f vertex_pos = center +
@@ -70,7 +72,7 @@ TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>>
 }
 
 TriangleMesh<std::nullptr_t> createBox(
-	Eigen::Vector3f center, float half_size) {
+		const Eigen::Vector3f& center, float half_size) {
 	return createBox(center,
 		Eigen::Vector3f::UnitX() * half_size,
 		Eigen::Vector3f::UnitY() * half_size,

@@ -39,33 +39,6 @@ public:
 		return area;
 	}
 
-	// Transform vertex attributes without changing positions.
-	/*
-	template<typename Mapper>
-	auto mapAttribute(Mapper f) const -> TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type> {
-		TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type> mesh;
-		mesh.triangles = triangles;
-		mesh.vertices.resize(vertices.size());
-		std::transform(vertices.begin(), vertices.end(), mesh.vertices.begin(),
-				[&](const std::pair<Eigen::Vector3f, Vertex> vertex) {
-					return std::make_pair(vertex.first, f(vertex.second));
-				});
-		return mesh;
-	}
-	*/
-
-	/*
-	template<typename Mapper>
-	auto map(Mapper f) const -> TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type::> {
-		TriangleMesh<typename std::result_of<Mapper(const Vertex&)>::type> mesh;
-		mesh.triangles = triangles;
-		mesh.vertices.resize(vertices.size());
-		std::transform(vertices.begin(), vertices.end(), mesh.vertices.begin(), f);
-		return mesh;
-	}
-	*/
-
-
 	// Serialize this mesh in ASCII PLY format.
 	void serializePLY(std::ostream& output) const {
 		output << "ply" << std::endl;
@@ -271,11 +244,13 @@ TriangleMesh<std::pair<Eigen::Vector2f, Eigen::Vector3f>>
 
 // Create outward-facing cuboids.
 TriangleMesh<std::nullptr_t> createBox(
-		Eigen::Vector3f center,Eigen::Vector3f half_dx,
-		Eigen::Vector3f half_dy, Eigen::Vector3f half_dz);
+		const Eigen::Vector3f& center,
+		const Eigen::Vector3f& half_dx,
+		const Eigen::Vector3f& half_dy,
+		const Eigen::Vector3f& half_dz);
 
 TriangleMesh<std::nullptr_t> createBox(
-	Eigen::Vector3f center, float half_size);
+	const Eigen::Vector3f& center, float half_size);
 
 TriangleMesh<std::nullptr_t> mergeCloseVertices(
 	const TriangleMesh<std::nullptr_t>& mesh, float distance);

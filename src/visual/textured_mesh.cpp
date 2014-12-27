@@ -23,7 +23,8 @@ using Tuple3i = std::tuple<int, int, int>;
 TexturedMesh::TexturedMesh() : has_normal(false) {
 }
 
-void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
+void TexturedMesh::writeWavefrontObject(
+		const std::string& dir_name) const {
 	const boost::filesystem::path dir_path(dir_name);
 	boost::filesystem::create_directory(dir_path);
 
@@ -41,7 +42,8 @@ void TexturedMesh::writeWavefrontObject(std::string dir_name) const {
 	cv::imwrite((dir_path / name_diffuse).string(), diffuse);
 }
 
-void TexturedMesh::writeWavefrontObjectFlat(std::string prefix) const {
+void TexturedMesh::writeWavefrontObjectFlat(
+		const std::string& prefix) const {
 	const boost::filesystem::path name_obj(prefix + "object.obj");
 	const boost::filesystem::path name_mtl(prefix + "object.mtl");
 	const boost::filesystem::path name_diffuse(prefix + "diffuse.png");
