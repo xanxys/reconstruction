@@ -3,7 +3,9 @@
 namespace recon {
 
 InteriorObject::InteriorObject(
-		const TexturedMesh& mesh, const std::vector<OBB3f>& collision) {
+		const TexturedMesh& mesh,
+		const std::vector<OBB3f>& collision) :
+		mesh(mesh) {
 	assert(!collision.empty());
 	// Calculate whole collision to estimate lowest Z and center.
 	AABB3f whole_collision = collision.front().toAABB();
@@ -20,7 +22,6 @@ InteriorObject::InteriorObject(
 
 	// Transform mesh to local coordinates.
 	const Eigen::Affine3f world_to_local = local_to_world.inverse();
-	this->mesh = mesh;
 	if(this->mesh.has_normal) {
 		for(auto& vert : this->mesh.mesh_w_normal.vertices) {
 			vert.first = world_to_local * vert.first;

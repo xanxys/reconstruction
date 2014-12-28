@@ -45,14 +45,14 @@ void populateToyScene(SceneAssetBundle& bundle) {
 		// Notice Y-asymmetry, to test Y-flip phenomenon that
 		// once ocurred.
 		// [-3, -2, 0], [3, 3, 3]
-		TexturedMesh tm;
-		tm.mesh = mapSecond(assignUV(
+		const auto mesh = mapSecond(assignUV(
 			flipTriangles(
 			createBox(Eigen::Vector3f(0, 0.5, 1.5),
 				Eigen::Vector3f(3, 0, 0),
 				Eigen::Vector3f(0, 2.5, 0),
 				Eigen::Vector3f(0, 0, 1.5)))));
-		tm.diffuse = gen_grid_tex(cv::Vec3b(255, 255, 255));
+
+		TexturedMesh tm(mesh, gen_grid_tex(cv::Vec3b(255, 255, 255)));
 
 		std::vector<Eigen::Vector2f> polygon = {
 			{-3, -2},
@@ -71,9 +71,9 @@ void populateToyScene(SceneAssetBundle& bundle) {
 	// Add green InteriorObject (simple cube).
 	// [-0.5, -0.5, 0], [0.5, 0.5, 1]
 	{
-		TexturedMesh tm;
-		tm.mesh = mapSecond(assignUV(createBox(Eigen::Vector3f(0, 0, 0.5), 0.5)));
-		tm.diffuse = gen_grid_tex(cv::Vec3b(200, 255, 200));
+		TexturedMesh tm(
+			mapSecond(assignUV(createBox(Eigen::Vector3f(0, 0, 0.5), 0.5))),
+			gen_grid_tex(cv::Vec3b(200, 255, 200)));
 
 		std::vector<OBB3f> collisions;
 		collisions.emplace_back(AABB3f(Eigen::Vector3f(-0.5, -0.5, 0), Eigen::Vector3f(0.5, 0.5, 1)));
@@ -92,9 +92,9 @@ void populateToyScene(SceneAssetBundle& bundle) {
 			Eigen::Vector3f(0, 0.1, 0),
 			Eigen::Vector3f(0, 0, 0.25)));
 
-		TexturedMesh tm;
-		tm.mesh = mapSecond(assignUV(mesh));
-		tm.diffuse = gen_grid_tex(cv::Vec3b(200, 200, 255));
+		TexturedMesh tm(
+			mapSecond(assignUV(mesh)),
+			gen_grid_tex(cv::Vec3b(200, 200, 255)));
 
 		std::vector<OBB3f> collisions;
 		collisions.emplace_back(AABB3f(

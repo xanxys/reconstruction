@@ -8,10 +8,10 @@
 TEST(InteriorObject, FloorLevelIdentity) {
 	// Create [-0.5, -0.5, 0] x [0.5, 0.5, 1] box.
 	// (lowest z = 0)
-	recon::TexturedMesh tm;
-	tm.mesh = recon::mapSecond(recon::assignUV(
-		recon::createBox(Eigen::Vector3f(0, 0, 0.5), 0.5)));
-	tm.diffuse = cv::Mat(64, 64, CV_8UC3);
+	recon::TexturedMesh tm(
+		recon::mapSecond(recon::assignUV(
+			recon::createBox(Eigen::Vector3f(0, 0, 0.5), 0.5))),
+		cv::Mat(64, 64, CV_8UC3));
 
 	std::vector<recon::OBB3f> collisions;
 	collisions.emplace_back(recon::AABB3f(Eigen::Vector3f(-0.5, -0.5, 0), Eigen::Vector3f(0.5, 0.5, 1)));
@@ -37,10 +37,10 @@ TEST(InteriorObject, FloorLevelIdentity) {
 TEST(InteriorObject, GuessFloorLevel) {
 	// Create [-0.5, -0.5, -0.5] x [0.5, 0.5, 0.5] box.
 	// (lowest z = -0.5) and expect floor level adjusted to z=0.
-	recon::TexturedMesh tm;
-	tm.mesh = recon::mapSecond(recon::assignUV(
-		recon::createBox(Eigen::Vector3f(0, 0, 0), 0.5)));
-	tm.diffuse = cv::Mat(64, 64, CV_8UC3);
+	recon::TexturedMesh tm(
+		recon::mapSecond(recon::assignUV(
+			recon::createBox(Eigen::Vector3f(0, 0, 0), 0.5))),
+		cv::Mat(64, 64, CV_8UC3));
 
 	std::vector<recon::OBB3f> collisions;
 	collisions.emplace_back(recon::AABB3f(

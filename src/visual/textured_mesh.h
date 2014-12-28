@@ -13,7 +13,14 @@ namespace recon {
 // A triangle mesh with single diffuse texture.
 class TexturedMesh {
 public:
-	TexturedMesh();
+	// attrib = uv
+	TexturedMesh(
+		const TriangleMesh<Eigen::Vector2f>& mesh,
+		const cv::Mat& diffuse);
+	// attrib = normal, uv
+	TexturedMesh(
+		const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh,
+		const cv::Mat& diffuse);
 
 	// Write texture, material, geometry into specified directory.
 	void writeWavefrontObject(const std::string& dir_name) const;

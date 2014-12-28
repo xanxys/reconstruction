@@ -1075,8 +1075,6 @@ InteriorObject createInteriorObject(
 		simple_mesh = surfaceToMesh(polyh);
 	}
 
-	TexturedMesh tm;
-	tm.has_normal = true;
 	TriangleMesh<Eigen::Vector3f> mesh_w_n;
 	for(const auto& vert : simple_mesh.vertices) {
 		mesh_w_n.vertices.emplace_back(
@@ -1107,7 +1105,7 @@ InteriorObject createInteriorObject(
 	if(count_flip > 0) {
 		WARN("Triangle flip executed #", count_flip);
 	}
-	tm.mesh_w_normal = assignUV(mesh_w_n);
+	const auto mesh_n_uv = assignUV(mesh_w_n);
 
 	// Calculate texture size based on mesh surface area.
 	const float sqpx_per_sqmeter = 40000;
@@ -1118,7 +1116,7 @@ InteriorObject createInteriorObject(
 	// Create RGB texture via XYZ texture.
 	const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);
 	const auto pos_map = getPositionMapInUV(
-		mapSecond(tm.mesh_w_normal),
+		mapSecond(mesh_n_uv),
 		tex_size,
 		invalid_pos);
 
@@ -1141,7 +1139,7 @@ InteriorObject createInteriorObject(
 			}
 		}
 	}
-	tm.diffuse = diffuse;
+	const TexturedMesh tm(mesh_n_uv, diffuse);
 
 	// Generate collisions.
 	std::vector<OBB3f> collisions;
@@ -1370,10 +1368,7 @@ std::pair<TexturedMesh, cv::Mat> bakeBoundaryTexture(
 	cv::remap(c_scan.getXYZMap(), xyz, mapping, cv::Mat(), cv::INTER_LINEAR);
 
 	// pack everything.
-	TexturedMesh tm;
-	tm.diffuse = diffuse;
-	tm.mesh = shape;
-	return std::make_pair(tm, xyz);
+	return std::make_pair(TexturedMesh(shape, diffuse), xyz);
 }
 
 }  // namespace

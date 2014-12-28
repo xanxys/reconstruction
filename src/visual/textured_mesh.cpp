@@ -20,7 +20,16 @@ namespace recon {
 
 using Tuple3i = std::tuple<int, int, int>;
 
-TexturedMesh::TexturedMesh() : has_normal(false) {
+TexturedMesh::TexturedMesh(
+		const TriangleMesh<Eigen::Vector2f>& mesh,
+		const cv::Mat& diffuse) :
+		has_normal(false), mesh(mesh), diffuse(diffuse) {
+}
+
+TexturedMesh::TexturedMesh(
+		const TriangleMesh<std::pair<Eigen::Vector3f, Eigen::Vector2f>>& mesh,
+		const cv::Mat& diffuse) :
+		has_normal(true), mesh_w_normal(mesh), diffuse(diffuse) {
 }
 
 void TexturedMesh::writeWavefrontObject(
@@ -130,10 +139,7 @@ TexturedMesh mergeTexturedMeshes(
 		}
 	}
 
-	TexturedMesh result;
-	result.diffuse = result_diffuse;
-	result.mesh = result_mesh;
-	return result;
+	return TexturedMesh(result_mesh, result_diffuse);
 }
 
 void writeObjMaterial(

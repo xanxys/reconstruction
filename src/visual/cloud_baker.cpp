@@ -48,10 +48,7 @@ TexturedMesh bakePointsToMesh(
 	}
 	fillHoles(diffuse, cv::Vec3b(0, 0, 0), 5);
 
-	TexturedMesh tm;
-	tm.diffuse = diffuse;
-	tm.mesh = mesh_uv;
-	return tm;
+	return TexturedMesh(mesh_uv, diffuse);
 }
 
 void fillHoles(cv::Mat& image, const cv::Vec3b undefined, int iteration) {

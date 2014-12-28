@@ -10,16 +10,18 @@ TEST(mergeTexturedMeshes, TexturePixelsArePreserved) {
 	const cv::Scalar col1(0, 255, 0);
 	std::vector<recon::TexturedMesh> tms;
 	{
-		recon::TexturedMesh tm0;
-		tm0.diffuse = cv::Mat(64, 64, CV_8UC3);
-		tm0.diffuse = col0;
-		tms.push_back(tm0);
+		cv::Mat diffuse(64, 64, CV_8UC3);
+		diffuse = col0;
+		tms.emplace_back(
+			recon::TriangleMesh<Eigen::Vector2f>(),
+			diffuse);
 	}
 	{
-		recon::TexturedMesh tm1;
-		tm1.diffuse = cv::Mat(128, 128, CV_8UC3);
-		tm1.diffuse = col1;
-		tms.push_back(tm1);
+		cv::Mat diffuse(128, 128, CV_8UC3);
+		diffuse = col1;
+		tms.emplace_back(
+			recon::TriangleMesh<Eigen::Vector2f>(),
+			diffuse);
 	}
 
 	const auto merged = recon::mergeTexturedMeshes(tms);
@@ -46,22 +48,26 @@ TEST(mergeTexturedMeshes, TextureMappingIsOk) {
 	const cv::Vec3b col1(0, 255, 0);
 	std::vector<recon::TexturedMesh> tms;
 	{
-		recon::TexturedMesh tm0;
-		tm0.diffuse = cv::Mat(64, 64, CV_8UC3);
-		tm0.diffuse = cv::Scalar(col0);
-		tm0.mesh.vertices.emplace_back(
+		recon::TriangleMesh<Eigen::Vector2f> mesh;
+		mesh.vertices.emplace_back(
 			Eigen::Vector3f::Zero(),
 			Eigen::Vector2f(0.5, 0.5));
-		tms.push_back(tm0);
+
+		cv::Mat diffuse(64, 64, CV_8UC3);
+		diffuse = cv::Scalar(col0);
+
+		tms.emplace_back(mesh, diffuse);
 	}
 	{
-		recon::TexturedMesh tm1;
-		tm1.diffuse = cv::Mat(128, 128, CV_8UC3);
-		tm1.diffuse = cv::Scalar(col1);
-		tm1.mesh.vertices.emplace_back(
+		recon::TriangleMesh<Eigen::Vector2f> mesh;
+		mesh.vertices.emplace_back(
 			Eigen::Vector3f::Ones(),
 			Eigen::Vector2f(0.5, 0.5));
-		tms.push_back(tm1);
+
+		cv::Mat diffuse(128, 128, CV_8UC3);
+		diffuse = cv::Scalar(col1);
+
+		tms.emplace_back(mesh, diffuse);
 	}
 
 	const auto merged = recon::mergeTexturedMeshes(tms);
