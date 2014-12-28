@@ -95,8 +95,9 @@ void SceneAssetBundle::serializeIntoDirectory(const fs::path& dir_path) {
 	int count = 0;
 	metadata["interior_objects"] = Json::arrayValue;
 	for(const auto& interior : interiors) {
-		auto meta_object = serializeMeshWithConversion(
-			interior.getMesh(), count);
+		auto mesh = interior.getMesh();
+		mesh.extrapolateAtlasBoundary();
+		auto meta_object = serializeMeshWithConversion(mesh, count);
 		meta_object["pose"] =
 			serializePoseWithConversion(interior.getPose());
 		meta_object["collision_boxes"] =
@@ -274,9 +275,11 @@ Json::Value SceneAssetBundle::loadJson(std::string name) const {
 
 void SceneAssetBundle::addInteriorObject(const InteriorObject& iobj) {
 	if(debug) {
+		auto mesh = iobj.getMesh();
+		mesh.extrapolateAtlasBoundary();
 		addMesh(
 			"debug_poly_" + std::to_string(interiors.size()),
-			iobj.getMesh());
+			mesh);
 	}
 	interiors.push_back(iobj);
 }

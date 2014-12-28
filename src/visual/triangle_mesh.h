@@ -11,6 +11,63 @@
 
 namespace recon {
 
+/*
+// Trait of a TriangleMesh vertex.
+template<typename T>
+struct vertex {
+	static const bool is_vertex = false;
+
+	// A vertex always has position.
+	static Eigen::Vector3f& pos(T& vert);
+
+	// optional normal.
+	static const bool has_normal = false;
+	static Eigen::Vector3f& normal(T& vert);
+
+	// optional color.
+	static const bool has_color = false;
+	static Eigen::Vector3f& color(T& vert);
+
+	// optional uv.
+	static const bool has_uv = false;
+	static Eigen::Vector2f& uv(T& vert);
+};
+
+
+// Pre-defined concrete storage types.
+// Users can extend this by defining their own
+// type, and writing specialized type trait vertex for it.
+//
+// This is not as smart as being able to write
+// "TriangleMesh<XYZ, Normal>" and storage types are
+// created on-demand, but I have no idea of implementation.
+using VertexPos = Eigen::Vector3f;
+using VertexPosNormal = std::tuple<Eigen::Vector3f, Eigen::Vector3f>;
+using VertexPosUV = std::tuple<Eigen::Vector3f,
+
+template<>
+struct vertex<VertexPos> {
+	static const bool is_vertex = true;
+	static Eigen::Vector3f& pos(VertexPos& vert) {
+		return vert;
+	}
+};
+
+template<>
+struct vertex<VertexPosNormal> {
+	static const bool is_vertex = true;
+	static Eigen::Vector3f& pos(VertexPos& vert) {
+		return std::get<0>(vert);
+	}
+
+	static const bool has_normal = true;
+	static Eigen::Vector3f& normal(Vertex& vert) {
+		return std::get<1>(vert);
+	}
+};
+*/
+
+
 template<typename Vertex>
 class TriangleMesh {
 public:

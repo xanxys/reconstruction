@@ -1075,7 +1075,6 @@ InteriorObject createInteriorObject(
 		simple_mesh = surfaceToMesh(polyh);
 	}
 
-	const int tex_size = 512;
 	TexturedMesh tm;
 	tm.has_normal = true;
 	TriangleMesh<Eigen::Vector3f> mesh_w_n;
@@ -1109,6 +1108,12 @@ InteriorObject createInteriorObject(
 		WARN("Triangle flip executed #", count_flip);
 	}
 	tm.mesh_w_normal = assignUV(mesh_w_n);
+
+	// Calculate texture size based on mesh surface area.
+	const float sqpx_per_sqmeter = 40000;
+	const int tex_size =
+		ceilToPowerOf2(std::sqrt(mesh_w_n.area() * sqpx_per_sqmeter));
+	assert(tex_size > 0);
 
 	// Create RGB texture via XYZ texture.
 	const Eigen::Vector3f invalid_pos(1e3, 1e3, 1e3);

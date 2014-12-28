@@ -60,6 +60,35 @@ void TexturedMesh::writeWavefrontObjectFlat(
 	cv::imwrite(name_diffuse.string(), diffuse);
 }
 
+void TexturedMesh::extrapolateAtlasBoundary() {
+	const int tex_size = getTextureSize();
+	const Eigen::Vector3f invalid(1e5, 1e5, 1e5);
+	const cv::Vec3f invalid_v(invalid.x(), invalid.y(), invalid.z());
+	cv::Mat pos_map;
+	if(has_normal) {
+		pos_map = getPositionMapInUV(mapSecond(mesh_w_normal), tex_size, invalid);
+	} else {
+		pos_map = getPositionMapInUV(mesh, tex_size, invalid);
+	}
+
+	cv::Mat missing_mask(tex_size, tex_size, CV_8U);
+	for(const int y : boost::irange(0, tex_size)) {
+		for(const int x : boost::irange(0, tex_size)) {
+			missing_mask.at<uint8_t>(y, x) =
+				(pos_map.at<cv::Vec3f>(y, x) == invalid_v) ? 255 : 0;
+		}
+	}
+
+	cv::Mat new_diffuse;
+	cv::inpaint(diffuse, missing_mask, new_diffuse, 3, cv::INPAINT_TELEA);
+	diffuse = new_diffuse;
+}
+
+int TexturedMesh::getTextureSize() const {
+	assert(diffuse.cols > 0 && diffuse.cols == diffuse.rows);
+	return diffuse.cols;
+}
+
 TexturedMesh mergeTexturedMeshes(
 		const std::vector<TexturedMesh>& meshes) {
 	assert(!meshes.empty());
@@ -156,6 +185,10 @@ cv::Mat getPositionMapInUV(
 		for(const auto p : range2(pi_min, pi_max)) {
 			const Eigen::Vector2f ts_pre = ps * (p.cast<float>() - p0);
 			const Eigen::Vector3f ts(1 - ts_pre.sum(), ts_pre(0), ts_pre(1));
+			if(ts(0) < 0 || ts(1) < 0 || ts(2) < 0) {
+				// p is in outside of the triangle.
+				continue;
+			}
 			const Eigen::Vector3f pos_w = vs * ts;
 			assert(std::isfinite(pos_w.x()));
 			assert(std::isfinite(pos_w.y()));

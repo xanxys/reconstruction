@@ -24,6 +24,15 @@ public:
 	// * test/a_object.mtl
 	// * test/a_diffuse.png
 	void writeWavefrontObjectFlat(const std::string& prefix) const;
+
+	// Extrapolate one pixels around boundary of UV-mapped region,
+	// to remove bleeding black color at texture seams.
+	// note: this function could introduce additional color bleeding
+	// artifact if UV mapping have too little gaps.
+	void extrapolateAtlasBoundary();
+protected:
+	// Get (square) texture size, assuming diffuse is already set.
+	int getTextureSize() const;
 public:
 	// TODO: encapsulation breach!
 	// has_normal and mesh_w_normal creates implicit coupling with InteriorObject
