@@ -10,8 +10,8 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="210mm"
-   height="297mm"
+   width="1000"
+   height="800"
    id="svg2"
    version="1.1"
    inkscape:version="0.48.5 r10040"
@@ -23,259 +23,296 @@
        clipPathUnits="userSpaceOnUse">
       <path
          id="path7507"
-         d="m 40.416,355.057 96.5,0 0,-58.166 -96.5,0 0,58.166 z" />
+         d="m 40.416,355.057 96.5,0 0,-58.166 -96.5,0 0,58.166 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath7469"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path7471"
-         d="m 40.416,355.057 96.5,0 0,-58.166 -96.5,0 0,58.166 z" />
+         d="m 40.416,355.057 96.5,0 0,-58.166 -96.5,0 0,58.166 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath7051"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path7053"
-         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath7035"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path7037"
-         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath7015"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path7017"
-         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6999"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path7001"
-         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6981"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6983"
-         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 108.38,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6799"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6801"
-         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6783"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6785"
-         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6763"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6765"
-         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6747"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6749"
-         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6729"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6731"
-         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 245.506,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6541"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6543"
-         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6525"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6527"
-         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6507"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6509"
-         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6483"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6485"
-         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6465"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6467"
-         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6449"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6451"
-         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 382.277,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6239"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6241"
-         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6221"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6223"
-         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6207"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6209"
-         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6177"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6179"
-         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6159"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6161"
-         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath6143"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path6145"
-         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z" />
+         d="m 519.415,694.322 -73.701,0 0,75.118 73.701,0 0,-75.118 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5785"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5787"
-         d="m 137.586,669.128 -98.279,0 0,-121.177 98.279,0 0,121.177 z" />
+         d="m 137.586,669.128 -98.279,0 0,-121.177 98.279,0 0,121.177 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5773"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5775"
-         d="m 137.586,669.128 -98.279,0 0,-121.177 98.279,0 0,121.177 z" />
+         d="m 137.586,669.128 -98.279,0 0,-121.177 98.279,0 0,121.177 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5767"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5769"
-         d="m 88.446,606.81 49.14,0 0,47.906 -49.14,0 0,-47.906 z" />
+         d="m 88.446,606.81 49.14,0 0,47.906 -49.14,0 0,-47.906 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5755"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5757"
-         d="m 137.586,669.128 -98.279,0 0,-121.177 98.279,0 0,121.177 z" />
+         d="m 137.586,669.128 -98.279,0 0,-121.177 98.279,0 0,121.177 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5459"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5461"
-         d="m 133.212,512.831 -90.63,0 0,-68.754 90.63,0 0,68.754 z" />
+         d="m 133.212,512.831 -90.63,0 0,-68.754 90.63,0 0,68.754 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5367"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5369"
-         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z" />
+         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5355"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5357"
-         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z" />
+         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5343"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5345"
-         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z" />
+         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5325"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5327"
-         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z" />
+         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5305"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path5307"
-         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z" />
+         d="m 317.781,600.296 -45.672,0 0,61.031 45.672,0 0,-61.031 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath3201"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path3203"
-         d="m 28.346,147.075 0,14.172 c 0,4.678 3.827,8.504 8.504,8.504 l 521.575,0 c 4.677,0 8.504,-3.826 8.504,-8.504 l 0,-14.172 -538.583,0" />
+         d="m 28.346,147.075 0,14.172 c 0,4.678 3.827,8.504 8.504,8.504 l 521.575,0 c 4.677,0 8.504,-3.826 8.504,-8.504 l 0,-14.172 -538.583,0"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath3085"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path3087"
-         d="m 566.929,161.247 c 0,4.678 -3.827,8.504 -8.504,8.504 l -521.575,0 c -4.677,0 -8.504,-3.826 -8.504,-8.504 l 0,-14.172 538.584,0 -10e-4,14.172" />
+         d="m 566.929,161.247 c 0,4.678 -3.827,8.504 -8.504,8.504 l -521.575,0 c -4.677,0 -8.504,-3.826 -8.504,-8.504 l 0,-14.172 538.584,0 -10e-4,14.172"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath2999"
        clipPathUnits="userSpaceOnUse">
       <path
          id="path3001"
-         d="m 0.015015,841.89 595.259995,0 0,-841.89 -595.259995,0 0,841.89 z" />
+         d="m 0.015015,841.89 595.259995,0 0,-841.89 -595.259995,0 0,841.89 z"
+         inkscape:connector-curvature="0" />
     </clipPath>
     <clipPath
        id="clipPath5367-0"
@@ -693,11 +730,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.85121377"
-     inkscape:cx="461.59249"
-     inkscape:cy="801.21021"
+     inkscape:zoom="0.60189902"
+     inkscape:cx="374.25752"
+     inkscape:cy="480.95768"
      inkscape:document-units="px"
-     inkscape:current-layer="g9105"
+     inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="1016"
@@ -720,17 +757,18 @@
      inkscape:label="レイヤー 1"
      inkscape:groupmode="layer"
      id="layer1"
-     style="display:inline">
+     style="display:inline"
+     transform="translate(0,-252.36218)">
     <rect
        style="fill:#ffffff;fill-opacity:0.78431373;stroke:#2a5ec1;stroke-width:3.99999976;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
        id="rect11309-9-9"
        width="398.01242"
-       height="48.899433"
-       x="520.99377"
-       y="-2.1314697" />
+       height="73.820557"
+       x="523.34338"
+       y="289.21719" />
     <g
        id="g6040"
-       transform="translate(1.174793,24.810948)">
+       transform="translate(3.5243791,316.15962)">
       <rect
          y="57.420372"
          x="20.755058"
@@ -1310,7 +1348,7 @@
     </g>
     <g
        id="g14591"
-       transform="translate(-51.422199,36.833611)">
+       transform="translate(-49.072613,328.18229)">
       <rect
          y="45.432072"
          x="198.54018"
@@ -1901,7 +1939,7 @@
     </g>
     <g
        id="g14712"
-       transform="translate(-42.67281,36.894167)">
+       transform="translate(-40.323224,328.24284)">
       <rect
          y="45.337154"
          x="314.97839"
@@ -2550,7 +2588,7 @@
     </g>
     <g
        id="g9256"
-       transform="translate(0,24)">
+       transform="translate(2.3495861,315.34868)">
       <rect
          y="57.420372"
          x="396.33792"
@@ -3268,7 +3306,7 @@
     </g>
     <g
        id="g15181"
-       transform="translate(-48.322682,34.912473)">
+       transform="translate(-45.973096,324.26115)">
       <rect
          y="156.65836"
          x="68.440376"
@@ -4212,7 +4250,7 @@
     </g>
     <g
        id="g12657"
-       transform="translate(-49.503712,36.198183)">
+       transform="translate(-47.154126,325.54686)">
       <rect
          y="155.39601"
          x="232.81255"
@@ -5391,7 +5429,7 @@
     </g>
     <g
        id="g12165"
-       transform="translate(-52.322682,36.198183)">
+       transform="translate(-49.973096,325.54686)">
       <rect
          y="155.30098"
          x="398.82269"
@@ -7843,7 +7881,7 @@
     </g>
     <g
        id="g13814"
-       transform="translate(-48.322682,34.912473)">
+       transform="translate(-45.973096,320.26115)">
       <rect
          y="384.32648"
          x="68.392853"
@@ -11119,7 +11157,7 @@
     </g>
     <g
        id="g13121"
-       transform="translate(-46.21703,34.81998)">
+       transform="translate(-43.867444,320.16866)">
       <rect
          y="384.42349"
          x="311.22974"
@@ -14588,68 +14626,68 @@
            height="44.446712"
            x="13.131983"
            y="7.8644519" /></flowRegion><flowPara
-         id="flowPara15378">Q1. aaa</flowPara></flowRoot>    <g
-       id="g9105"
-       transform="translate(6.4613616,-1.7621893)">
-      <rect
-         y="-2.2345271"
-         x="20.717793"
-         height="76.400536"
-         width="456.58386"
-         id="rect11309-9"
-         style="fill:#ffffff;fill-opacity:0.78431373;stroke:#2a5ec1;stroke-width:4;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
-      <text
-         sodipodi:linespacing="125%"
-         id="text15380"
-         y="29.603035"
-         x="29.718279"
-         style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:'VL ゴシック';-inkscape-font-specification:'VL ゴシック'"
-         xml:space="preserve"><tspan
-           style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Noto Sans Japanese;-inkscape-font-specification:Noto Sans Japanese"
-           y="29.603035"
-           x="29.718279"
-           id="tspan15382"
-           sodipodi:role="line">質問1:体感震度はいくつでしたか？</tspan><tspan
-           style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Noto Sans Japanese;-inkscape-font-specification:Noto Sans Japanese"
-           y="64.603035"
-           x="29.718279"
-           sodipodi:role="line"
-           id="tspan6001">            (最大の瞬間)</tspan></text>
-      <text
-         xml:space="preserve"
-         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-         x="21.146275"
-         y="-96.585396"
-         id="text6003"
-         sodipodi:linespacing="125%"
-         transform="translate(-6.4613616,1.7621893)"><tspan
-           sodipodi:role="line"
-           id="tspan6005"
-           x="21.146275"
-           y="-96.585396">export at 90 dpi, by selecting Q1 and Q2 and &quot;export selection&quot;.</tspan></text>
-    </g>
+         id="flowPara15378">Q1. aaa</flowPara></flowRoot>    <rect
+       style="fill:#ffffff;fill-opacity:0.78431373;stroke:#2a5ec1;stroke-width:4;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect11309-9"
+       width="456.58386"
+       height="76.400536"
+       x="29.52874"
+       y="287.35196" />
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:'VL ゴシック';-inkscape-font-specification:'VL ゴシック'"
-       x="527.08752"
-       y="31.792568"
+       x="38.529228"
+       y="319.18951"
+       id="text15380"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan15382"
+         x="38.529228"
+         y="319.18951"
+         style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Noto Sans Japanese;-inkscape-font-specification:Noto Sans Japanese">質問1:体感震度はいくつでしたか？</tspan><tspan
+         id="tspan6001"
+         sodipodi:role="line"
+         x="38.529228"
+         y="354.18951"
+         style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Noto Sans Japanese;-inkscape-font-specification:Noto Sans Japanese">            (最大の瞬間)</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text6003"
+       y="194.76329"
+       x="23.495861"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="194.76329"
+         x="23.495861"
+         id="tspan6005"
+         sodipodi:role="line">export at 90 dpi, by selecting Q1 and Q2 and &quot;export selection&quot;.</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:'VL ゴシック';-inkscape-font-specification:'VL ゴシック'"
+       x="529.43713"
+       y="323.14124"
        id="text15380-3"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="527.08752"
-         y="31.792568"
+         x="529.43713"
+         y="323.14124"
          style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Noto Sans Japanese;-inkscape-font-specification:Noto Sans Japanese"
-         id="tspan15433">質問2:恐怖を感じましたか？</tspan></text>
+         id="tspan15433">質問2:恐怖を感じましたか？</tspan><tspan
+         sodipodi:role="line"
+         x="529.43713"
+         y="358.14124"
+         style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Noto Sans Japanese;-inkscape-font-specification:Noto Sans Japanese"
+         id="tspan6004">           (最大の瞬間)</tspan></text>
     <g
        id="g8952"
-       transform="translate(-33.284216,-200.45676)">
+       transform="translate(-30.93463,104.89192)">
       <rect
          y="280.2193"
          x="625.73004"
          height="37.857128"
          width="270.71429"
          id="rect11309-5-7-0"
-         style="fill:#ffffff;stroke:#33b540;stroke-width:3.99999976000000013;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:0.78431374" />
+         style="fill:#ffffff;fill-opacity:0.78431373;stroke:#33b540;stroke-width:3.99999976;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <flowRoot
          transform="translate(121.1134,221.44549)"
          style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -14684,7 +14722,7 @@
       </g>
     </g>
     <g
-       transform="translate(-33.284216,-151.2603)"
+       transform="translate(-30.93463,154.08838)"
        style="display:inline"
        id="g8952-8">
       <rect
@@ -14693,7 +14731,7 @@
          height="37.857128"
          width="270.71429"
          id="rect11309-5-7-0-0"
-         style="fill:#ffffff;stroke:#33b540;stroke-width:3.99999976000000013;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:0.78431374" />
+         style="fill:#ffffff;fill-opacity:0.78431373;stroke:#33b540;stroke-width:3.99999976;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <flowRoot
          transform="translate(121.1134,221.44549)"
          style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -14728,7 +14766,7 @@
       </g>
     </g>
     <g
-       transform="translate(-33.284216,-102.06386)"
+       transform="translate(-30.93463,203.28482)"
        style="display:inline"
        id="g8952-8-0">
       <rect
@@ -14737,7 +14775,7 @@
          height="37.857128"
          width="270.71429"
          id="rect11309-5-7-0-0-7"
-         style="fill:#ffffff;stroke:#33b540;stroke-width:3.99999976000000013;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:0.78431374" />
+         style="fill:#ffffff;fill-opacity:0.78431373;stroke:#33b540;stroke-width:3.99999976;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <flowRoot
          transform="translate(121.1134,221.44549)"
          style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -14772,7 +14810,7 @@
       </g>
     </g>
     <g
-       transform="translate(-33.284216,-52.867424)"
+       transform="translate(-30.93463,252.48125)"
        style="display:inline"
        id="g8952-8-2">
       <rect
@@ -14781,7 +14819,7 @@
          height="37.857128"
          width="270.71429"
          id="rect11309-5-7-0-0-2"
-         style="fill:#ffffff;stroke:#33b540;stroke-width:3.99999976000000013;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:0.78431374" />
+         style="fill:#ffffff;fill-opacity:0.78431373;stroke:#33b540;stroke-width:3.99999976;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <flowRoot
          transform="translate(121.1134,221.44549)"
          style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -14816,7 +14854,7 @@
       </g>
     </g>
     <g
-       transform="translate(-33.284216,-3.6710137)"
+       transform="translate(-30.93463,301.67766)"
        style="display:inline"
        id="g8952-8-05">
       <rect
@@ -14825,7 +14863,7 @@
          height="37.857128"
          width="270.71429"
          id="rect11309-5-7-0-0-8"
-         style="fill:#ffffff;stroke:#33b540;stroke-width:3.99999976000000013;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:0.78431374" />
+         style="fill:#ffffff;fill-opacity:0.78431373;stroke:#33b540;stroke-width:3.99999976;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <flowRoot
          transform="translate(121.1134,221.44549)"
          style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
