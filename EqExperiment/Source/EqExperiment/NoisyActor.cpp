@@ -30,10 +30,10 @@ ANoisyActor::ANoisyActor(const class FPostConstructInitializeProperties& PCIP)
 	StaticMeshComponent->OnComponentHit.AddDynamic(this, &ANoisyActor::OnHit);
 
 	// Lookup sound.
-	for (int i = 0; i < 25; i++) {
+	for (int i = 0; i < 12; i++) {
 		// TODO: Fix this
 		// WARNING: Encapsulation boundary breach!!
-		// "AutoLoaded", 25, "collision_%d" shouldn't belong here
+		// "AutoLoaded", 12, "collision_%d" shouldn't belong here
 		ConstructorHelpers::FObjectFinder<USoundWave> Sound(
 			*FString::Printf(TEXT("/Game/AutoLoaded/collision_%d.collision_%d"), i, i));
 		if (!Sound.Object) {
