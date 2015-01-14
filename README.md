@@ -60,7 +60,7 @@ Now move that scan- directory to somewhere accesible from UE4.
 
 Create new container from the image and run bash in it:
 ```
-sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer:/root/data xanxys/recon bash
+sudo docker run -ti -v (pwd):/root/local -v (pwd)/../capturer/proc_data:/root/data xanxys/recon bash
 ```
 
 Note that everytime you run this command (or `./run_local.sh`), a new
