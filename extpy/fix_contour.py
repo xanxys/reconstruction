@@ -286,7 +286,7 @@ class ContourAnalyzer(object):
         }
 
     def draw_ticks(self, ctx):
-        ctx.set_line_width(0.01)
+        ctx.set_line_width(0.02)
         ctx.new_path()
         ctx.set_source_rgba(1, 0, 0, 0.3)
         for v0 in self.ticks0:
@@ -307,7 +307,7 @@ class ContourAnalyzer(object):
     def draw_contour(self, ctx):
         # edges
         cos_thresh = math.cos(10 / 180 * math.pi)
-        ctx.set_line_width(0.01)
+        ctx.set_line_width(0.04)
         for (i, p0) in enumerate(self.points):
             p1 = self.points[(i + 1) % len(self.points)]
             ctx.new_path()
@@ -329,7 +329,7 @@ class ContourAnalyzer(object):
         ctx.set_source_rgb(0, 0, 0)
         for pt in self.points:
             ctx.new_sub_path()
-            ctx.arc(pt[0], pt[1], 0.03, 0, 2 * math.pi)
+            ctx.arc(pt[0], pt[1], 0.05, 0, 2 * math.pi)
         ctx.fill()
 
     def draw_grid_background(self, ctx, px_per_meter):
