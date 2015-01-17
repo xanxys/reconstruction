@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Prealignment hint generator</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.js"></script>
+
+
+    <script src="/static/TrackballControls.js"></script>
+  </head>
+  <body>
+    <div id="data_list"></div>
+    <ul id="scan_list">
+    </ul>
+
+    <div>
+      <label>X
+        <input id="s_tx" type="range" min="-5" max="5" step="0.01"/>
+      </label>
+      <label>Y
+        <input id="s_ty" type="range" min="-5" max="5" step="0.01"/>
+      </label>
+      <label>Z
+        <input id="s_tz" type="range" min="-5" max="5" step="0.01"/>
+      </label>
+
+      <label>Zrot
+        <input id="s_rz" type="range" min="0" max="360" step="1"/>
+      </label>
+    </div>
+
+    <script src="/static/view.js"></script>
+  </body>
+</html>
