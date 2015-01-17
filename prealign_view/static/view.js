@@ -193,6 +193,29 @@ Viewer.prototype.animate = function() {
 	this.controls.update();
 };
 
+Viewer.prototype.generate_hint = function() {
+	var _this = this;
+	var hint = {
+		"align_to": _this.data.scans[0].name
+	};
+
+	hint["initial_pose"] = _.map(_this.data.scans, function(scan, ix) {
+		var matrix = _this.scans[ix].matrix;
+		var mat = _.map(_.range(4), function(i) {
+			return _.map(_.range(4), function(j) {
+				return matrix.elements[j * 4 + i];
+			});
+		});
+		return {
+			"affine": mat,
+			"filename": scan.name + "/points.ply",
+			"scan_id": scan.name
+		};
+	});
+
+	return hint;
+};
+
 
 var viewer = new Viewer();
 viewer.animate();
@@ -222,6 +245,8 @@ var slider_ids = ["s_tx", "s_ty", "s_tz", "s_rz"];
 _.each(slider_ids, function(slider_id) {
 	$('#' + slider_id).mousemove(function() {
 		viewer.update_curr_pose(get_pose_sliders());
+		$('#hint').text(JSON.stringify(
+			viewer.generate_hint(), null, "  "));
 	});
 });
 
