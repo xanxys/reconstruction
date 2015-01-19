@@ -243,11 +243,13 @@ function load_data(name) {
 // Pose slider UI
 var slider_ids = ["s_tx", "s_ty", "s_tz", "s_rz"];
 _.each(slider_ids, function(slider_id) {
-	$('#' + slider_id).mousemove(function() {
+	var update = function() {
 		viewer.update_curr_pose(get_pose_sliders());
 		$('#hint').text(JSON.stringify(
 			viewer.generate_hint(), null, "  "));
-	});
+	};
+	$('#' + slider_id).mousemove(update);
+	$('#' + slider_id).change(update);
 });
 
 function get_pose_sliders() {

@@ -39,7 +39,7 @@ def api_data(name):
     for e in es:
         points = json.load(open(os.path.join(path, e, "points.json")))
         n_points = len(points)
-        sub_points = random.sample(points, n_points // 20)
+        sub_points = random.sample(points, n_points // 5)
         v_data["scans"].append({
             "cloud": sub_points,
             "name": e
