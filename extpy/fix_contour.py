@@ -116,16 +116,17 @@ class ContourAnalyzer(object):
 
         # When vertices snap to both X and Y axes,
         # they can end up exactly same to each other.
+        # Also, input data itself can contain two very clost
+        # points.
         # We remove it by set.
-        snapped_vs = set()
+        thresh = 0.05
         new_points = []
         new_flags = []
         for (pt, flag) in zip(points_snapped, flags_snapped):
-            pt_key = (float(pt[0]), float(pt[1]))
-            if pt_key in snapped_vs:
+            # is there a close point?
+            if any(la.norm(pt - p) < thresh for p in new_points):
                 continue
             else:
-                snapped_vs.add(pt_key)
                 new_points.append(pt)
                 new_flags.append(flag)
         flags_snapped = new_flags
@@ -166,7 +167,7 @@ class ContourAnalyzer(object):
                 # segment - residue
                 return i
             elif not (fp or fn):
-                return False
+                # return False
                 # non-orthogonal segment-segment
                 raise RuntimeError(
                     "Unknown type of segment-segment boundary")

@@ -217,8 +217,10 @@ std::vector<MiniCluster> splitEachScan(
 	INFO("Recognizing single scan", ccs.raw_scan.getScanId());
 	// Generate mesh that represents the wall. (with vertex normals)
 	const auto contour = rframe.getSimplifiedContour();
+	DEBUG("contour acquired");
 	TriangleMesh<std::nullptr_t> wrapping =
 		ExtrudedPolygonMesh(contour, rframe.getHRange()).getMesh();
+	DEBUG("wrapping created");
 
 	auto v3_to_point = [](const Eigen::Vector3f& v) {
 		return Point(v(0), v(1), v(2));
@@ -398,7 +400,7 @@ std::vector<MiniCluster> splitEachScan(
 			const Eigen::Vector3f normal_mean = normal_accum.normalized();
 			// reject ceiling clusters (don't use cluster size as signal,
 			// since some of them are small)
-			if(pos_accum.z() >= rframe.getHRange().second - 0.3) {
+			if(pos_mean.z() >= rframe.getHRange().second - 0.3) {
 				continue;
 			}
 
@@ -427,6 +429,7 @@ std::vector<MiniCluster> splitEachScan(
 			bundle.addDebugPointCloud("ps_clusters_" + ccs.raw_scan.getScanId(), colored_cloud);
 		}
 	}
+	INFO("#delta mcs=", (int)mini_clusters.size());
 	return mini_clusters;
 }
 

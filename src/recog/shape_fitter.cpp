@@ -32,6 +32,7 @@ std::tuple<
 ExtrudedPolygonMesh::ExtrudedPolygonMesh(
 		const std::vector<Eigen::Vector2f>& poly,
 		const std::pair<float, float>& h_range) {
+	assert(poly.size() >= 3);
 	// Create all vertices, as composition of CCW top ring
 	// and bottom ring.
 	std::vector<int> verts_bottom;
@@ -66,6 +67,7 @@ ExtrudedPolygonMesh::ExtrudedPolygonMesh(
 	// floor & ceiling are both inward facing, so
 	// when projected onto XY plane,
 	// floor looks CCW (identical to tris), ceiling CW (flipped).
+	DEBUG("Triangulating");
 	const auto tris = triangulatePolygon(poly);
 	auto append_cap = [&](const bool is_ceiling) {
 		std::vector<int> tri_ixs;
