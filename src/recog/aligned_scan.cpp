@@ -197,7 +197,9 @@ Json::Value AlignedScans::encodeAffine(const Eigen::Affine3f& affine) {
 
 Eigen::Affine3f AlignedScans::decodeAffine(const Json::Value& json, bool require_rigid) {
 	if(json.size() != 4) {
-		throw std::runtime_error("Invalid affine transform (#rows !=4)");
+		throw std::runtime_error(
+			"Invalid affine transform (#rows == " +
+			std::to_string(json.size()) + " !=4)");
 	}
 	Eigen::Matrix4f m;
 	for(int i : boost::irange(0, 4)) {

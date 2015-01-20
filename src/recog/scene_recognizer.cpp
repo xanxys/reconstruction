@@ -604,7 +604,13 @@ std::vector<std::set<int>> MCLinker::getResult() {
 		for(const auto& cc : unstable_ccs) {
 			float min_dist_to_stable = 1e10;
 			std::set<MCId> min_stable;
-			for(const auto cc_stable : stable_ccs) {
+			// No need to limit to stable_ccs.
+			// Because two unstable CCs can be stable when combined
+			// (imagine two orthogonal panes).
+			for(const auto cc_stable : ccs) {
+				if(cc_stable == cc) {
+					continue;  // avoid itself
+				}
 				const float dist = distanceBetween(cc, cc_stable);
 				if(dist >= min_dist_to_stable) {
 					continue;
