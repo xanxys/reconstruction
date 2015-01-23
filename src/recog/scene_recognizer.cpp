@@ -190,6 +190,11 @@ std::vector<Eigen::Vector3f> recognizeLights(
 	detector.detect(ceiling_gray, blobs);
 	INFO("Blobs for ceiling image, #=", (int)blobs.size());
 	for(const auto& blob : blobs) {
+		// Ignore NaN blob. It's an OpenCV bug
+		// http://code.opencv.org/issues/2927
+		if(std::isnan(blob.pt.x) || std::isnan(blob.pt.y)) {
+			continue;
+		}
 		Json::Value v;
 		v["size"] = blob.size;
 		v["pt"]["x"] = blob.pt.x;

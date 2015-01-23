@@ -167,7 +167,7 @@ class ContourAnalyzer(object):
                 # segment - residue
                 return i
             elif not (fp or fn):
-                # return False
+                return False
                 # non-orthogonal segment-segment
                 raise RuntimeError(
                     "Unknown type of segment-segment boundary")
