@@ -94,7 +94,7 @@ def read_wave_asset(path, freq=44100):
     return samples
 
 
-def split_collisions(sound, freq=44100, window_duration=0.01):
+def split_collisions(sound, freq=44100, window_duration=0.01, output_figure=False):
     """
     sound: [-1, 1] float array sound
     result: array of normalized, individual collisions
@@ -165,13 +165,23 @@ def split_collisions(sound, freq=44100, window_duration=0.01):
     logger.info("%d regions found", len(regions_merged))
 
     # visualize regions
-    # reg_v = sound.copy() * 0
-    # for (i0, i1) in regions_merged:
-    #     reg_v[i0:i1] = 0.5
-    # import matplotlib.pyplot as plt
-    # plt.plot(sound)
-    # plt.plot(reg_v)
-    # plt.show()
+    if output_figure:
+        import random
+        import matplotlib.pyplot as plt
+        reg_v = sound.copy() * 0
+        for (i0, i1) in regions_merged:
+            reg_v[i0:i1] = 0.5
+
+        ts = np.arange(len(sound)) / freq
+        fig, pl = plt.subplots(1, 1)
+        fig.set_size_inches(6, 4)
+        pl.plot(ts, sound)
+        pl.plot(ts, reg_v)
+        pl.set_xlabel("Time [s]")
+        pl.set_ylabel("Amplitude")
+        pl.grid()
+        fig.tight_layout()
+        fig.savefig("fig-collision-%02d.png" % random.randint(0, 99))
 
     # clip and normalize each region
     collisions = []
@@ -197,6 +207,9 @@ If a sound asset is stereo, only the first channel will be used.
     parser.add_argument(
         '--simulate', type=str, default=None,
         help='Output wave file path for soundscape simulation.')
+    parser.add_argument(
+        '--figure', action='store_true',
+        help='Output figures of sounds and detected regions.')
     parser.add_argument(
         '--gen', type=str, default=None,
         help='Output wave file path for soundscape simulation.')
@@ -237,7 +250,7 @@ If a sound asset is stereo, only the first channel will be used.
             path = os.path.join(args.sound_assets, e)
             logger.info('Reading wav from %s', path)
             asset = read_wave_asset(path, freq=base_freq)
-            sounds += split_collisions(asset)
+            sounds += split_collisions(asset, output_figure=args.figure)
 
         logger.info("%d total collisions found", len(sounds))
         for (i, sound) in enumerate(sounds):
