@@ -37,9 +37,9 @@ time build/recon --debug --convert \
 	../data/20140827-gakusei-small/scan-20140827-13:49-gakusei-small \
 	../data/20140827-gakusei-small/scan-20140827-13:53-gakusei-small \
 	../data/20140827-gakusei-small/scan-20140827-13:57-gakusei-small \
-	--hint hint-small-gakusei-20140827.json \
+	--hint hint-20140827-gakusei-small.json \
 	--sound collisions \
-	--output scene-small-gakusei
+	--output scene-gakusei-small
 
 # Unfortunately, it seems that 13:26 (current target)
 # doesn't align well with ALL OTHER scan in

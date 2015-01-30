@@ -850,7 +850,7 @@ void recognizeScene(SceneAssetBundle& bundle,
 
 	INFO("Approximating boundary shape by an extruded polygon");
 	const auto cloud_colorless = cast<pcl::PointXYZRGBNormal, pcl::PointXYZ>(points_merged);
-	const auto extrusion = fitExtrudedPolygon(cloud_colorless);
+	const auto extrusion = fitExtrudedPolygon(bundle, cloud_colorless);
 	auto room_polygon = std::get<0>(extrusion);
 	auto room_hrange = std::get<1>(extrusion);
 

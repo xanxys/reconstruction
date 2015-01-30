@@ -8,6 +8,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <recog//scene_asset_bundle.h>
 #include <visual/triangle_mesh.h>
 
 namespace recon {
@@ -19,7 +20,9 @@ namespace recon {
 std::tuple<
 	std::vector<Eigen::Vector2f>,
 	std::pair<float, float>
-	> fitExtrudedPolygon(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+	> fitExtrudedPolygon(
+		SceneAssetBundle& bundle,
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 
 class ExtrudedPolygonMesh {
@@ -60,7 +63,9 @@ bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points);
 bool isSaneSimplePolygon(const std::vector<Eigen::Vector2f>& points, const float eps = 1e-3);
 
 // Extract XY 2D concave polygon. (CCW)
-std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+std::vector<Eigen::Vector2f> extractPolygon2D(
+	SceneAssetBundle& bundle,
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 // Extract Z range
 std::pair<float, float> extractHeightRange(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);

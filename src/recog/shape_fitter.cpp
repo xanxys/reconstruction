@@ -12,6 +12,7 @@
 #include <boost/range/irange.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <jsoncpp/json/json.h>
 #include <pcl/point_types.h>
 
 #include <geom/triangulation.h>
@@ -23,8 +24,10 @@ namespace recon {
 std::tuple<
 	std::vector<Eigen::Vector2f>,
 	std::pair<float, float>>
-		fitExtrudedPolygon(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-	const auto poly = extractPolygon2D(cloud);
+		fitExtrudedPolygon(
+			SceneAssetBundle& bundle,
+			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+	const auto poly = extractPolygon2D(bundle, cloud);
 	const auto h_range = extractHeightRange(cloud);
 	return std::make_tuple(poly, h_range);
 }
@@ -138,7 +141,9 @@ bool isPolygonCCW(const std::vector<Eigen::Vector2f>& points) {
 	return area > 0;
 }
 
-std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+std::vector<Eigen::Vector2f> extractPolygon2D(
+		SceneAssetBundle& bundle,
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 	if(cloud->points.size() < 1000) {
 		WARN("Number of points might be too small for polygon extraction", (int)cloud->points.size());
 	}
@@ -174,6 +179,18 @@ std::vector<Eigen::Vector2f> extractPolygon2D(pcl::PointCloud<pcl::PointXYZ>::Pt
 				Eigen::Vector2f(0, 0)) / tile.second.size());
 	}
 	INFO("Rejected tiles:", n_reject, "of", (int)tiles.size());
+
+	if(bundle.isDebugEnabled()) {
+		Json::Value points_json;
+		for(const auto& point : points_downsampled) {
+			Json::Value point_json;
+			point_json["x"] = point.x();
+			point_json["y"] = point.y();
+			points_json.append(point_json);
+		}
+		std::ofstream fs(bundle.reservePath("points_before_contour.json"));
+		fs << Json::FastWriter().write(points_json);
+	}
 
 	return calculateConcaveHull(points_downsampled, 20);
 }
