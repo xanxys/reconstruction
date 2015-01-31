@@ -54,9 +54,22 @@ reconstruction uses docker to build and run.
 Now move that scan- directory to somewhere accesible from UE4.
 
 1. Launch ExExperiment UE4 project
-2. Drag&Drop all files into Game/Auto (Contents Browser), optionally click through "degenerate tangent base" errors
-3. Click Import Earthquake
-4. You should have all actors placed nicely in the scene
+2. Click "Import Earthquake" button and select exp pack metadata (it's a json file), answer "yes", "overwrite" to all dialogs
+3. Lights and boundary are imported
+4. (Optional) adjust avatar chair (a white block) and avatar warp point so that objects won't explode when you warp-in.
+5. Run it and objects are loaded at run-time
+
+Shortcut Keys
+
+* 1: Session 1
+* 2: Session 2
+* 3: Session 3
+* 0: Reset objects
+* z: warp-out
+* x: warp-in
+* c: show next question
+
+Also, debug command line launched by pressing Tab is super useful.
 
 Create new container from the image and run bash in it:
 ```
