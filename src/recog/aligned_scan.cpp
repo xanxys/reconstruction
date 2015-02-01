@@ -291,6 +291,9 @@ void AlignedScans::createPoseTree(SceneAssetBundle& bundle, const std::vector<Si
 	}
 	DEBUG("closeness matrix", rows);
 
+	//
+	INFO("END CLOSENESS");
+	assert(false);
 	// do hierarchical aggregation.
 	// will be O(N^2) + small constant * O(N^3)
 	// O(N^3) can be removed by some clever data structure,
