@@ -143,6 +143,7 @@ std::vector<MiniCluster> splitEachScan(
 
 // Takes several scans of a single room as input (in unordered way),
 // and populate given SceneAsssetBundle.
+// hint is nullable.
 void recognizeScene(
 	SceneAssetBundle& bundle, const std::vector<SingleScan>& scans,
 	const Json::Value& hint);

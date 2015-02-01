@@ -136,11 +136,18 @@ AlignedScans::AlignedScans(SceneAssetBundle& bundle,
 		const std::vector<SingleScan>& scans,
 		const Json::Value& hint) {
 	assert(!scans.empty());
-	loadInitialPoses(hint["initial_pose"], scans);
 	if(bundle.hasAlignmentCheckpoint()) {
-		loadCheckpoint(bundle.getAlignmentCheckpoint());
+		loadCheckpoint(bundle.getAlignmentCheckpoint(), scans);
 	} else {
-		finealignToTarget(hint["align_to"].asString());
+		if(hint.isNull()) {
+			INFO("Starting automatic global alignment (may fail)");
+			createPoseTree(bundle, scans);
+			INFO("Ending automatic global alignment (may fail)");
+		} else {
+			INFO("Loading hint, omitting automatic global alignment");
+			loadInitialPoses(hint["initial_pose"], scans);
+			finealignToTarget(hint["align_to"].asString());
+		}
 		assert(scans.size() == scans_with_pose.size());
 		bundle.setAlignmentCheckpoint(saveCheckpoint());
 	}
@@ -156,13 +163,16 @@ Json::Value AlignedScans::saveCheckpoint() const {
 	return cp;
 }
 
-void AlignedScans::loadCheckpoint(const Json::Value& cp) {
-	for(auto& swp : scans_with_pose) {
-		std::get<1>(swp) = decodeAffine(cp[std::get<0>(swp).getScanId()]);
+void AlignedScans::loadCheckpoint(const Json::Value& cp, const std::vector<SingleScan>& scans) {
+	assert(scans_with_pose.empty());
+	for(const auto& scan : scans) {
+		scans_with_pose.push_back(std::make_tuple(
+			scan, decodeAffine(cp[scan.getScanId()]), Eigen::Vector3f(1, 1, 1)));
 	}
 }
 
 void AlignedScans::loadInitialPoses(const Json::Value& initial_pose, const std::vector<SingleScan>& scans) {
+	assert(scans_with_pose.empty());
 	// Load pose json (scan_id -> local_to_world)
 	std::map<std::string, Eigen::Affine3f> poses;
 	{
@@ -254,7 +264,7 @@ void AlignedScans::finealignToTarget(const std::string& fine_align_target_id) {
 	scans_with_pose = std::move(new_scans_with_pose);
 }
 
-void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const {
+void AlignedScans::createPoseTree(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const {
 	const int n = scans.size();
 	INFO("Calculating point cloud closeness matrix");
 	Eigen::MatrixXf closeness(n, n);
@@ -304,6 +314,8 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 		}
 	}
 	// merge until only one node remains.
+	// TODO: upon close inspection, this is actually Prim's algorithm.
+	// Split it from here.
 	int count_merge = 0;
 	while(remaining.size() > 1) {
 		const auto best_pair_org = std::min_element(sparse_dist.begin(), sparse_dist.end(),
@@ -360,9 +372,6 @@ void AlignedScans::createClosenessMatrix(SceneAssetBundle& bundle, const std::ve
 		}
 	}
 	assert(remaining.size() == 1);
-}
-
-void AlignedScans::hierarchicalMerge(const std::vector<SingleScan>& scans) {
 }
 
 void AlignedScans::correctColor() {

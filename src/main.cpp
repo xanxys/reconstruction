@@ -42,8 +42,7 @@ int main(int argc, char** argv) {
 			return -1;
 		}
 		if(vars.count("hint") == 0) {
-			std::cerr << "--hint is required" << std::endl;
-			return -1;
+			INFO("--hint not specified, but beware of failure in automatic global alignment");
 		}
 		if(vars.count("sound") == 0) {
 			WARN("--sound not specified, collision sound will NOT be generated");
@@ -56,9 +55,9 @@ int main(int argc, char** argv) {
 		for(const auto& dir_path : dir_paths) {
 			scans.emplace_back(dir_path);
 		}
-		// Load hint.
-		Json::Value hint;
-		{
+		// Load hint if given.
+		Json::Value hint;  // == null
+		if(vars.count("hint") > 0) {
 			Json::Reader reader;
 			std::ifstream test(vars["hint"].as<std::string>());
 			const bool success = reader.parse(test, hint, false);

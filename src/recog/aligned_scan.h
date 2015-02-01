@@ -64,6 +64,7 @@ public:
 class AlignedScans {
 public:
 	// Create aligned scan from unaligned scans. (slow, takes a few minutes)
+	// hint is nullable, in that case, automatic global alignment is attempted.
 	AlignedScans(SceneAssetBundle& bundle,
 		const std::vector<SingleScan>& scans,
 		const Json::Value& hint);
@@ -79,7 +80,7 @@ public:
 	// pose (de)serialization for checkpointing.
 	// This checkpoint doesn't include color correction or leveling.
 	Json::Value saveCheckpoint() const;
-	void loadCheckpoint(const Json::Value& cp);
+	void loadCheckpoint(const Json::Value& cp, const std::vector<SingleScan>& scans);
 
 	// (row-major, whole-matrix encoding).
 	static Json::Value encodeAffine(const Eigen::Affine3f& affine);
@@ -91,8 +92,7 @@ private:
 	// Do finealignment to target scan id. (pose target of will not change)
 	void finealignToTarget(const std::string& fine_align_target_id);
 
-	void createClosenessMatrix(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const;
-	void hierarchicalMerge(const std::vector<SingleScan>& scans);
+	void createPoseTree(SceneAssetBundle& bundle, const std::vector<SingleScan>& scans) const;
 
 	// Calculate a rough transform from source to target by heuristics.
 	static Eigen::Affine3f prealign(const SingleScan& target, const SingleScan& source);
